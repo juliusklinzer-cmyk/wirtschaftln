@@ -1,0 +1,16 @@
+/* ============================================================
+   Wirtschaftln — Webfonts
+   ------------------------------------------------------------
+   SUBSTITUTION NOTE: No brand font files were provided. These
+   Google Fonts approximate the brand's intent:
+     • Manrope        → "modern Apple" UI/body voice (clean,
+                         geometric-humanist, à la SF Pro).
+     • Pirata One     → "altbayrisch" blackletter accent for the
+                         wordmark, badges & ceremonial headers,
+                         echoing the Fraktur on the club crest.
+     • Libre Caslon Text → editorial serif for quotes / mottos
+                         ("Oiwei anders. Oiwei dahoam.").
+   Replace with licensed brand fonts when available.
+   ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Pirata+One&family=Libre+Caslon+Text:ital@0;1&display=swap');

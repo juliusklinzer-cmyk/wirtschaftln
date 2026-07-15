@@ -1,0 +1,59 @@
+/* ============================================================
+   Wirtschaftln — Brand patterns & helper classes
+   The Bavarian Raute (rhombus), parchment grain, gold hairlines.
+   These are real, shippable utilities — not tokens.
+   ============================================================ */
+
+/* ---- Bayrische Raute: the blue-white diamond flag pattern ----
+   Use as a band, header strip, or full background. */
+.wn-raute {
+  background-color: var(--raute-weiss);
+  background-image:
+    linear-gradient(135deg, var(--raute-blau) 25%, transparent 25%),
+    linear-gradient(225deg, var(--raute-blau) 25%, transparent 25%),
+    linear-gradient(45deg,  var(--raute-blau) 25%, transparent 25%),
+    linear-gradient(315deg, var(--raute-blau) 25%, transparent 25%);
+  background-position: 18px 0, 18px 0, 0 0, 0 0;
+  background-size: 36px 36px;
+  background-repeat: repeat;
+}
+/* Smaller trim version for thin bands */
+.wn-raute--sm {
+  background-size: 22px 22px;
+  background-position: 11px 0, 11px 0, 0 0, 0 0;
+}
+
+/* ---- Parchment surface with subtle warmth ---- */
+.wn-parchment {
+  background-color: var(--pergament);
+  background-image:
+    radial-gradient(120% 100% at 50% 0%, rgba(255,255,255,0.6) 0%, transparent 60%),
+    radial-gradient(80% 60% at 100% 100%, rgba(208,173,102,0.10) 0%, transparent 70%);
+}
+
+/* ---- Gold hairline rule (ceremonial divider) ---- */
+.wn-rule-gold {
+  height: 1px;
+  border: 0;
+  background: linear-gradient(90deg, transparent, var(--gold) 18%, var(--gold) 82%, transparent);
+}
+
+/* ---- Fraktur accent helper ---- */
+.wn-fraktur {
+  font-family: var(--font-fraktur);
+  font-weight: 400;
+  letter-spacing: 0.01em;
+}
+
+/* ---- Eyebrow label ---- */
+.wn-eyebrow {
+  font-family: var(--font-ui);
+  font-weight: var(--fw-bold);
+  font-size: var(--fs-xs);
+  letter-spacing: var(--ls-eyebrow);
+  text-transform: uppercase;
+  color: var(--text-gold);
+}
+
+/* ---- Tabular numerals for stats ---- */
+.wn-tnum { font-variant-numeric: tabular-nums; }

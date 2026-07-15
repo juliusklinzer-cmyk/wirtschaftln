@@ -1,0 +1,28 @@
+<!-- @dsCard group="Components" viewport="700x300" name="Forms — Inputs & Switches" subtitle="Text fields with states, toggles" -->
+<!DOCTYPE html><html lang="de"><head><meta charset="utf-8"><link rel="stylesheet" href="../../styles.css">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<style>body{margin:0;font-family:var(--font-ui);background:var(--ink-50);padding:22px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px 20px}</style>
+</head><body><div id="root"></div>
+<script type="text/babel">
+const { Input, Switch } = window.WirtschaftlnDesignSystem_7e7aff;
+function Demo(){
+  const [v,setV]=React.useState('Augustiner-Keller');
+  const [a,setA]=React.useState(true);
+  const [b,setB]=React.useState(false);
+  return (<div className="grid">
+    <Input label="Wirtshaus" value={v} onChange={e=>setV(e.target.value)} iconLeft="🍺" hint="Noch nie besucht?" />
+    <Input label="Datum" value="Do, 11. Juli · 19:00" onChange={()=>{}} iconLeft="📅" />
+    <Input label="Reservierung auf" placeholder="Name eingeben…" onChange={()=>{}} />
+    <Input label="Hoibe-Preis" value="abc" onChange={()=>{}} error="Bitte eine Zahl eingeben" />
+    <div style={{display:'flex',flexDirection:'column',gap:12,justifyContent:'center'}}>
+      <Switch checked={a} onChange={setA} label="Erinnerung 24 h vorher" />
+      <Switch checked={b} onChange={setB} tone="gold" label="Hoibe-Zähler anzeigen" />
+    </div>
+  </div>);
+}
+ReactDOM.createRoot(document.getElementById('root')).render(<Demo/>);
+</script>
+</body></html>

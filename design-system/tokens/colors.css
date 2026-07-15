@@ -1,0 +1,77 @@
+/* ============================================================
+   Wirtschaftln — Color tokens
+   Münchner Blau · Augustiner Gold · Pergament · Bavarian White
+   ============================================================ */
+:root {
+  /* ---- Brand core ---- */
+  --muc-blau: #006AB3;          /* Hauptfarbe — Munich blue */
+  --muc-blau-600: #0059A0;
+  --muc-blau-700: #004A89;
+  --navy: #0C2B5A;              /* deep crest navy */
+  --navy-800: #0A2249;
+  --navy-900: #07193A;          /* darkest — app shell, podiums */
+
+  --gold: #D0AD66;             /* Augustiner gold accent */
+  --gold-600: #BE9A52;
+  --gold-700: #A6843E;
+  --gold-bright: #E6C684;      /* highlight on dark */
+
+  --weiss: #FFFFFF;            /* Weiß */
+
+  /* ---- Pergament / parchment warmth (altbayrisch) ---- */
+  --pergament: #F6F0E2;        /* warm cream surface */
+  --pergament-2: #EFE6D2;      /* deeper cream */
+  --pergament-edge: #E2D5B8;   /* cream hairline */
+
+  /* ---- Neutral ramp (cool slate, Apple-clean) ---- */
+  --ink-900: #14181F;          /* near-black text */
+  --ink-700: #2C3A4B;
+  --ink-500: #5A6B7E;          /* muted body */
+  --ink-300: #94A3B4;          /* placeholder / disabled */
+  --ink-200: #C7D0DA;          /* hairline on light */
+  --ink-100: #E4E9EF;          /* light divider */
+  --ink-50:  #F2F5F8;          /* app background */
+
+  /* ---- Bavarian rhombus (flag) ---- */
+  --raute-blau: #006AB3;
+  --raute-weiss: #FFFFFF;
+
+  /* ---- Semantic ---- */
+  --erfolg: #2E8B57;           /* zugesagt / present — loden green */
+  --erfolg-bg: #E4F1E9;
+  --warnung: #D9A21B;          /* unsicher / pending */
+  --warnung-bg: #FBF1D6;
+  --strafe: #C0392B;           /* Vereinskasse penalty — red */
+  --strafe-bg: #FBE7E4;
+  --info: var(--muc-blau);
+  --info-bg: #E1EFF8;
+
+  /* ======================================================
+     Semantic aliases — reference these in components
+     ====================================================== */
+  --bg-app: var(--ink-50);
+  --bg-app-dark: var(--navy-900);
+  --surface-card: var(--weiss);
+  --surface-raised: var(--weiss);
+  --surface-sunken: var(--ink-50);
+  --surface-parchment: var(--pergament);
+  --surface-brand: var(--muc-blau);
+  --surface-brand-dark: var(--navy);
+
+  --text-strong: var(--ink-900);
+  --text-body: var(--ink-700);
+  --text-muted: var(--ink-500);
+  --text-faint: var(--ink-300);
+  --text-on-brand: var(--weiss);
+  --text-on-dark: var(--pergament);
+  --text-gold: var(--gold-700);
+
+  --border-hair: var(--ink-100);
+  --border-soft: var(--ink-200);
+  --border-gold: var(--gold);
+  --border-on-dark: rgba(208,173,102,0.30);
+
+  --accent: var(--gold);
+  --accent-strong: var(--gold-700);
+  --focus-ring: var(--muc-blau);
+}

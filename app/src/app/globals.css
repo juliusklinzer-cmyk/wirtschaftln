@@ -1,0 +1,264 @@
+/* ============================================================
+   Wirtschaftln — Design-Tokens & Basis-Styles
+   Portiert aus design-system/tokens (Quelle der Wahrheit fürs
+   Branding). Fonts kommen self-hosted über Fontsource (layout.tsx).
+   ============================================================ */
+
+:root {
+  /* ---- Brand core ---- */
+  --muc-blau: #006AB3;
+  --muc-blau-600: #0059A0;
+  --muc-blau-700: #004A89;
+  --navy: #0C2B5A;
+  --navy-800: #0A2249;
+  --navy-900: #07193A;
+
+  --gold: #D0AD66;
+  --gold-600: #BE9A52;
+  --gold-700: #A6843E;
+  --gold-bright: #E6C684;
+
+  --weiss: #FFFFFF;
+
+  /* ---- Pergament ---- */
+  --pergament: #F6F0E2;
+  --pergament-2: #EFE6D2;
+  --pergament-edge: #E2D5B8;
+
+  /* ---- Neutral ramp ---- */
+  --ink-900: #14181F;
+  --ink-700: #2C3A4B;
+  --ink-500: #5A6B7E;
+  --ink-300: #94A3B4;
+  --ink-200: #C7D0DA;
+  --ink-100: #E4E9EF;
+  --ink-50:  #F2F5F8;
+
+  /* ---- Bayrische Raute ---- */
+  --raute-blau: #006AB3;
+  --raute-weiss: #FFFFFF;
+
+  /* ---- Semantic ---- */
+  --erfolg: #2E8B57;
+  --erfolg-bg: #E4F1E9;
+  --warnung: #D9A21B;
+  --warnung-bg: #FBF1D6;
+  --strafe: #C0392B;
+  --strafe-bg: #FBE7E4;
+  --info: var(--muc-blau);
+  --info-bg: #E1EFF8;
+
+  /* ---- Semantic aliases ---- */
+  --bg-app: var(--ink-50);
+  --bg-app-dark: var(--navy-900);
+  --surface-card: var(--weiss);
+  --surface-raised: var(--weiss);
+  --surface-sunken: var(--ink-50);
+  --surface-parchment: var(--pergament);
+  --surface-brand: var(--muc-blau);
+  --surface-brand-dark: var(--navy);
+
+  --text-strong: var(--ink-900);
+  --text-body: var(--ink-700);
+  --text-muted: var(--ink-500);
+  --text-faint: var(--ink-300);
+  --text-on-brand: var(--weiss);
+  --text-on-dark: var(--pergament);
+  --text-gold: var(--gold-700);
+
+  --border-hair: var(--ink-100);
+  --border-soft: var(--ink-200);
+  --border-gold: var(--gold);
+  --border-on-dark: rgba(208, 173, 102, 0.30);
+
+  --accent: var(--gold);
+  --accent-strong: var(--gold-700);
+  --focus-ring: var(--muc-blau);
+
+  /* ---- Typography ---- */
+  --font-ui: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-fraktur: 'Pirata One', 'UnifrakturCook', serif;
+  --font-quote: 'Libre Caslon Text', Georgia, serif;
+  --font-mono: ui-monospace, 'SF Mono', Menlo, monospace;
+
+  --fw-regular: 400;
+  --fw-medium: 500;
+  --fw-semibold: 600;
+  --fw-bold: 700;
+  --fw-extrabold: 800;
+
+  --fs-display: 56px;
+  --fs-h1: 40px;
+  --fs-h2: 30px;
+  --fs-h3: 23px;
+  --fs-h4: 19px;
+  --fs-body-lg: 17px;
+  --fs-body: 15px;
+  --fs-sm: 13px;
+  --fs-xs: 11px;
+
+  --fs-fraktur-xl: 48px;
+  --fs-fraktur-lg: 34px;
+  --fs-fraktur-md: 24px;
+
+  --lh-tight: 1.05;
+  --lh-snug: 1.25;
+  --lh-normal: 1.5;
+  --lh-relaxed: 1.65;
+
+  --ls-tight: -0.02em;
+  --ls-normal: 0;
+  --ls-eyebrow: 0.14em;
+  --ls-wide: 0.04em;
+
+  /* ---- Spacing (8-pt Grid, 4-pt Halbschritt) ---- */
+  --sp-0: 0;
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 20px;
+  --sp-6: 24px;
+  --sp-8: 32px;
+  --sp-10: 40px;
+  --sp-12: 48px;
+  --sp-16: 64px;
+  --sp-20: 80px;
+
+  --container-app: 440px;
+  --container-content: 720px;
+  --container-wide: 1080px;
+
+  --gutter: var(--sp-5);
+  --stack: var(--sp-4);
+  --inset-card: var(--sp-5);
+
+  /* ---- Effects ---- */
+  --r-xs: 6px;
+  --r-sm: 10px;
+  --r-md: 14px;
+  --r-lg: 20px;
+  --r-xl: 28px;
+  --r-pill: 999px;
+
+  --bw-hair: 1px;
+  --bw-thick: 2px;
+  --bw-gold: 1.5px;
+
+  --sh-xs: 0 1px 2px rgba(12, 43, 90, 0.06);
+  --sh-sm: 0 2px 6px rgba(12, 43, 90, 0.08);
+  --sh-md: 0 6px 18px rgba(12, 43, 90, 0.10);
+  --sh-lg: 0 14px 36px rgba(12, 43, 90, 0.14);
+  --sh-gold: 0 6px 18px rgba(166, 132, 62, 0.28);
+  --sh-inset: inset 0 1px 0 rgba(255, 255, 255, 0.5);
+
+  --ring: 0 0 0 3px rgba(0, 106, 179, 0.32);
+  --ring-gold: 0 0 0 3px rgba(208, 173, 102, 0.40);
+
+  --ease-standard: cubic-bezier(0.32, 0.72, 0, 1);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --dur-fast: 120ms;
+  --dur-base: 220ms;
+  --dur-slow: 360ms;
+
+  --grad-gold: linear-gradient(180deg, #E6C684 0%, #D0AD66 45%, #A6843E 100%);
+  --grad-blau: linear-gradient(160deg, #0E7BC4 0%, #006AB3 55%, #004A89 100%);
+  --grad-navy: linear-gradient(180deg, #123E78 0%, #0C2B5A 60%, #07193A 100%);
+}
+
+/* ============================================================
+   Basis
+   ============================================================ */
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
+
+body {
+  background: var(--bg-app);
+  color: var(--text-body);
+  font-family: var(--font-ui);
+  font-size: var(--fs-body);
+  line-height: var(--lh-normal);
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+}
+
+button {
+  font-family: var(--font-ui);
+}
+
+/* ============================================================
+   Brand-Patterns & Helper (aus tokens/patterns.css)
+   ============================================================ */
+.wn-raute {
+  background-color: var(--raute-weiss);
+  background-image:
+    linear-gradient(135deg, var(--raute-blau) 25%, transparent 25%),
+    linear-gradient(225deg, var(--raute-blau) 25%, transparent 25%),
+    linear-gradient(45deg, var(--raute-blau) 25%, transparent 25%),
+    linear-gradient(315deg, var(--raute-blau) 25%, transparent 25%);
+  background-position: 18px 0, 18px 0, 0 0, 0 0;
+  background-size: 36px 36px;
+  background-repeat: repeat;
+}
+
+.wn-raute--sm {
+  background-size: 22px 22px;
+  background-position: 11px 0, 11px 0, 0 0, 0 0;
+}
+
+.wn-parchment {
+  background-color: var(--pergament);
+  background-image:
+    radial-gradient(120% 100% at 50% 0%, rgba(255, 255, 255, 0.6) 0%, transparent 60%),
+    radial-gradient(80% 60% at 100% 100%, rgba(208, 173, 102, 0.10) 0%, transparent 70%);
+}
+
+.wn-rule-gold {
+  height: 1px;
+  border: 0;
+  background: linear-gradient(90deg, transparent, var(--gold) 18%, var(--gold) 82%, transparent);
+}
+
+.wn-fraktur {
+  font-family: var(--font-fraktur);
+  font-weight: 400;
+  letter-spacing: 0.01em;
+}
+
+.wn-eyebrow {
+  font-family: var(--font-ui);
+  font-weight: var(--fw-bold);
+  font-size: var(--fs-xs);
+  letter-spacing: var(--ls-eyebrow);
+  text-transform: uppercase;
+  color: var(--text-gold);
+}
+
+.wn-tnum {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Toast-Einblendung */
+@keyframes wn-toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.wn-toast-in {
+  animation: wn-toast-in var(--dur-base) var(--ease-spring);
+}

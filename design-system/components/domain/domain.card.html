@@ -1,0 +1,45 @@
+<!-- @dsCard group="Components" viewport="700x560" name="Domain — Members, Taverns, Kasse" subtitle="PersonCard, WirtshausCard, BeerCounter, VotePill, RankRow, KasseEntry" -->
+<!DOCTYPE html><html lang="de"><head><meta charset="utf-8"><link rel="stylesheet" href="../../styles.css">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<style>body{margin:0;font-family:var(--font-ui);background:var(--ink-50);padding:22px}.cols{display:grid;grid-template-columns:200px 1fr;gap:18px}.stack{display:flex;flex-direction:column;gap:12px}.lbl{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-500);margin:0 0 8px}</style>
+</head><body><div id="root"></div>
+<script type="text/babel">
+const { PersonCard, WirtshausCard, BeerCounter, VotePill, RankRow, KasseEntry } = window.WirtschaftlnDesignSystem_7e7aff;
+const P='https://i.pravatar.cc/160?img=';
+const TAV='https://images.unsplash.com/photo-1571805618149-c5a3ffc8e2f2?w=600&q=70';
+function Demo(){
+  const [mass,setMass]=React.useState(3);
+  const [vote,setVote]=React.useState('zu');
+  return (<div>
+    <div className="cols">
+      <PersonCard name="Sepp Brunner" photo={P+'12'} amt="Bierwart" abende={38} mass={128} wirtshaeuser={9} ring />
+      <div className="stack">
+        <PersonCard layout="row" name="Resi Gruber" photo={P+'45'} amt="Kassenwartin" abende={34} mass={96} wirtshaeuser={9} ring />
+        <PersonCard layout="row" name="Hans Huber" photo={P+'33'} since="2019" abende={30} mass={88} wirtshaeuser={8} />
+      </div>
+    </div>
+    <div className="cols" style={{marginTop:18}}>
+      <WirtshausCard name="Augustiner-Keller" photo={TAV} bezirk="Maxvorstadt" rating={4.6} besuchtAm="11. Apr 2026" />
+      <div className="stack">
+        <BeerCounter value={mass} onChange={setMass} />
+        <VotePill value={vote} onChange={setVote} />
+      </div>
+    </div>
+    <div className="cols" style={{marginTop:18}}>
+      <div><p className="lbl">Leaderboard</p><div className="stack" style={{gap:2}}>
+        <RankRow rank={1} name="Sepp Brunner" photo={P+'12'} value={128} amt="Bierwart" />
+        <RankRow rank={2} name="Resi Gruber" photo={P+'45'} value={96} me />
+      </div></div>
+      <div><p className="lbl">Vereinskasse</p><div className="stack">
+        <KasseEntry name="Toni Wimmer" photo={P+'8'} grund="Zugesagt & nicht erschienen" betrag={-10} datum="11. Apr" />
+        <KasseEntry name="Resi Gruber" photo={P+'45'} grund="Strafe beglichen" betrag={10} datum="12. Apr" paid />
+      </div></div>
+    </div>
+  </div>);
+}
+ReactDOM.createRoot(document.getElementById('root')).render(<Demo/>);
+</script>
+</body></html>

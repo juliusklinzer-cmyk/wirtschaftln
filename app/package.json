@@ -1,0 +1,32 @@
+{
+  "name": "app",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "db:generate": "drizzle-kit generate",
+    "db:seed": "node scripts/seed.ts",
+    "db:demo": "node scripts/demo.ts"
+  },
+  "dependencies": {
+    "@fontsource/libre-caslon-text": "^5.2.7",
+    "@fontsource/manrope": "^5.2.8",
+    "@fontsource/pirata-one": "^5.2.8",
+    "better-sqlite3": "^12.11.1",
+    "drizzle-orm": "^0.45.2",
+    "maplibre-gl": "^5.24.0",
+    "next": "16.2.10",
+    "react": "19.2.4",
+    "react-dom": "19.2.4"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "drizzle-kit": "^0.31.10",
+    "typescript": "^5"
+  }
+}

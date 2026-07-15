@@ -1,0 +1,28 @@
+/* ============================================================
+   Wirtschaftln — Spacing & layout tokens
+   8-pt base grid with a 4-pt half-step.
+   ============================================================ */
+:root {
+  --sp-0: 0;   /* @kind spacing */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 20px;
+  --sp-6: 24px;
+  --sp-8: 32px;
+  --sp-10: 40px;
+  --sp-12: 48px;
+  --sp-16: 64px;
+  --sp-20: 80px;
+
+  /* ---- Container widths ---- */
+  --container-app: 440px;     /* mobile app frame */
+  --container-content: 720px;
+  --container-wide: 1080px;
+
+  /* ---- Component rhythm ---- */
+  --gutter: var(--sp-5);
+  --stack: var(--sp-4);
+  --inset-card: var(--sp-5);
+}

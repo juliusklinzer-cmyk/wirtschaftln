@@ -1,0 +1,18 @@
+<!-- @dsCard group="Colors" viewport="700x160" name="Semantik" subtitle="Status colors — zugesagt, unsicher, Strafe, info" -->
+<!DOCTYPE html><html lang="de"><head><meta charset="utf-8"><link rel="stylesheet" href="../styles.css">
+<style>
+  body{margin:0;font-family:var(--font-ui);background:var(--weiss);padding:18px}
+  .row{display:flex;gap:10px}
+  .sw{flex:1;border-radius:var(--r-md);padding:10px;box-sizing:border-box;height:100px;display:flex;flex-direction:column;justify-content:space-between}
+  .dot{width:20px;height:20px;border-radius:var(--r-pill)}
+  .name{font-size:12px;font-weight:700}
+  .hex{font-size:10px;font-variant-numeric:tabular-nums;opacity:.75}
+</style></head>
+<body>
+  <div class="row">
+    <div class="sw" style="background:var(--erfolg-bg)"><div class="dot" style="background:var(--erfolg)"></div><div><div class="name" style="color:var(--erfolg)">Zugesagt</div><div class="hex" style="color:var(--erfolg)">#2E8B57</div></div></div>
+    <div class="sw" style="background:var(--warnung-bg)"><div class="dot" style="background:var(--warnung)"></div><div><div class="name" style="color:var(--warnung)">Unsicher</div><div class="hex" style="color:var(--warnung)">#D9A21B</div></div></div>
+    <div class="sw" style="background:var(--strafe-bg)"><div class="dot" style="background:var(--strafe)"></div><div><div class="name" style="color:var(--strafe)">Strafe</div><div class="hex" style="color:var(--strafe)">#C0392B</div></div></div>
+    <div class="sw" style="background:var(--info-bg)"><div class="dot" style="background:var(--info)"></div><div><div class="name" style="color:var(--info)">Info</div><div class="hex" style="color:var(--info)">#006AB3</div></div></div>
+  </div>
+</body></html>

@@ -1,0 +1,20 @@
+# Dependencies & Build
+node_modules/
+.next/
+out/
+
+# Datenbank & lokale Daten
+app/data/
+*.db
+*.db-shm
+*.db-wal
+
+# Env
+.env
+.env.local
+.env.production
+
+# Sonstiges
+*.log
+.DS_Store
+*Zone.Identifier

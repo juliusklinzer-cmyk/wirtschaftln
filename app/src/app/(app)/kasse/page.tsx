@@ -4,7 +4,7 @@ import { getSaldo, getKasseEintraege, getOffeneStrafen, getAktiveMitglieder, get
 import { HOIBE_KELLERPREIS_CENTS } from '@/lib/preise';
 import { euro, datumKurz } from '@/lib/format';
 import { Card, SectionHeader, Avatar, Badge, Input } from '@/components/ds';
-import { ErfolgsKlappe } from '@/components/domain/ErfolgsKlappe';
+import { AktionsChips, type AktionsChip } from '@/components/domain/AktionsChips';
 import { melden, forderungStatus, einzahlung, spenden, auslage, ausgabe } from './actions';
 
 const selectStyle: React.CSSProperties = {
@@ -77,125 +77,148 @@ export default async function KassePage() {
         </div>
       </Card>
 
-      {/* Aktionen — Klappen mit Erfolgsmeldung */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-        <ErfolgsKlappe
-          titel="⚖️ Na, des kost a Hoibe!"
-          erfolgText="✓ Gmeldt — des zahlt er in Hoibe! 🍺"
-          submitLabel="Melden — des kost’n was"
-          submitVariant="danger"
-          action={melden}
-        >
-          <div>
-            <label style={{ display: 'block', fontSize: 13, fontWeight: 700, color: 'var(--ink-700)', marginBottom: 6 }}>Wer war’s?</label>
-            <select name="memberId" required style={selectStyle} defaultValue="">
-              <option value="" disabled>Spezl auswählen…</option>
-              {mitglieder.filter((m) => m.id !== me.id).map((m) => (
-                <option key={m.id} value={m.id}>{anzeigeName(m)}</option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label style={{ display: 'block', fontSize: 13, fontWeight: 700, color: 'var(--ink-700)', marginBottom: 6 }}>
-              Was hat er o’gstellt? — frei formulieren
-            </label>
-            <input
-              name="grund"
-              list="wn-vergehen"
-              required
-              maxLength={200}
-              placeholder="z. B. Weißwurscht um 18 Uhr gessen…"
-              style={selectStyle}
-            />
-            <datalist id="wn-vergehen">
-              <option value="Weißwurscht nach zwölfe gessen" />
-              <option value="Ketchup aufn Leberkas" />
-              <option value="Maß mit Strohhalm trunka" />
-              <option value="Handy-Daddeln am Tisch" />
-              <option value="Spezi zum Schweinsbraten bestellt" />
-            </datalist>
-          </div>
-          <Input
-            label="Und des kost… (Hoibe)"
-            name="hoibe"
-            type="number"
-            step="1"
-            min="1"
-            max="99"
-            defaultValue="1"
-            hint={`1 Hoibe = ${hoibePreis} € · a Runde wären ${mitglieder.length} Hoibe`}
-            required
-          />
-        </ErfolgsKlappe>
-
-        <ErfolgsKlappe
-          titel="🍺 Hoibe eini schmeißen (Spende)"
-          erfolgText="💝 Vergelt’s Gott — auf d’Hüttn gspart! 🏔️"
-          submitLabel="Hoibe spenden"
-          submitVariant="gold"
-          action={spenden}
-        >
-          <Input
-            label="Wia vui Hoibe magst eini schmeißen?"
-            name="hoibe"
-            type="number"
-            step="1"
-            min="1"
-            max="99"
-            defaultValue="1"
-            hint={`1 Hoibe = ${hoibePreis} € — jede Hoibe bringt uns der Hüttn näher`}
-            required
-          />
-          <Input label="Anlass (optional)" name="grund" placeholder="z. B. Geburtstag, guade Laune, Aufstiegsfeier…" />
-        </ErfolgsKlappe>
-
-        <ErfolgsKlappe
-          titel="💶 Auslage für’n Verein eintragen"
-          erfolgText="✓ Eingetragen — der Verein dankt dir! 🙏"
-          submitLabel="Auslage eintragen"
-          submitVariant="secondary"
-          action={auslage}
-        >
-          <Input label="Wofür" name="grund" placeholder="z. B. Hosting-Server, Domain wirtschaftln.de…" required />
-          <Input label="Betrag (€)" name="betrag" type="number" step="0.01" min="0.01" required />
-          <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink-500)' }}>
-            Wennst privat was für’n Verein zahlt hast — steht dann mit deim Namen als Minus im Kassenbuch.
-          </div>
-        </ErfolgsKlappe>
-
-        {darfKasse && (
-        <ErfolgsKlappe
-          titel="🍻 Einzahlung eintragen (Kassenwart)"
-          erfolgText="✓ Eingetragen — vergelt’s Gott!"
-          submitLabel="Eintragen"
-          action={einzahlung}
-        >
-          <div>
-            <label style={{ display: 'block', fontSize: 13, fontWeight: 700, color: 'var(--ink-700)', marginBottom: 6 }}>Von wem</label>
-            <select name="memberId" defaultValue={me.id} style={selectStyle}>
-              {mitglieder.map((m) => (
-                <option key={m.id} value={m.id}>{anzeigeName(m)}</option>
-              ))}
-            </select>
-          </div>
-          <Input label="Grund" name="grund" placeholder="z. B. Strafe bar beglichen" />
-          <Input label="Betrag (€)" name="betrag" type="number" step="0.50" min="0.50" required />
-        </ErfolgsKlappe>
-        )}
-
-        {darfKasse && (
-          <ErfolgsKlappe
-            titel="🧾 Ausgabe buchen (Kassenwart)"
-            erfolgText="✓ Ausgabe bucht."
-            submitLabel="Ausgabe buchen"
-            submitVariant="secondary"
-            action={ausgabe}
-          >
-            <Input label="Wofür" name="grund" placeholder="z. B. Jahresfeier-Anzahlung" required />
-            <Input label="Betrag (€)" name="betrag" type="number" step="0.50" min="0.50" required />
-          </ErfolgsKlappe>
-        )}
-      </div>
+      {/* Aktionen — kompakte Chips, nur die angetippte klappt auf */}
+      <AktionsChips
+        aktionen={[
+          {
+            key: 'melden',
+            chip: '⚖️ Melden',
+            titel: '⚖️ Na, des kost a Hoibe!',
+            erfolgText: '✓ Gmeldt — des zahlt er in Hoibe! 🍺',
+            submitLabel: 'Melden',
+            submitVariant: 'danger',
+            action: melden,
+            felder: (
+              <>
+                <div>
+                  <label style={{ display: 'block', fontSize: 13, fontWeight: 700, color: 'var(--ink-700)', marginBottom: 6 }}>Wer war’s?</label>
+                  <select name="memberId" required style={selectStyle} defaultValue="">
+                    <option value="" disabled>Spezl auswählen…</option>
+                    {mitglieder.filter((m) => m.id !== me.id).map((m) => (
+                      <option key={m.id} value={m.id}>{anzeigeName(m)}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: 13, fontWeight: 700, color: 'var(--ink-700)', marginBottom: 6 }}>
+                    Was hat er o’gstellt? — frei formulieren
+                  </label>
+                  <input
+                    name="grund"
+                    list="wn-vergehen"
+                    required
+                    maxLength={200}
+                    placeholder="z. B. Weißwurscht um 18 Uhr gessen…"
+                    style={selectStyle}
+                  />
+                  <datalist id="wn-vergehen">
+                    <option value="Weißwurscht nach zwölfe gessen" />
+                    <option value="Ketchup aufn Leberkas" />
+                    <option value="Maß mit Strohhalm trunka" />
+                    <option value="Handy-Daddeln am Tisch" />
+                    <option value="Spezi zum Schweinsbraten bestellt" />
+                  </datalist>
+                </div>
+                <Input
+                  label="Und des kost… (Hoibe)"
+                  name="hoibe"
+                  type="number"
+                  step="1"
+                  min="1"
+                  max="99"
+                  defaultValue="1"
+                  hint={`1 Hoibe = ${hoibePreis} € · a Runde wären ${mitglieder.length} Hoibe`}
+                  required
+                />
+              </>
+            ),
+          },
+          {
+            key: 'spenden',
+            chip: '💝 Spenden',
+            titel: '🍺 Hoibe eini schmeißen (Spende)',
+            erfolgText: '💝 Vergelt’s Gott — auf d’Hüttn gspart! 🏔️',
+            submitLabel: 'Hoibe spenden',
+            submitVariant: 'gold',
+            action: spenden,
+            felder: (
+              <>
+                <Input
+                  label="Wia vui Hoibe magst eini schmeißen?"
+                  name="hoibe"
+                  type="number"
+                  step="1"
+                  min="1"
+                  max="99"
+                  defaultValue="1"
+                  hint={`1 Hoibe = ${hoibePreis} € — jede Hoibe bringt uns der Hüttn näher`}
+                  required
+                />
+                <Input label="Anlass (optional)" name="grund" placeholder="z. B. Geburtstag, guade Laune, Aufstiegsfeier…" />
+              </>
+            ),
+          },
+          {
+            key: 'auslage',
+            chip: '💶 Auslage',
+            titel: '💶 Auslage für’n Verein eintragen',
+            erfolgText: '✓ Eingetragen — der Verein dankt dir! 🙏',
+            submitLabel: 'Eintragen',
+            submitVariant: 'secondary',
+            action: auslage,
+            felder: (
+              <>
+                <Input label="Wofür" name="grund" placeholder="z. B. Hosting-Server, Domain wirtschaftln.de…" required />
+                <Input label="Betrag (€)" name="betrag" type="number" step="0.01" min="0.01" required />
+                <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink-500)' }}>
+                  Wennst privat was für’n Verein zahlt hast — steht dann mit deim Namen als Minus im Kassenbuch.
+                </div>
+              </>
+            ),
+          },
+          ...(darfKasse
+            ? ([
+                {
+                  key: 'einzahlung',
+                  chip: '🍻 Einzahlung',
+                  titel: '🍻 Einzahlung eintragen (Kassenwart)',
+                  erfolgText: '✓ Eingetragen — vergelt’s Gott!',
+                  submitLabel: 'Eintragen',
+                  action: einzahlung,
+                  felder: (
+                    <>
+                      <div>
+                        <label style={{ display: 'block', fontSize: 13, fontWeight: 700, color: 'var(--ink-700)', marginBottom: 6 }}>Von wem</label>
+                        <select name="memberId" defaultValue={me.id} style={selectStyle}>
+                          {mitglieder.map((m) => (
+                            <option key={m.id} value={m.id}>{anzeigeName(m)}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <Input label="Grund" name="grund" placeholder="z. B. Strafe bar beglichen" />
+                      <Input label="Betrag (€)" name="betrag" type="number" step="0.50" min="0.50" required />
+                    </>
+                  ),
+                },
+                {
+                  key: 'ausgabe',
+                  chip: '🧾 Ausgabe',
+                  titel: '🧾 Ausgabe buchen (Kassenwart)',
+                  erfolgText: '✓ Ausgabe bucht.',
+                  submitLabel: 'Buchen',
+                  submitVariant: 'secondary',
+                  felder: (
+                    <>
+                      <Input label="Wofür" name="grund" placeholder="z. B. Jahresfeier-Anzahlung" required />
+                      <Input label="Betrag (€)" name="betrag" type="number" step="0.50" min="0.50" required />
+                    </>
+                  ),
+                  action: ausgabe,
+                },
+              ] satisfies AktionsChip[])
+            : []),
+        ]}
+      />
 
       {/* Bewegungen — alles aus Kassen-Perspektive: Plus kimmt eini, Minus geht außi */}
       <SectionHeader eyebrow="Kassenbuch" title="D’Bewegungen" fraktur />

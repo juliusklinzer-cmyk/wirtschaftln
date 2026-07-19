@@ -238,12 +238,29 @@ export function Rangliste({
         {/* Variante B: nur das Badge groß + wofür's vergeben wird — wer's grad
             trägt und alles Weitere zeigt der Klick (Info + Hall of Fame) */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-          {galerie.filter((b) => b.holder).map((b) => (
-            <div key={b.name} onClick={() => setInfoKey(b.key)} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', padding: '14px 10px 12px', borderRadius: 'var(--r-lg)', background: 'var(--grad-navy)', border: '1.5px solid var(--gold)', boxShadow: 'var(--sh-md)', cursor: 'pointer' }}>
-              <BadgeBild slug={b.key} icon={b.icon} name={b.name} size={116} />
-              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--pergament)', opacity: 0.85, marginTop: 10, lineHeight: 1.35 }}>
+          {galerie.map((b) => (
+            <div
+              key={b.name}
+              onClick={() => setInfoKey(b.key)}
+              style={{
+                display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center',
+                padding: '14px 10px 12px', borderRadius: 'var(--r-lg)', cursor: 'pointer',
+                background: b.holder ? 'var(--grad-navy)' : 'var(--ink-50)',
+                border: b.holder ? '1.5px solid var(--gold)' : '1.5px solid var(--ink-200)',
+                boxShadow: b.holder ? 'var(--sh-md)' : 'none',
+              }}
+            >
+              <div style={{ filter: b.holder ? 'none' : 'grayscale(1)', opacity: b.holder ? 1 : 0.45 }}>
+                <BadgeBild slug={b.key} icon={b.icon} name={b.name} size={116} />
+              </div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: b.holder ? 'var(--pergament)' : 'var(--ink-500)', opacity: 0.85, marginTop: 10, lineHeight: 1.35 }}>
                 {b.tag}
               </div>
+              {!b.holder && (
+                <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--ink-500)', marginTop: 4 }}>
+                  no ned vergeben
+                </div>
+              )}
             </div>
           ))}
         </div>
@@ -300,7 +317,7 @@ function SpezlDetailB({
       <div onClick={onClose} style={{ position: 'absolute', inset: 0, background: 'rgba(7,25,58,0.6)', backdropFilter: 'blur(2px)' }} />
       <div style={{ position: 'relative', width: '100%', maxWidth: 360, maxHeight: '88dvh', overflowY: 'auto', background: 'var(--weiss)', borderRadius: 'var(--r-xl)', boxShadow: 'var(--sh-lg)', animation: 'wnSheetRein 320ms cubic-bezier(0.32, 0.72, 0, 1) both' }}>
         {/* ── Kopf: Navy-Zeremonie mit Rauten-Band ── */}
-        <div style={{ position: 'relative', background: 'var(--grad-navy)', borderRadius: 'var(--r-xl) var(--r-xl) 0 0', overflow: 'hidden', paddingBottom: 18 }}>
+        <div style={{ position: 'sticky', top: 0, zIndex: 3, background: 'var(--grad-navy)', borderRadius: 'var(--r-xl) var(--r-xl) 0 0', overflow: 'hidden', paddingBottom: 18 }}>
           <div className="wn-raute wn-raute--sm" style={{ height: 7 }} />
           <button onClick={onClose} aria-label="Schließen" style={{ position: 'absolute', top: 15, right: 12, width: 30, height: 30, borderRadius: '50%', border: 'none', background: 'rgba(255,255,255,0.16)', color: '#fff', fontSize: 16, fontWeight: 800, cursor: 'pointer', zIndex: 2 }}>
             ×

@@ -56,8 +56,8 @@ export default async function ProfilPage() {
         </Card>
       )}
 
-      {/* ── Urkunden-Kopf: wie im Spezl-Detail der Rangliste ── */}
-      <Card tone="dark" framed pad={0} style={{ overflow: 'hidden' }}>
+      {/* ── Urkunden-Kopf: wie im Spezl-Detail der Rangliste, bleibt beim Scrollen oben ── */}
+      <Card tone="dark" framed pad={0} style={{ overflow: 'hidden', position: 'sticky', top: 0, zIndex: 5 }}>
         <style>{`
           @keyframes wnFederPop { 0% { transform: scale(0.4); opacity: 0; } 62% { transform: scale(1.12); opacity: 1; } 100% { transform: scale(1); opacity: 1; } }
         `}</style>

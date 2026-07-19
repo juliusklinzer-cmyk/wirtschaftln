@@ -137,13 +137,16 @@ export function ladeRanglisteDaten(meId: string): {
     aemterListe.push({ titel: 'Kassenwart', ...AEMTER_INFO['Kassenwart'], holder: null });
   }
 
-  const galerie: GalerieBadge[] = badges.map(({ key, icon, name, tag, pflicht, holderId }) => ({
+  // Galerie zeigt IMMER alle Badge-Typen (wie die Ämter) — vor'm ersten Abend
+  // steht koa Träger dran („no ned vergeben"), danach der aktuelle Halter.
+  const badgeHolder = new Map(badges.map((b) => [b.key, b.holderId]));
+  const galerie: GalerieBadge[] = SAISON_BADGES.map(({ key, icon, name, tag, pflicht }) => ({
     key,
     icon,
     name,
     tag,
     pflicht,
-    holder: holderVon(holderId),
+    holder: holderVon(badgeHolder.get(key)),
   }));
 
   // ── Info-Fenster: G'schichtl + Hall of Fame je Badge/Amt ──

@@ -8,17 +8,38 @@ export type Bier = { name: string; logo: string };
 
 const logo = (slug: string) => `/brand/biersorten/${slug}.png`;
 
-/** Münchner (und eing'meindete) Helle. */
+/** Helle — Julius' 30er-Karte (19.07.), Reihenfolge = seine Rangfolge. */
 export const HELLE: Bier[] = [
-  { name: 'Augustiner', logo: logo('augustiner') },
-  { name: 'Paulaner', logo: logo('paulaner') },
-  { name: 'Hacker-Pschorr', logo: logo('hacker-pschorr') },
-  { name: 'Löwenbräu', logo: logo('loewenbraeu') },
-  { name: 'Hofbräu', logo: logo('hofbraeu') },
-  { name: 'Spaten', logo: logo('spaten') },
-  { name: 'Giesinger', logo: logo('giesinger') },
-  { name: 'Tegernseer', logo: logo('tegernseer') },
-  { name: 'Andechser', logo: logo('andechser') },
+  { name: 'Augustiner – Lagerbier Hell', logo: logo('augustiner') },
+  { name: 'Tegernseer – Hell', logo: logo('tegernseer') },
+  { name: 'Augustiner – Edelstoff', logo: logo('augustiner') },
+  { name: 'Andechser – Vollbier Hell', logo: logo('andechser') },
+  { name: 'Ayinger – Lager Hell', logo: logo('ayinger') },
+  { name: 'Weihenstephan – Original Helles', logo: logo('weihenstephan') },
+  { name: 'Giesinger – Münchner Hell', logo: logo('giesinger') },
+  { name: 'Hacker-Pschorr – Münchner Hell', logo: logo('hacker-pschorr') },
+  { name: 'Schönramer – Hell', logo: logo('schoenramer') },
+  { name: 'Wieninger – Ruperti Hell', logo: logo('wieninger') },
+  { name: 'Hofbräu – Original', logo: logo('hofbraeu') },
+  { name: 'Spaten – Münchner Hell', logo: logo('spaten') },
+  { name: 'Paulaner – Münchner Hell', logo: logo('paulaner') },
+  { name: 'Löwenbräu – Original', logo: logo('loewenbraeu') },
+  { name: 'Tilmans – Das Helle', logo: logo('tilmans') },
+  { name: 'Camba – Bavaria Hell', logo: logo('camba') },
+  { name: 'Flötzinger – Hell', logo: logo('floetzinger') },
+  { name: 'Maxlrainer – Schloss Hell', logo: logo('maxlrainer') },
+  { name: 'König Ludwig – Hell', logo: logo('koenig-ludwig') },
+  { name: 'Hoppebräu – Helles', logo: logo('hoppebraeu') },
+  { name: 'Klosterbrauerei Reutberg – Export Hell', logo: logo('reutberg') },
+  { name: 'Toerring – Hell', logo: logo('toerring') },
+  { name: 'Aying – Jahrhundert-Bier', logo: logo('ayinger') },
+  { name: 'Schweiger – Helles Export', logo: logo('schweiger') },
+  { name: 'Holzkirchner Oberbräu – Hell', logo: logo('holzkirchner-oberbraeu') },
+  { name: 'Unertl – Landbier Hell (Haager Hell)', logo: logo('unertl') },
+  { name: 'Erhartinger – Hell', logo: logo('erhartinger') },
+  { name: 'Graminger – Hell', logo: logo('graminger') },
+  { name: 'Bayrischzeller – Josefi Hell', logo: logo('bayrischzeller') },
+  { name: 'Giesinger – Erhellung', logo: logo('giesinger') },
 ];
 
 /** Weißbiere — Julius' 30er-Karte (19.07.), Reihenfolge = seine Rangfolge. */
@@ -55,7 +76,8 @@ export const WEISSBIERE: Bier[] = [
   { name: 'Paulaner – Weißbier Kristall', logo: logo('paulaner') },
 ];
 
-export const STANDARD_BIERSORTE = 'Augustiner';
+// Standard beim Abschluss = das erste Helle der Karte (Augustiner Lagerbier Hell)
+export const STANDARD_BIERSORTE = HELLE[0].name;
 
 export function bierLogo(name: string | null): string | null {
   if (!name) return null;

@@ -454,7 +454,8 @@ function RankRow({ s, rang, istIch, letzte }: { s: MitgliedStats; rang: number; 
 
 function StatBlock({ value, label, icon, rang }: { value: number; label: string; icon: string; rang?: number }) {
   const medal = rang ? MEDAILLE[rang] : undefined;
-  // Pergament-Kachel wie im Spezl-Detail — unten rechts der eigene Rang in der Kennzahl
+  // Pergament-Kachel wie im Spezl-Detail — oben rechts der eigene Rang in der Kennzahl
+  // (unten rechts hat er das Kennzahl-Label verdeckt)
   return (
     <div style={{ position: 'relative', textAlign: 'center', padding: '12px 4px', background: 'var(--pergament)', borderRadius: 'var(--r-md)' }}>
       <div style={{ fontSize: 16 }}>{icon}</div>
@@ -469,7 +470,7 @@ function StatBlock({ value, label, icon, rang }: { value: number; label: string;
           className="wn-tnum"
           title={`Platz ${rang} bei ${label}`}
           style={{
-            position: 'absolute', right: 5, bottom: 5, width: 20, height: 20, borderRadius: '50%',
+            position: 'absolute', right: 5, top: 5, width: 20, height: 20, borderRadius: '50%',
             display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
             fontSize: 10, fontWeight: 800,
             background: medal ? medal.disc : 'var(--weiss)',

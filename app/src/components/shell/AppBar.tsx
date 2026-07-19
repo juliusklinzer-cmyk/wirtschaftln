@@ -31,8 +31,28 @@ export function AppBar({
   onLogout: () => Promise<void>;
 }) {
   const [menu, setMenu] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
   const pathname = usePathname();
   const title = Object.entries(TITLES).find(([p]) => pathname.startsWith(p) && p !== '/')?.[1];
+
+  // Menü schließen bei Tap außerhalb ODER beim Scrollen — OHNE ein Vollbild-Overlay,
+  // das sonst die Scroll-Geste vom Seiteninhalt abfängt (nerviger Handy-Bug).
+  useEffect(() => {
+    if (!menu) return;
+    const ausserhalb = (e: Event) => {
+      const t = e.target as Node;
+      if (menuRef.current?.contains(t) || buttonRef.current?.contains(t)) return;
+      setMenu(false);
+    };
+    const beiScroll = () => setMenu(false);
+    document.addEventListener('pointerdown', ausserhalb);
+    window.addEventListener('scroll', beiScroll, true);
+    return () => {
+      document.removeEventListener('pointerdown', ausserhalb);
+      window.removeEventListener('scroll', beiScroll, true);
+    };
+  }, [menu]);
 
   // Frisch verdiente Punkte zählen sichtbar hoch: kleiner „+n WP"-Flug an der Pill
   const [wpDelta, setWpDelta] = useState<number | null>(null);
@@ -112,6 +132,7 @@ export function AppBar({
           </Link>
         </div>
         <button
+          ref={buttonRef}
           onClick={() => setMenu((m) => !m)}
           style={{ border: 'none', background: 'transparent', padding: 0, cursor: 'pointer' }}
           aria-label="Profil"
@@ -122,8 +143,8 @@ export function AppBar({
 
       {menu && (
         <>
-          <div onClick={() => setMenu(false)} style={{ position: 'fixed', inset: 0, zIndex: 30 }} />
           <div
+            ref={menuRef}
             style={{
               position: 'absolute',
               top: 54,

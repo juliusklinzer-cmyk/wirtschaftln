@@ -1,3 +1,4 @@
+import { redirect } from 'next/navigation';
 import { getCurrentMember } from '@/lib/session';
 import { anzeigeName, urkundenName } from '@/lib/namen';
 import { getStats, getAemter, getArchiv } from '@/lib/queries';
@@ -13,7 +14,8 @@ import { DaniModusSchalter } from '@/components/domain/DaniModus';
 export const metadata = { title: 'Mei Profil · Wirtschaftln' };
 
 export default async function ProfilPage() {
-  const me = (await getCurrentMember())!;
+  const me = await getCurrentMember();
+  if (!me) redirect('/login');
   const saison = aktuelleSaison();
   const statsSaison = getStats({ abDatum: saison.start });
   const statsAllzeit = getStats();

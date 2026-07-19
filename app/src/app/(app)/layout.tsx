@@ -38,7 +38,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         wp={meineWp}
         onLogout={logout}
       />
-      <main style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', position: 'relative' }}>{children}</main>
+      <main style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', position: 'relative', overscrollBehavior: 'contain', WebkitOverflowScrolling: 'touch' }}>{children}</main>
       <TabBar />
     </div>
   );

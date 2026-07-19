@@ -79,6 +79,10 @@ export function AppBar({
         background: 'var(--weiss)',
         position: 'relative',
         zIndex: 20,
+        // Header is Bedien-Chrome: ned markierbar, koa Callout beim Draufhalten
+        userSelect: 'none',
+        WebkitUserSelect: 'none',
+        WebkitTouchCallout: 'none',
       }}
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>

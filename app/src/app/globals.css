@@ -179,6 +179,11 @@ body {
   margin: 0;
   padding: 0;
   height: 100%;
+  /* App-Verhalten wie native: Body selber scrollt/wippt ned (koa Rubber-Band,
+     koa Pull-to-Refresh, Header lasst se ned verziehen) — gscrollt wird nur
+     im Inhalt (<main>). */
+  overflow: hidden;
+  overscroll-behavior: none;
 }
 
 body {

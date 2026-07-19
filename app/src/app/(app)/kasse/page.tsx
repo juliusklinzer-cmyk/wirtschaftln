@@ -110,7 +110,7 @@ export default async function KassePage() {
             <datalist id="wn-vergehen">
               <option value="Weißwurscht nach zwölfe gessen" />
               <option value="Ketchup aufn Leberkas" />
-              <option value="Zugesagt & ned kemma" />
+              <option value="Maß mit Strohhalm trunka" />
               <option value="Handy-Daddeln am Tisch" />
               <option value="Spezi zum Schweinsbraten bestellt" />
             </datalist>
@@ -197,8 +197,12 @@ export default async function KassePage() {
         )}
       </div>
 
-      {/* Bewegungen */}
+      {/* Bewegungen — alles aus Kassen-Perspektive: Plus kimmt eini, Minus geht außi */}
       <SectionHeader eyebrow="Kassenbuch" title="D’Bewegungen" fraktur />
+      <div style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--ink-500)', margin: '-8px 0 0', lineHeight: 1.5 }}>
+        Ois aus Sicht vo da Kasse: <b style={{ color: 'var(--erfolg)' }}>Plus</b> kimmt eini, <b style={{ color: 'var(--strafe)' }}>Minus</b> geht außi.
+        Offene Forderungen stehn scho als Plus im Kassenstand — da Kassenwart treibt’s nur no ei.
+      </div>
       <Card pad={12}>
         {eintraege.length === 0 && (
           <div style={{ padding: 12, fontSize: 13, fontWeight: 600, color: 'var(--ink-500)', textAlign: 'center' }}>
@@ -207,8 +211,13 @@ export default async function KassePage() {
         )}
         {eintraege.map(({ eintrag, member, melder, termin, wirtshaus }, i) => {
           const istForderung = eintrag.kind === 'strafe';
+          // Kassen-Perspektive: a Forderung is a Plus für d'Kasse — „offen" heißt nur, da Kassenwart hat's no ned kassiert
+          const anzeigeCents = istForderung ? Math.abs(eintrag.betragCents) : eintrag.betragCents;
           const betragFarbe =
-            eintrag.status === 'aufgehoben' ? 'var(--ink-300)' : eintrag.kind === 'runde' ? 'var(--gold-700)' : eintrag.betragCents < 0 ? 'var(--strafe)' : 'var(--erfolg)';
+            eintrag.status === 'aufgehoben' ? 'var(--ink-300)'
+            : eintrag.kind === 'runde' ? 'var(--gold-700)'
+            : istForderung ? (eintrag.status === 'beglichen' ? 'var(--erfolg)' : 'var(--warnung)')
+            : anzeigeCents < 0 ? 'var(--strafe)' : 'var(--erfolg)';
           // Die ganze G'schicht: wann · wo · wer's gmeldt hat (App oder Spezl)
           const details = [
             datumKurz((termin?.datum ?? eintrag.createdAt).slice(0, 10)),
@@ -243,7 +252,12 @@ export default async function KassePage() {
                 </div>
                 {istForderung && eintrag.status === 'aufgehoben' && (
                   <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--gold-700)', marginTop: 2 }}>
-                    👑 vom Präsidenten erlassen
+                    👑 vom Präsidenten erlassen — kimmt nix eini
+                  </div>
+                )}
+                {eintrag.kind === 'runde' && (
+                  <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--gold-700)', marginTop: 2 }}>
+                    🍻 am Tisch zahlt — zählt ned zum Kassenstand
                   </div>
                 )}
                 {istForderung && (darfKasse || darfErlassen) && (
@@ -261,9 +275,15 @@ export default async function KassePage() {
                 )}
               </div>
               <div style={{ textAlign: 'right', flex: 'none' }}>
-                <div className="wn-tnum" style={{ fontSize: 15, fontWeight: 800, color: betragFarbe }}>
-                  {eintrag.betragCents > 0 ? '+' : ''}
-                  {euro(eintrag.betragCents)}
+                <div
+                  className="wn-tnum"
+                  style={{
+                    fontSize: 15, fontWeight: 800, color: betragFarbe,
+                    textDecoration: istForderung && eintrag.status === 'aufgehoben' ? 'line-through' : undefined,
+                  }}
+                >
+                  {anzeigeCents > 0 ? '+' : ''}
+                  {euro(anzeigeCents)}
                 </div>
                 {istForderung && (
                   <Badge tone={eintrag.status === 'beglichen' ? 'erfolg' : eintrag.status === 'offen' ? 'strafe' : 'neutral'} style={{ marginTop: 4 }}>

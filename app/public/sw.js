@@ -1,6 +1,6 @@
 // Wirtschaftln Service Worker — minimal: macht die App installierbar
 // und hält Brand-Assets offline vor. Daten bleiben network-first.
-const CACHE = 'wirtschaftln-v1';
+const CACHE = 'wirtschaftln-v2';
 const ASSETS = ['/brand/shield-256.png', '/brand/shield-512.png', '/brand/munich-alps-panorama.jpg'];
 
 self.addEventListener('install', (event) => {
@@ -52,8 +52,8 @@ self.addEventListener('notificationclick', (event) => {
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
   if (event.request.method !== 'GET' || url.origin !== location.origin) return;
-  // Statische Assets cache-first, alles andere network-first
-  if (url.pathname.startsWith('/brand/') || url.pathname.startsWith('/_next/static/')) {
+  // /_next/static/ ist content-gehasht → cache-first, ändert sich nie unter gleicher URL.
+  if (url.pathname.startsWith('/_next/static/')) {
     event.respondWith(
       caches.match(event.request).then(
         (hit) =>
@@ -63,6 +63,23 @@ self.addEventListener('fetch', (event) => {
             caches.open(CACHE).then((c) => c.put(event.request, copy));
             return res;
           })
+      )
+    );
+  }
+  // /brand/ (Logos, Wappen) können sich unter gleicher URL ändern → stale-while-revalidate:
+  // sofort aus'm Cache liefern, aber im Hintergrund frisch nachladen für's nächste Mal.
+  else if (url.pathname.startsWith('/brand/')) {
+    event.respondWith(
+      caches.open(CACHE).then((c) =>
+        c.match(event.request).then((hit) => {
+          const frisch = fetch(event.request)
+            .then((res) => {
+              if (res.ok) c.put(event.request, res.clone());
+              return res;
+            })
+            .catch(() => hit);
+          return hit ?? frisch;
+        })
       )
     );
   }

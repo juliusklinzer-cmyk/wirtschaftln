@@ -34,13 +34,25 @@ export function DaniStreifen() {
   }, []);
   if (!an) return null;
   return (
-    <div
-      aria-hidden
-      style={{
-        position: 'absolute', top: 0, bottom: 0, left: '61%', width: 5,
-        background: '#fff', zIndex: 9999, pointerEvents: 'none',
-      }}
-    />
+    <>
+      {/* Dezenter Schleier über der ganzen App — der Streifen liegt drüber und wirkt so mehr */}
+      <div
+        aria-hidden
+        style={{
+          position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.32)',
+          zIndex: 9998, pointerEvents: 'none',
+        }}
+      />
+      {/* Der weiße Streifen — leuchtet mit leichtem Glow gegen den Schleier */}
+      <div
+        aria-hidden
+        style={{
+          position: 'absolute', top: 0, bottom: 0, left: '61%', width: 5,
+          background: '#fff', zIndex: 9999, pointerEvents: 'none',
+          boxShadow: '0 0 14px 2px rgba(255,255,255,0.75)',
+        }}
+      />
+    </>
   );
 }
 

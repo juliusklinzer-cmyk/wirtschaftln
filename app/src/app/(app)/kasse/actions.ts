@@ -7,6 +7,9 @@ import { getCurrentMember } from '@/lib/session';
 import { getKassenwartId, getPraesidentId, getAktiveMitglieder } from '@/lib/queries';
 import { HOIBE_KELLERPREIS_CENTS } from '@/lib/preise';
 import { newId, nowIso } from '@/lib/ids';
+import { anzeigeName } from '@/lib/namen';
+import { pushAn } from '@/lib/push';
+import { mailAn } from '@/lib/mail';
 
 /** Anzahl Hoibe aus dem Formular (1–99) — gezahlt wird beim Wirtschaftln in Hoibe, ned in Euro. */
 function hoibeAnzahl(formData: FormData): number {
@@ -30,7 +33,8 @@ export async function melden(formData: FormData) {
   const grund = String(formData.get('grund') ?? '').trim().slice(0, 200);
   const hoibe = hoibeAnzahl(formData);
   if (!memberId || !grund || !hoibe) return;
-  if (!getAktiveMitglieder().some((m) => m.id === memberId)) return;
+  const opfer = getAktiveMitglieder().find((m) => m.id === memberId);
+  if (!opfer) return;
   db.insert(kasse)
     .values({
       id: newId('k'),
@@ -43,6 +47,14 @@ export async function melden(formData: FormData) {
       createdAt: nowIso(),
     })
     .run();
+
+  // ⚖️ Der Gmeldte kriagt Bescheid (Push + Mail)
+  const titel = '⚖️ Du wurdst gmeldt!';
+  const text = `${anzeigeName(me)} hat di gmeldt: „${grund}" — des kost ${hoibe === 1 ? 'a Hoibe' : `${hoibe} Hoibe`}. Zohl beim Kassenwart oder per PayPal. 🍺`;
+  await Promise.allSettled([
+    pushAn([memberId], titel, text, '/kasse'),
+    mailAn([opfer.email], titel, `Servus ${anzeigeName(opfer)}!\n\n${text}\n\n→ https://wirtschaftln.de/kasse\n\nDei Wirtschaftln-App`),
+  ]);
   revalidate();
 }
 

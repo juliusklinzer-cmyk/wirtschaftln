@@ -31,6 +31,16 @@ export async function neuerTermin(formData: FormData) {
   db.insert(termine)
     .values({ id: newId('t'), datum, zeit, phase: 'planung', planerId, createdAt: nowIso() })
     .run();
+
+  // 📣 Startschuss für d'Abstimmung — alle Spezln kriegen Push + Mail
+  const wann = `${datumLang(datum)}, ${zeit} Uhr`;
+  const titel = '🗳️ Neuer Stammtisch — jetzt abstimmen!';
+  const text = `Da nächste Stammtisch steht: ${wann}. Sag zua oder ab — wer bis 3 Tag vorher abstimmt, kriagt an WP dafür! 🍺`;
+  const empfaenger = getAktiveMitglieder().filter((m) => m.id !== me.id).map((m) => m.email);
+  await Promise.allSettled([
+    pushAnAlle(titel, text, '/termin'),
+    mailAn(empfaenger, titel, `Servus!\n\n${text}\n\n→ https://wirtschaftln.de/termin\n\nDei Wirtschaftln-App`),
+  ]);
   revalidateAll();
 }
 
@@ -133,8 +143,8 @@ export async function wirtshausFestlegen(terminId: string, formData: FormData) {
   // Reserviert → alle Spezln kriegen Push + Mail und können zu-/absagen
   const wirtshaus = db.select().from(wirtshaeuser).where(eq(wirtshaeuser.id, wid)).get();
   const wann = `${datumLang(termin.datum)}, ${termin.zeit} Uhr`;
-  const titel = `🍺 Reserviert: ${wirtshaus?.name ?? 'Wirtshaus'}`;
-  const text = `Da nächste Stammtisch is fix: ${wirtshaus?.name ?? '—'}${wirtshaus?.bezirk ? ` (${wirtshaus.bezirk})` : ''} am ${wann}. Sag zua oder ab!`;
+  const titel = `📍 Steht fest: ${wirtshaus?.name ?? 'Wirtshaus'}`;
+  const text = `Da gehts hin! ${wirtshaus?.name ?? '—'}${wirtshaus?.bezirk ? ` (${wirtshaus.bezirk})` : ''} am ${wann}. Wer no ned abgstimmt hat — letzte Chance, sag zua oder ab!`;
   const empfaenger = getAktiveMitglieder().filter((m) => m.id !== me.id).map((m) => m.email);
   await Promise.allSettled([
     pushAnAlle(titel, text, '/termin'),

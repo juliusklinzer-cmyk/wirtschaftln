@@ -35,6 +35,10 @@ COPY --from=builder --chown=app:app /app/public ./public
 # Migrationen + Seed-Skript für den Erststart
 COPY --from=builder --chown=app:app /app/drizzle ./drizzle
 COPY --from=builder --chown=app:app /app/scripts ./scripts
+# sharp braucht seine nativen libvips-Libs (@img/*) — der Standalone-Tracer
+# nimmt die .so-Dateien nicht mit (Profilbild-Upload crasht sonst mit ERR_DLOPEN_FAILED)
+COPY --from=builder --chown=app:app /app/node_modules/sharp ./node_modules/sharp
+COPY --from=builder --chown=app:app /app/node_modules/@img ./node_modules/@img
 
 USER app
 EXPOSE 3000

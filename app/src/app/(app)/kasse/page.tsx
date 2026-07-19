@@ -215,7 +215,6 @@ export default async function KassePage() {
           const anzeigeCents = istForderung ? Math.abs(eintrag.betragCents) : eintrag.betragCents;
           const betragFarbe =
             eintrag.status === 'aufgehoben' ? 'var(--ink-300)'
-            : eintrag.kind === 'runde' ? 'var(--gold-700)'
             : istForderung ? (eintrag.status === 'beglichen' ? 'var(--erfolg)' : 'var(--warnung)')
             : anzeigeCents < 0 ? 'var(--strafe)' : 'var(--erfolg)';
           // Die ganze G'schicht: wann · wo · wer's gmeldt hat (App oder Spezl)
@@ -253,11 +252,6 @@ export default async function KassePage() {
                 {istForderung && eintrag.status === 'aufgehoben' && (
                   <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--gold-700)', marginTop: 2 }}>
                     👑 vom Präsidenten erlassen — kimmt nix eini
-                  </div>
-                )}
-                {eintrag.kind === 'runde' && (
-                  <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--gold-700)', marginTop: 2 }}>
-                    🍻 am Tisch zahlt — zählt ned zum Kassenstand
                   </div>
                 )}
                 {istForderung && (darfKasse || darfErlassen) && (

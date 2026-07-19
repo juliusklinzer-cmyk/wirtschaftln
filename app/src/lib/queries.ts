@@ -346,7 +346,8 @@ export function getSaldo(): number {
 }
 
 export function getKasseEintraege() {
-  // Melder als zweiter members-Join (Alias), dazu Termin + Wirtshaus fürs „wo"
+  // Melder als zweiter members-Join (Alias), dazu Termin + Wirtshaus fürs „wo".
+  // Runden bleiben draußen: am Tisch zahlt, koa Geldbewegung — dokumentiert über WP + Moshammer.
   const melder = alias(members, 'melder');
   return db
     .select({ eintrag: kasse, member: members, melder, termin: termine, wirtshaus: wirtshaeuser })
@@ -355,6 +356,7 @@ export function getKasseEintraege() {
     .leftJoin(melder, eq(kasse.gemeldetVon, melder.id))
     .leftJoin(termine, eq(kasse.terminId, termine.id))
     .leftJoin(wirtshaeuser, eq(termine.wirtshausId, wirtshaeuser.id))
+    .where(ne(kasse.kind, 'runde'))
     .orderBy(desc(kasse.createdAt))
     .all();
 }

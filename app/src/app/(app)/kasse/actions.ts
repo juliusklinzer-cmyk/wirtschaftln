@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { eq } from 'drizzle-orm';
 import { db, kasse } from '@/lib/db';
 import { getCurrentMember } from '@/lib/session';
-import { getKassenwartId, getPraesidentId } from '@/lib/queries';
+import { getKassenwartId, getPraesidentId, getAktiveMitglieder } from '@/lib/queries';
 import { HOIBE_KELLERPREIS_CENTS } from '@/lib/preise';
 import { newId, nowIso } from '@/lib/ids';
 
@@ -30,6 +30,7 @@ export async function melden(formData: FormData) {
   const grund = String(formData.get('grund') ?? '').trim().slice(0, 200);
   const hoibe = hoibeAnzahl(formData);
   if (!memberId || !grund || !hoibe) return;
+  if (!getAktiveMitglieder().some((m) => m.id === memberId)) return;
   db.insert(kasse)
     .values({
       id: newId('k'),

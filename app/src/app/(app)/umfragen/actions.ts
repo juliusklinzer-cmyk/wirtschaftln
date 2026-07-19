@@ -12,10 +12,10 @@ const MAX_ANTWORTEN = 6;
 export async function umfrageStarten(formData: FormData) {
   const me = await getCurrentMember();
   if (!me) return;
-  const frage = String(formData.get('frage') ?? '').trim();
+  const frage = String(formData.get('frage') ?? '').trim().slice(0, 200);
   const antworten = formData
     .getAll('antwort')
-    .map((a) => String(a).trim())
+    .map((a) => String(a).trim().slice(0, 80))
     .filter(Boolean)
     .slice(0, MAX_ANTWORTEN);
   if (!frage || antworten.length < 2) return;

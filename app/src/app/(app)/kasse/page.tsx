@@ -195,8 +195,11 @@ export default async function KassePage() {
                           ))}
                         </select>
                       </div>
-                      <Input label="Grund" name="grund" placeholder="z. B. Strafe bar beglichen" />
+                      <Input label="Grund" name="grund" placeholder="z. B. Hüttn-Sparbeitrag, Wiesn-Topf…" />
                       <Input label="Betrag (€)" name="betrag" type="number" step="0.50" min="0.50" required />
+                      <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink-500)' }}>
+                        Bar zahlte Strafe? Ned extra buchen — im Kassenbuch einfach auf ✓ beglichen setzen (steht scho im Saldo).
+                      </div>
                     </>
                   ),
                 },

@@ -66,7 +66,9 @@ export function ladeRanglisteDaten(meId: string): {
 
   // Automatische Ämter: Präsident = Saison-Rang 1, Schriftführer = meiste Abschlüsse.
   // Der Rest (Kassenwart, …) kommt als Wahl-Ergebnis aus der DB.
-  const praesident = [...statsSaison].sort((a, b) => b.punkte - a.punkte)[0]?.member ?? null;
+  // Wie getPraesidentId: bei 0 Punkten (Saisonstart) gibt's no koan Präsidenten
+  const praesidentKandidat = [...statsSaison].sort((a, b) => b.punkte - a.punkte)[0];
+  const praesident = praesidentKandidat && praesidentKandidat.punkte > 0 ? praesidentKandidat.member : null;
   const fleissigster = [...statsSaison].sort((a, b) => b.abschluesse - a.abschluesse)[0];
   const schriftfuehrer = fleissigster && fleissigster.abschluesse > 0 ? fleissigster.member : null;
   const amtVonMember = new Map<string, { titel: string; icon: string }>();

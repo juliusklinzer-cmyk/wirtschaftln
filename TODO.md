@@ -106,7 +106,8 @@ Unter „API-Einschränkungen" muss **Maps JavaScript API** erlaubt sein.
 - [x] Passwortwechsel verlangt aktuelles Passwort + wirft alle anderen Sessions raus; Login-Rate-Limit (5 Versuche → 15 min) + Dummy-Verify; Erstanmeldung wird auf allen Seiten erzwungen
 - [x] `wirtshausFestlegen` nur Organisator/Admin + Phasen-Check; `forderungStatus` mit Laufzeit-Whitelist, eigene Strafe nicht selbst ausbuchbar (UI versteckt Buttons); Foto-URL-Allowlist auch beim Anlegen
 - [x] Betrieb: `scripts/backup.ts` (Online-Backup + Rotation), robots.txt + noindex, Deploy-Anleitung in `deploy/README.md`, `deploy/env.example`
-- [ ] Nach Livegang (aus dem Audit, bewusst verschoben): Präsident-Logik vereinheitlichen (punkte > 0), aufgehobene Absage-Strafen bei Nachtrag, Runden-Saison über Termin-Datum, ICS-Escaping, Freitext-Längenlimits, Saison-Zeitzone, „Termin absagen"-Pfad
+- [ ] Nach Livegang (aus dem Audit, bewusst verschoben): aufgehobene Absage-Strafen leben bei Nachtrag wieder auf, ICS-Escaping, Saison-Zeitzone (UTC-Container, betrifft nur 1–2 h am 1.1./1.7.), „Termin absagen"-Pfad fehlt, Orga-WP erst nach 7-Tage-Frist endgültig, Legacy-„Vielleicht"-Stimmen noch sichtbar gelabelt
+- [x] **Audit 19.07. (vor Deploy) behoben:** Gründungscode fail-closed (kein 1328-Fallback auf Prod), Freitext-Längenlimits (Umfragen/Profil/Bewertungen), Push-Endpoint-Allowlist (SSRF), melden-memberId-Validierung, mitgliedAnlegen-Dubletten-Check, Präsident-Logik vereinheitlicht (punkte > 0, sonst koaner — queries.ts + daten.ts), +1→+3-WP-Text beim Abschließen, Einzahlungs-Placeholder (Doppelzählungs-Falle), demo.ts-Prod-Guard, Dockerfile-Fail-Fast bei fehlenden Build-Args. Runden-Saison über Termin-Datum war schon umgesetzt.
 
 ## Punktesystem V2 (18.07. VOR dem Launch umgesetzt)
 Spec: `docs/spec-punktesystem-v2.md` (mit Codex erstellt, 17.07. von Claude reviewt & mit Julius' Antworten korrigiert)

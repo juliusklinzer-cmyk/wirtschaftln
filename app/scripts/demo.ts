@@ -5,6 +5,13 @@ import { randomBytes, scryptSync } from 'node:crypto';
 import path from 'node:path';
 import fs from 'node:fs';
 
+// Harter Prod-Schutz: im Container läuft NODE_ENV=production — Testdaten
+// wie da Sepp Brunner haben auf der echten DB nix verloren.
+if (process.env.NODE_ENV === 'production') {
+  console.error('demo.ts läuft NUR lokal — auf Prod gibt\'s nur seed.ts + altbestand.ts.');
+  process.exit(1);
+}
+
 const dbPath = process.env.DATABASE_PATH ?? path.join(process.cwd(), 'data', 'wirtschaftln.db');
 fs.mkdirSync(path.dirname(dbPath), { recursive: true });
 const sqlite = new Database(dbPath);

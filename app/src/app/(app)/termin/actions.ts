@@ -143,10 +143,30 @@ export async function wirtshausFestlegen(terminId: string, formData: FormData) {
   revalidateAll();
 }
 
+// Nur echte Push-Dienste als Ziel — sonst könnte ein Abo den Server beliebige
+// (auch interne) URLs anfragen lassen (SSRF).
+function istPushDienst(endpoint: string): boolean {
+  try {
+    const u = new URL(endpoint);
+    if (u.protocol !== 'https:') return false;
+    const host = u.hostname;
+    return (
+      host === 'fcm.googleapis.com' ||
+      host === 'updates.push.services.mozilla.com' ||
+      host.endsWith('.push.services.mozilla.com') ||
+      host.endsWith('.notify.windows.com') ||
+      host.endsWith('.push.apple.com')
+    );
+  } catch {
+    return false;
+  }
+}
+
 /** Push-Abo eines Geräts speichern (kommt aus dem Service-Worker-Subscribe im Client). */
 export async function pushAbonnieren(sub: { endpoint: string; keys: { p256dh: string; auth: string } }) {
   const me = await getCurrentMember();
   if (!me || !sub?.endpoint || !sub.keys?.p256dh || !sub.keys?.auth) return;
+  if (!istPushDienst(sub.endpoint)) return;
   db.insert(pushSubscriptions)
     .values({ id: newId('p'), memberId: me.id, endpoint: sub.endpoint, p256dh: sub.keys.p256dh, auth: sub.keys.auth, createdAt: nowIso() })
     .onConflictDoUpdate({
@@ -194,7 +214,7 @@ export async function phaseSetzen(terminId: string, phase: 'planung' | 'reservie
 const STRAFE_GRUND_PREFIX = 'Zugesagt & nicht erschienen';
 
 /**
- * Besuch abschließen — darf jeder Spezl (gibt +1 WP, meiste Abschlüsse = Schriftführer).
+ * Besuch abschließen — darf jeder Spezl (der Erste kriegt PTS.abschluss WP, meiste Abschlüsse = Schriftführer).
  * Pro Anwesendem Hoiben/🍖/🚕/⭐(Runde), Kaiserschmarrn wird geteilt (einer für alle),
  * Bewertungen (Wirtshaus/Kaisi/Brodn) mit Kommastelle, Bier + Weißbier am Wirtshaus.
  * Wer „abgsagt" markiert ist (zugesagt & nicht erschienen), kriegt automatisch eine
@@ -245,11 +265,11 @@ export async function besuchAbschliessen(terminId: string, formData: FormData) {
   db.update(besuche)
     .set({
       sterne: bewertung('sterne'),
-      kommentar: String(formData.get('kommentar') ?? '').trim() || null,
+      kommentar: String(formData.get('kommentar') ?? '').trim().slice(0, 500) || null,
       kaiserSterne: kaisiBestellt ? bewertung('kaiserSterne') : null,
-      kaiserNotiz: kaisiBestellt ? String(formData.get('kaiserNotiz') ?? '').trim() || null : null,
+      kaiserNotiz: kaisiBestellt ? String(formData.get('kaiserNotiz') ?? '').trim().slice(0, 500) || null : null,
       brodnSterne: brodnGegessen ? bewertung('brodnSterne') : null,
-      brodnNotiz: brodnGegessen ? String(formData.get('brodnNotiz') ?? '').trim() || null : null,
+      brodnNotiz: brodnGegessen ? String(formData.get('brodnNotiz') ?? '').trim().slice(0, 500) || null : null,
     })
     .where(and(eq(besuche.terminId, terminId), eq(besuche.memberId, me.id)))
     .run();
@@ -435,7 +455,7 @@ export async function bewerten(terminId: string, formData: FormData) {
   const me = await getCurrentMember();
   if (!me) return;
   const sterne = Math.min(5, Math.max(1, Number(formData.get('sterne') ?? 0) || 0));
-  const kommentar = String(formData.get('kommentar') ?? '').trim() || null;
+  const kommentar = String(formData.get('kommentar') ?? '').trim().slice(0, 500) || null;
   if (!sterne) return;
   const eigener = db
     .select()

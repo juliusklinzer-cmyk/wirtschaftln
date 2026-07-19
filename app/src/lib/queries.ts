@@ -114,10 +114,15 @@ export function getKassenwartId(): string | null {
   );
 }
 
-/** Aktueller Präsident = Saison-Rang 1 nach WP — EINE Quelle für Rangliste, Ämter und Rechte. */
+/**
+ * Aktueller Präsident = Saison-Rang 1 nach WP — EINE Quelle für Rangliste, Ämter und Rechte.
+ * Bei 0 Punkten (Saisonstart/Launch) gibt's KOAN Präsidenten — sonst kriegt der
+ * alphabetisch Erste still die Rechte (Strafen erlassen, Wirtshaus festlegen).
+ */
 export function getPraesidentId(): string | null {
   const stats = getStats({ abDatum: aktuelleSaison().start });
-  return [...stats].sort((a, b) => b.punkte - a.punkte)[0]?.member.id ?? null;
+  const erster = [...stats].sort((a, b) => b.punkte - a.punkte)[0];
+  return erster && erster.punkte > 0 ? erster.member.id : null;
 }
 
 /** Alle Umfragen (neueste zuerst) samt Stimmen und Ersteller. */

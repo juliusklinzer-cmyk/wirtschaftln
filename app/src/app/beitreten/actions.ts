@@ -10,9 +10,13 @@ import { newId, nowIso } from '@/lib/ids';
 
 export type BeitrittState = { error?: string };
 
-/** Gründungscode aus der Env; leerer String = Aufnahme geschlossen. Default: 1328. */
+/**
+ * Gründungscode aus der Env; leerer String = Aufnahme geschlossen.
+ * Fail-closed: fehlt die Env auf Prod, ist die Aufnahme ZU (der Default
+ * stünde sonst für jeden lesbar im Repo). Nur im Dev gibt's den Default.
+ */
 function gruendungscode(): string {
-  return process.env.WN_GRUENDUNGSCODE ?? '1328';
+  return process.env.WN_GRUENDUNGSCODE ?? (process.env.NODE_ENV === 'development' ? '1328' : '');
 }
 
 // Bremse gegen Code-Raten: 10 Fehlversuche → 15 Minuten Pause (in-memory reicht)

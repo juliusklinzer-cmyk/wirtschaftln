@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react';
 import { Avatar, Button } from '@/components/ds';
 import { HELLE, WEISSBIERE, STANDARD_BIERSORTE } from '@/lib/biersorten';
+import { PTS } from '@/lib/punkte';
 import { BierWahl } from '@/components/domain/BierWahl';
 
 export type AbschlussMitglied = {
@@ -29,7 +30,7 @@ export type AbschlussWerte = {
 
 /**
  * Besuch abschließen — Design-Sheet (terminSheets.jsx CloseVisitSheet) mit den
- * Stammtisch-Regeln: abschließen darf jeder (+1 WP), Kaiserschmarrn wird immer
+ * Stammtisch-Regeln: abschließen darf jeder (der Erste kriegt PTS.abschluss WP), Kaiserschmarrn wird immer
  * geteilt (einer für alle), Brodn-Bewertung nur wenn wer 🍖 gegessen hat,
  * ⭐ markiert eine geschmissene Runde (Großbauer), Bier & Weißbier mit Logo.
  */
@@ -205,7 +206,7 @@ export function AbschlussForm({
         {submitLabel}
       </Button>
       <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink-500)', textAlign: 'center', marginTop: 8 }}>
-        Abschließen darf jeder — gibt +1 WP. Nachtragen geht noch a Woch’.
+        Abschließen darf jeder — der Erste kriagt +{PTS.abschluss} WP. Nachtragen geht noch a Woch’.
       </div>
     </form>
   );

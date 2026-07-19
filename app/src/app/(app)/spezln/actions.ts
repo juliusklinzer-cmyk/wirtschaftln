@@ -23,6 +23,8 @@ export async function mitgliedAnlegen(formData: FormData) {
   const email = String(formData.get('email') ?? '').trim().toLowerCase();
   const password = String(formData.get('password') ?? '');
   if (!vorname || !nachname || !email || password.length < 6) return;
+  // E-Mail is unique — Dublette würd sonst als Unique-Fehler krachen
+  if (db.select().from(members).where(eq(members.email, email)).get()) return;
   db.insert(members)
     .values({
       id: newId('m'),

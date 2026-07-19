@@ -18,7 +18,7 @@ export async function profilSpeichern(_prev: ProfilState, formData: FormData): P
   const me = await getCurrentMember();
   if (!me) return { error: 'Ned angemeldet.' };
 
-  const feld = (name: string) => String(formData.get(name) ?? '').trim() || null;
+  const feld = (name: string, max = 100) => String(formData.get(name) ?? '').trim().slice(0, max) || null;
 
   // Passwort (Pflicht bei Erstanmeldung; danach nur mit aktuellem Passwort)
   const passwort = String(formData.get('passwort') ?? '');
@@ -70,7 +70,7 @@ export async function profilSpeichern(_prev: ProfilState, formData: FormData): P
       lieblingswirtshaus: feld('lieblingswirtshaus'),
       verein: verein === 'bayern' || verein === 'sechzig' ? verein : null,
       schafkopfer: formData.get('schafkopfer') === 'on',
-      beschreibung: feld('beschreibung'),
+      beschreibung: feld('beschreibung', 500),
       erstanmeldung: false,
       ...(passwordHash ? { passwordHash } : {}),
       ...(photoUrl ? { photoUrl } : {}),

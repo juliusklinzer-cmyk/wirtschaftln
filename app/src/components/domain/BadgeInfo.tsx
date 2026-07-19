@@ -5,6 +5,10 @@ import { BadgeBild } from '@/components/domain/BadgeBild';
 
 export type HallOfFameEintrag = { name: string; photoUrl: string | null; zeitraum: string; aktiv: boolean };
 
+/** Zähler-Rangliste im Badge (z. B. Moshammer: geschmissene Runden je Spezl). */
+export type ZaehlerEintrag = { name: string; photoUrl: string | null; saison: number; gesamt: number; aktiv: boolean };
+export type ZaehlerBlock = { titel: string; hinweis: string; einheit: string; eintraege: ZaehlerEintrag[] };
+
 export type BadgeInfoDaten = {
   key: string;
   art: 'badge' | 'amt';
@@ -17,6 +21,8 @@ export type BadgeInfoDaten = {
   pflicht: string | null;
   duties: string | null;
   hallOfFame: HallOfFameEintrag[];
+  /** Optionale Zähler-Rangliste hinter der Hall of Fame (z. B. Runden beim Moshammer). */
+  zaehler?: ZaehlerBlock | null;
 };
 
 /** Amts-Titel → Schlüssel in den badgeInfos (eigene Ämter haben kein Info-Fenster). */
@@ -96,6 +102,46 @@ export function BadgeInfo({ info, onClose }: { info: BadgeInfoDaten; onClose: ()
                 </div>
               ))}
             </div>
+          )}
+
+          {/* Zähler-Rangliste (z. B. Runden beim Moshammer) */}
+          {info.zaehler && (
+            <>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '18px 0 10px' }}>
+                <span style={{ fontFamily: 'var(--font-fraktur)', fontSize: 20, color: 'var(--navy)', lineHeight: 1 }}>{info.zaehler.titel}</span>
+                <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink-500)' }}>· {info.zaehler.hinweis}</span>
+              </div>
+              {info.zaehler.eintraege.length === 0 ? (
+                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink-500)', textAlign: 'center', padding: '10px 0 4px' }}>
+                  No koa oanzige — wer mocht’n Anfang? 🍻
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  {info.zaehler.eintraege.map((z, i) => (
+                    <div
+                      key={z.name}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px',
+                        background: z.aktiv ? 'var(--pergament)' : 'transparent',
+                        border: z.aktiv ? '1px solid var(--gold)' : '1px solid var(--ink-100)',
+                        borderRadius: 'var(--r-md)',
+                      }}
+                    >
+                      <span className="wn-tnum" style={{ width: 20, textAlign: 'center', fontSize: 13, fontWeight: 800, color: i === 0 ? 'var(--gold-700)' : 'var(--ink-500)', flex: 'none' }}>
+                        {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : i + 1}
+                      </span>
+                      <Avatar src={z.photoUrl} name={z.name} size={30} ring={z.aktiv} />
+                      <span style={{ flex: 1, minWidth: 0, fontSize: 14, fontWeight: 700, color: 'var(--ink-900)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {z.name}
+                      </span>
+                      <span className="wn-tnum" style={{ fontSize: 11, fontWeight: 700, color: z.aktiv ? 'var(--gold-700)' : 'var(--ink-500)', whiteSpace: 'nowrap', textAlign: 'right' }}>
+                        {z.saison} heier{z.gesamt !== z.saison ? ` · ${z.gesamt} gsamt` : ''}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>

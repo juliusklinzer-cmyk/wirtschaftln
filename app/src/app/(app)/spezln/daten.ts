@@ -12,7 +12,7 @@ import { anzeigeName, urkundenName } from '@/lib/namen';
 import { aktuelleSaison } from '@/lib/saison';
 import { datumKurz } from '@/lib/format';
 import { saisonBadgesVergeben, serienAbzeichen, amtInfo, AEMTER_INFO, SAISON_BADGES } from '@/lib/badges';
-import type { BadgeInfoDaten, HallOfFameEintrag } from '@/components/domain/BadgeInfo';
+import type { BadgeInfoDaten, HallOfFameEintrag, ZaehlerBlock } from '@/components/domain/BadgeInfo';
 import type { SpezlEintrag, AmtEintrag, GalerieBadge, StatsBlock } from './rangliste';
 
 function rangVon(liste: MitgliedStats[], memberId: string): number {
@@ -156,6 +156,24 @@ export function ladeRanglisteDaten(meId: string): {
         };
       });
 
+  // Moshammer-Zähler: die Runden-Rangliste lebt im Badge (im Kassenbuch stehen Runden ned).
+  const moshammerId = badges.find((b) => b.key === 'moshammer')?.holderId ?? null;
+  const rundenZaehler: ZaehlerBlock = {
+    titel: 'D’Runden-Rangliste',
+    hinweis: 'wer wia oft a Runde gschmissen hat',
+    einheit: 'Runden',
+    eintraege: statsAllzeit
+      .filter((a) => a.runden > 0)
+      .map((a) => ({
+        name: anzeigeName(a.member),
+        photoUrl: a.member.photoUrl,
+        saison: statsSaison.find((x) => x.member.id === a.member.id)?.runden ?? 0,
+        gesamt: a.runden,
+        aktiv: a.member.id === moshammerId,
+      }))
+      .sort((x, y) => y.saison - x.saison || y.gesamt - x.gesamt),
+  };
+
   const badgeInfos: Record<string, BadgeInfoDaten> = {};
   for (const b of SAISON_BADGES) {
     badgeInfos[b.key] = {
@@ -169,6 +187,7 @@ export function ladeRanglisteDaten(meId: string): {
       pflicht: b.pflicht,
       duties: null,
       hallOfFame: hallOfFameVon(b.key),
+      zaehler: b.key === 'moshammer' ? rundenZaehler : null,
     };
   }
   for (const [key, titel] of [

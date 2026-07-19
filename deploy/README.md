@@ -7,8 +7,20 @@
 
 ## Erstinstallation
 
+Live seit 19.07.2026 auf Hetzner Cloud CPX12 (`178.105.234.52`, Nürnberg), Code unter `/opt/wirtschaftln`.
+Es gibt (noch) kein Git-Remote — deployt wird per rsync aus dem WSL-Checkout:
+
 ```bash
-git clone <repo> wirtschaftln && cd wirtschaftln
+# Update deployen (WICHTIG: deploy/.env ausnehmen — sonst löscht --delete die Server-Secrets!)
+rsync -az --delete --exclude node_modules --exclude .next --exclude 'app/data' \
+  --exclude .git --exclude 'deploy/.env' ./ root@178.105.234.52:/opt/wirtschaftln/
+ssh root@178.105.234.52 "cd /opt/wirtschaftln && docker compose --env-file deploy/.env up -d --build"
+```
+
+## Erstinstallation (bei Server-Neuaufbau)
+
+```bash
+git clone <repo> wirtschaftln && cd wirtschaftln   # oder rsync wie oben
 
 # 1. Secrets anlegen (Werte aus app/.env.local übernehmen — v. a. dieselben VAPID-Keys!)
 cp deploy/env.example deploy/.env

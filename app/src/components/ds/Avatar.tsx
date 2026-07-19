@@ -1,15 +1,20 @@
 /**
  * Wirtschaftln — Avatar
  * Mitgliederfoto mit optionalem Gold-Ring (Amtsträger), Vereins-Ring
- * (Bayern rot / Sechzig blau — Gold sticht), Rang-Badge und
- * Anwesenheits-Punkt. Fallback: Initialen.
+ * (Bayern rot / Sechzig blau / neutral Biergarten-grün — Gold sticht),
+ * Rang-Badge und Anwesenheits-Punkt. Fallback: Initialen.
+ *
+ * verein: null = neutraler Münchner (🥨 Koa Fuaßboi → grüner Ring);
+ * Prop weglassen = ohne Vereins-Kontext (koa Ring).
  */
+export const VEREIN_NEUTRAL_GRUEN = '#4C7C43';
+
 export function Avatar({
   src,
   name = '',
   size = 48,
   ring = false,
-  verein = null,
+  verein,
   badge = null,
   present = false,
   style = {},
@@ -25,7 +30,8 @@ export function Avatar({
 }) {
   const initials = name.split(' ').map((w) => w[0]).slice(0, 2).join('').toUpperCase();
   const ringWidth = Math.max(2, Math.round(size * 0.05));
-  const vereinsFarbe = verein === 'bayern' ? '#DC052D' : verein === 'sechzig' ? '#1E9CD7' : null;
+  const vereinsFarbe =
+    verein === 'bayern' ? '#DC052D' : verein === 'sechzig' ? '#1E9CD7' : verein === null ? VEREIN_NEUTRAL_GRUEN : null;
   const border = ring
     ? `${ringWidth}px solid var(--gold)`
     : vereinsFarbe

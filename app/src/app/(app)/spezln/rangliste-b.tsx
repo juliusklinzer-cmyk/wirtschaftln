@@ -137,9 +137,11 @@ export function Rangliste({
                 </div>
                 <div style={{ position: 'relative', flex: 'none' }}>
                   <Avatar src={e.photoUrl} name={e.name} size={rank <= 3 ? 52 : 44} ring={rank === 1} verein={e.steckbrief.verein} />
-                  {e.steckbrief.verein && (
+                  {e.steckbrief.verein ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={VEREIN_LOGO[e.steckbrief.verein]} alt="" style={{ position: 'absolute', right: -4, bottom: -2, width: 18, height: 18, objectFit: 'contain', background: '#fff', borderRadius: '50%', padding: 2, boxShadow: 'var(--sh-sm)' }} />
+                  ) : (
+                    <span style={{ position: 'absolute', right: -4, bottom: -2, width: 18, height: 18, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, background: '#fff', borderRadius: '50%', boxShadow: 'var(--sh-sm)' }}>🥨</span>
                   )}
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
@@ -298,9 +300,11 @@ function SpezlDetailB({
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '18px 20px 0' }}>
             <div style={{ position: 'relative', animation: 'wnFederPop 500ms cubic-bezier(0.34, 1.56, 0.64, 1) both' }}>
               <Avatar src={e.photoUrl} name={e.name} size={88} ring={rank === 1} verein={e.steckbrief.verein} />
-              {e.steckbrief.verein && (
+              {e.steckbrief.verein ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={VEREIN_LOGO[e.steckbrief.verein]} alt="" style={{ position: 'absolute', left: -4, bottom: 2, width: 24, height: 24, objectFit: 'contain', background: '#fff', borderRadius: '50%', padding: 2, boxShadow: 'var(--sh-sm)' }} />
+              ) : (
+                <span style={{ position: 'absolute', left: -4, bottom: 2, width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, background: '#fff', borderRadius: '50%', boxShadow: 'var(--sh-sm)' }}>🥨</span>
               )}
               <span
                 className="wn-tnum"

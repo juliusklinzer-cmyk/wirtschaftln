@@ -222,6 +222,17 @@ export function getStats(optionen?: { abDatum?: string; bisDatum?: string; ohneT
     rundenJeMitglied.set(e.memberId, (rundenJeMitglied.get(e.memberId) ?? 0) + 1);
   }
 
+  // Abstimm-Bonus zählt SOFORT beim rechtzeitigen Zu-/Absagen — auch für no ned
+  // abgeschlossene (kommende) Termine. Darum über ALLE Termine im Fenster, ned nur
+  // die abgeschlossenen (die anderen WP-Posten brauchen weiterhin den Abschluss).
+  const alleTermine = db
+    .select()
+    .from(termine)
+    .all()
+    .filter((t) => t.id !== optionen?.ohneTerminId)
+    .filter((t) => imFenster(t.datum))
+    .filter((t) => !optionen?.bisDatum || t.datum <= optionen.bisDatum);
+
   // Wirtshaus-Vorschläge: +1 beim Vorschlagen, +1 wenn's tatsächlich besucht wird
   const alleWirtshaeuser = db.select().from(wirtshaeuser).all();
   const besuchtErstmalsAm = new Map<string, string>(); // wirtshausId → Datum des (ersten) Besuchs
@@ -276,8 +287,6 @@ export function getStats(optionen?: { abDatum?: string; bisDatum?: string; ohneT
         }
       }
       if (t.abgeschlossenVon === member.id && zaehlt) abschluesse += 1;
-      // Rechtzeitig (erste Stimme bis 3 Tage vorher) zu- ODER abgesagt → +1
-      if (zaehlt && vote && rechtzeitigAbgestimmt(vote.erstmalsAm, t.datum)) abstimmBonus += PTS.abstimmen;
 
       // Serie & Fehl-Staffeln — Termine vor dem Beitritt zählen nicht als gefehlt
       const zaehltFuerSerie = t.datum >= beitritt || byTermin.get(t.id)?.has(member.id);
@@ -299,6 +308,12 @@ export function getStats(optionen?: { abDatum?: string; bisDatum?: string; ohneT
           if (zaehlt) fehlMalus += unentschuldigtMalus(unentschuldigtInFolge);
         }
       }
+    }
+
+    // Abstimm-Bonus: rechtzeitig zu-/abgesagt → +1, sofort (auch für kommende Termine)
+    for (const t of alleTermine) {
+      const vote = voteByTermin.get(t.id)?.get(member.id);
+      if (vote && rechtzeitigAbgestimmt(vote.erstmalsAm, t.datum)) abstimmBonus += PTS.abstimmen;
     }
 
     // Anzeige-Serie: dabei = positiv, gefehlt (egal welche Art) = negativ

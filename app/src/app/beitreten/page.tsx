@@ -46,14 +46,25 @@ export default async function BeitretenPage() {
           textAlign: 'center',
         }}
       >
-        <Image
-          src="/brand/logo-verziert.png"
-          alt="Wirtschaftln Wappen"
-          width={160}
-          height={160}
-          priority
-          style={{ height: 'clamp(120px, 20vh, 160px)', width: 'auto', filter: 'drop-shadow(0 12px 28px rgba(0,0,0,0.4))' }}
-        />
+        {/* Wappen auf weißer Plakette mit Gold-Rahmen — wie am Login */}
+        <div
+          style={{
+            background: 'var(--weiss)',
+            border: '2.5px solid var(--gold-bright)',
+            borderRadius: 24,
+            padding: '16px 20px',
+            boxShadow: '0 12px 28px rgba(0,0,0,0.4), inset 0 0 0 5px var(--weiss), inset 0 0 0 6.5px var(--gold)',
+          }}
+        >
+          <Image
+            src="/brand/logo-verziert.png"
+            alt="Wirtschaftln Wappen"
+            width={160}
+            height={160}
+            priority
+            style={{ height: 'clamp(110px, 18vh, 145px)', width: 'auto' }}
+          />
+        </div>
         <div style={{ fontFamily: 'var(--font-fraktur)', fontSize: 36, color: 'var(--gold-bright)', lineHeight: 1, marginTop: 16 }}>
           Wirtschaftln
         </div>

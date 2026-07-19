@@ -24,7 +24,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         display: 'flex',
         flexDirection: 'column',
         background: 'var(--bg-app)',
-        boxShadow: '0 0 40px rgba(12,43,90,0.10)',
+        boxShadow: '0 0 60px rgba(7,25,58,0.45)',
         position: 'relative',
       }}
     >

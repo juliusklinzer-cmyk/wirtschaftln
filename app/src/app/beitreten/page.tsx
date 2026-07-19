@@ -4,7 +4,16 @@ import Link from 'next/link';
 import { getCurrentMember } from '@/lib/session';
 import { BeitrittForm } from './beitritt-form';
 
-export const metadata = { title: 'Gründungsmitglied werden · Wirtschaftln' };
+export const metadata = {
+  title: 'Gründungsmitglied werden · Wirtschaftln',
+  // WhatsApp-Vorschau für den Einladungs-Link
+  openGraph: {
+    title: 'A persönliche Einladung zum Wirtschaftln 🍺',
+    description:
+      'Du bist eingeladen, Gründungsmitglied vom Wirtschaftln zu werden — dem Münchner Stammtisch seit 2019. Treu im Brauch, offen für Neis.',
+    images: [{ url: '/brand/og.jpg', width: 1200, height: 630, alt: 'Wirtschaftln-Wappen' }],
+  },
+};
 
 /**
  * Beitritt für die Runde: Link aus der WhatsApp-Gruppe + Gründungscode.

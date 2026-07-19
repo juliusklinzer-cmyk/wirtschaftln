@@ -11,9 +11,19 @@ import './globals.css';
 import { RegisterSW } from '@/components/shell/RegisterSW';
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://wirtschaftln.de'),
   title: 'Wirtschaftln',
   description: 'Oiwei anders. Oiwei dahoam. — Der Stammtisch, München · seit 2019',
   robots: { index: false, follow: false },
+  // Link-Vorschau (WhatsApp & Co.): Wappen auf Navy statt schwarzem Nichts
+  openGraph: {
+    siteName: 'Wirtschaftln',
+    title: 'Wirtschaftln',
+    description: 'Oiwei anders. Oiwei dahoam. — Der Stammtisch, München · seit 2019',
+    locale: 'de_DE',
+    type: 'website',
+    images: [{ url: '/brand/og.jpg', width: 1200, height: 630, alt: 'Wirtschaftln-Wappen' }],
+  },
   applicationName: 'Wirtschaftln',
   appleWebApp: {
     capable: true,

@@ -132,6 +132,10 @@ export function ladeRanglisteDaten(meId: string): {
         return { titel: amt.titel, icon: amt.icon, slug: info.slug ?? null, patron: info.patron ?? null, mode: info.mode, duties: info.duties, holder: holderVon(amt.memberId) };
       }),
   ];
+  // Kassenwart immer zeigen — vor der ersten Wahl steht er als „unbesetzt" da
+  if (!aemterListe.some((a) => a.titel.startsWith('Kassenwart'))) {
+    aemterListe.push({ titel: 'Kassenwart', ...AEMTER_INFO['Kassenwart'], holder: null });
+  }
 
   const galerie: GalerieBadge[] = badges.map(({ key, icon, name, tag, pflicht, holderId }) => ({
     key,

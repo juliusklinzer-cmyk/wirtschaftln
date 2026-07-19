@@ -184,7 +184,7 @@ export function Rangliste({
           <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink-500)' }}>· gewählt & automatisch</span>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {aemter.filter((a) => a.holder).map((a) => (
+          {aemter.map((a) => (
             <div key={a.titel} onClick={() => amtKey(a.titel) && setInfoKey(amtKey(a.titel))} style={{ display: 'flex', gap: 14, background: 'var(--weiss)', borderRadius: 'var(--r-lg)', border: '1px solid var(--ink-100)', boxShadow: 'var(--sh-sm)', padding: 14, cursor: amtKey(a.titel) ? 'pointer' : 'default' }}>
               {a.slug ? (
                 <div style={{ flex: 'none', width: 64, height: 64, borderRadius: '50%', overflow: 'hidden', border: '2px solid var(--gold-bright)', boxShadow: 'var(--sh-gold)' }}>
@@ -209,8 +209,16 @@ export function Rangliste({
                   </div>
                 )}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8 }}>
-                  <Avatar src={a.holder!.photoUrl} name={a.holder!.name} size={28} ring />
-                  <span style={{ fontSize: 14, fontWeight: 800, color: 'var(--ink-900)' }}>{a.holder!.name}</span>
+                  {a.holder ? (
+                    <>
+                      <Avatar src={a.holder.photoUrl} name={a.holder.name} size={28} ring />
+                      <span style={{ fontSize: 14, fontWeight: 800, color: 'var(--ink-900)' }}>{a.holder.name}</span>
+                    </>
+                  ) : (
+                    <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink-500)', fontStyle: 'italic' }}>
+                      No unbesetzt — wird nach’m ersten Stammtisch vergeben 🍺
+                    </span>
+                  )}
                 </div>
                 {a.duties && (
                   <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--ink-500)', marginTop: 8, lineHeight: 1.45 }}>{a.duties}</div>

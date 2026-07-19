@@ -1,0 +1,14 @@
+# Zeilenenden vereinheitlichen: im Repo immer LF, egal ob von Windows oder WSL committet wird.
+# Verhindert die "LF will be replaced by CRLF"-Warnungen und Phantom-Änderungen in VS Code.
+* text=auto eol=lf
+
+# Binärdateien nie anfassen
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.db binary

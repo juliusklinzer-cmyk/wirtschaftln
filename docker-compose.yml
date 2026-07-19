@@ -13,6 +13,9 @@ services:
       - ./deploy/.env
     environment:
       - DATABASE_PATH=/data/wirtschaftln.db
+      # Next-Standalone bindet sonst nur an den Container-Hostnamen —
+      # 127.0.0.1-Healthcheck & Loopback brauchen 0.0.0.0
+      - HOSTNAME=0.0.0.0
     volumes:
       - app-data:/data
     expose:

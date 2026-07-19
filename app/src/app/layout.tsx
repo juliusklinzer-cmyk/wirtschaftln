@@ -13,6 +13,7 @@ import { RegisterSW } from '@/components/shell/RegisterSW';
 export const metadata: Metadata = {
   title: 'Wirtschaftln',
   description: 'Oiwei anders. Oiwei dahoam. — Der Stammtisch, München · seit 2019',
+  robots: { index: false, follow: false },
   applicationName: 'Wirtschaftln',
   appleWebApp: {
     capable: true,
@@ -32,7 +33,9 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="de">
-      <body>
+      {/* suppressHydrationWarning: Browser-Extensions (z. B. ColorZilla) hängen
+          Attribute an <body>, bevor React lädt — das ist kein App-Fehler. */}
+      <body suppressHydrationWarning>
         <RegisterSW />
         {children}
       </body>

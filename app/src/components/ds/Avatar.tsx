@@ -1,13 +1,15 @@
 /**
  * Wirtschaftln — Avatar
- * Mitgliederfoto mit optionalem Gold-Ring (Amtsträger), Rang-Badge
- * und Anwesenheits-Punkt. Fallback: Initialen.
+ * Mitgliederfoto mit optionalem Gold-Ring (Amtsträger), Vereins-Ring
+ * (Bayern rot / Sechzig blau — Gold sticht), Rang-Badge und
+ * Anwesenheits-Punkt. Fallback: Initialen.
  */
 export function Avatar({
   src,
   name = '',
   size = 48,
   ring = false,
+  verein = null,
   badge = null,
   present = false,
   style = {},
@@ -16,12 +18,19 @@ export function Avatar({
   name?: string;
   size?: number;
   ring?: boolean;
+  verein?: 'bayern' | 'sechzig' | null;
   badge?: React.ReactNode;
   present?: boolean;
   style?: React.CSSProperties;
 }) {
   const initials = name.split(' ').map((w) => w[0]).slice(0, 2).join('').toUpperCase();
   const ringWidth = Math.max(2, Math.round(size * 0.05));
+  const vereinsFarbe = verein === 'bayern' ? '#DC052D' : verein === 'sechzig' ? '#1E9CD7' : null;
+  const border = ring
+    ? `${ringWidth}px solid var(--gold)`
+    : vereinsFarbe
+      ? `${ringWidth}px solid ${vereinsFarbe}`
+      : '1px solid var(--ink-100)';
   return (
     <div style={{ position: 'relative', width: size, height: size, flex: 'none', ...style }}>
       <div
@@ -29,7 +38,7 @@ export function Avatar({
           width: size, height: size, borderRadius: 'var(--r-pill)',
           overflow: 'hidden', background: 'var(--ink-100)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          border: ring ? `${ringWidth}px solid var(--gold)` : '1px solid var(--ink-100)',
+          border,
           boxShadow: ring ? 'var(--sh-gold)' : 'var(--sh-xs)',
           boxSizing: 'border-box',
         }}

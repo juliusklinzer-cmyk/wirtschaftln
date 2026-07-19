@@ -8,6 +8,14 @@ FROM node:24-slim AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+# NEXT_PUBLIC_* wird bei `next build` ins Client-Bundle eingebrannt — muss
+# deshalb als Build-Arg reinkommen (.env* ist per .dockerignore ausgeschlossen).
+ARG NEXT_PUBLIC_GMAPS_KEY
+ARG NEXT_PUBLIC_VAPID_PUBLIC_KEY
+ARG NEXT_PUBLIC_PAYPAL_POOL_URL
+ENV NEXT_PUBLIC_GMAPS_KEY=$NEXT_PUBLIC_GMAPS_KEY \
+    NEXT_PUBLIC_VAPID_PUBLIC_KEY=$NEXT_PUBLIC_VAPID_PUBLIC_KEY \
+    NEXT_PUBLIC_PAYPAL_POOL_URL=$NEXT_PUBLIC_PAYPAL_POOL_URL
 RUN npm run build
 
 FROM node:24-slim AS runner
@@ -27,5 +35,9 @@ COPY --from=builder --chown=app:app /app/scripts ./scripts
 USER app
 EXPOSE 3000
 VOLUME /data
+
+# node:24-slim hat kein curl — Health-Check über Node-fetch auf die Login-Seite
+HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
+  CMD ["node", "-e", "fetch('http://127.0.0.1:3000/login').then(r=>process.exit(r.ok?0:1),()=>process.exit(1))"]
 
 CMD ["node", "server.js"]

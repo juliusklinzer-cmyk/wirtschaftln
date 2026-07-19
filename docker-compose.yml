@@ -1,7 +1,16 @@
 services:
   app:
-    build: ./app
+    build:
+      context: ./app
+      args:
+        # Werden ins Client-Bundle eingebrannt — Werte kommen aus deploy/.env
+        - NEXT_PUBLIC_GMAPS_KEY=${NEXT_PUBLIC_GMAPS_KEY}
+        - NEXT_PUBLIC_VAPID_PUBLIC_KEY=${NEXT_PUBLIC_VAPID_PUBLIC_KEY}
+        - NEXT_PUBLIC_PAYPAL_POOL_URL=${NEXT_PUBLIC_PAYPAL_POOL_URL}
     restart: unless-stopped
+    # Laufzeit-Secrets (VAPID privat, SMTP, …) — Vorlage: deploy/env.example
+    env_file:
+      - ./deploy/.env
     environment:
       - DATABASE_PATH=/data/wirtschaftln.db
     volumes:

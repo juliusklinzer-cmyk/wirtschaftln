@@ -15,6 +15,40 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
+// Web-Push: Notification anzeigen und beim Antippen die App öffnen
+self.addEventListener('push', (event) => {
+  let data = {};
+  try {
+    data = event.data ? event.data.json() : {};
+  } catch {
+    data = { title: 'Wirtschaftln', body: event.data ? event.data.text() : '' };
+  }
+  event.waitUntil(
+    self.registration.showNotification(data.title || 'Wirtschaftln', {
+      body: data.body || '',
+      icon: '/brand/shield-256.png',
+      badge: '/brand/shield-256.png',
+      data: { url: data.url || '/' },
+    })
+  );
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const url = (event.notification.data && event.notification.data.url) || '/';
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((wins) => {
+      for (const w of wins) {
+        if ('focus' in w) {
+          w.navigate(url);
+          return w.focus();
+        }
+      }
+      return clients.openWindow(url);
+    })
+  );
+});
+
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
   if (event.request.method !== 'GET' || url.origin !== location.origin) return;

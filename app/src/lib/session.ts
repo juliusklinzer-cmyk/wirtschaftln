@@ -1,7 +1,8 @@
 import { cookies } from 'next/headers';
+import { redirect } from 'next/navigation';
 import { cache } from 'react';
 import { randomBytes } from 'node:crypto';
-import { eq } from 'drizzle-orm';
+import { and, eq, ne } from 'drizzle-orm';
 import { db, members, sessions } from '@/lib/db';
 
 const COOKIE = 'wn_session';
@@ -19,6 +20,23 @@ export async function createSession(memberId: string) {
     maxAge: MAX_AGE_DAYS * 86400,
     path: '/',
   });
+}
+
+/**
+ * Erstanmeldung erzwingen: solange Passwort/Profil nicht gesetzt sind, führt
+ * jede Seite auf /profil (dort selbst nicht aufrufen — sonst Redirect-Schleife).
+ */
+export function erzwingeProfil(me: { erstanmeldung: boolean }) {
+  if (me.erstanmeldung) redirect('/profil');
+}
+
+/** Alle anderen Sessions des Mitglieds beenden (nach Passwortwechsel). */
+export async function destroyOtherSessions(memberId: string) {
+  const jar = await cookies();
+  const token = jar.get(COOKIE)?.value;
+  db.delete(sessions)
+    .where(token ? and(eq(sessions.memberId, memberId), ne(sessions.token, token)) : eq(sessions.memberId, memberId))
+    .run();
 }
 
 export async function destroySession() {

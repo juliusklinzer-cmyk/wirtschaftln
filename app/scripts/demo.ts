@@ -47,12 +47,12 @@ const insWirtshaus = sqlite.prepare(
   `INSERT INTO wirtshaeuser (id, name, adresse, bezirk, lat, lng, photo_url, created_at) VALUES (?, ?, ?, ?, ?, ?, NULL, ?)`
 );
 const insTermin = sqlite.prepare(
-  `INSERT INTO termine (id, datum, zeit, phase, planer_id, wirtshaus_id, created_at) VALUES (?, ?, '19:00', ?, ?, ?, ?)`
+  `INSERT INTO termine (id, datum, zeit, phase, planer_id, wirtshaus_id, abgeschlossen_von, abgeschlossen_am, created_at) VALUES (?, ?, '19:00', ?, ?, ?, ?, ?, ?)`
 );
 const insVote = sqlite.prepare(`INSERT INTO votes (id, termin_id, member_id, wert, updated_at) VALUES (?, ?, ?, ?, ?)`);
 const insBesuch = sqlite.prepare(
-  `INSERT INTO besuche (id, termin_id, member_id, anwesend, hoiben, kaiserschmarrn, sterne, kommentar)
-   VALUES (?, ?, ?, ?, ?, ?, ?, NULL)`
+  `INSERT INTO besuche (id, termin_id, member_id, anwesend, hoiben, kaiserschmarrn, schweinsbraten, taxi, sterne, kaiser_sterne, brodn_sterne, kaiser_notiz, brodn_notiz, kommentar)
+   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
 );
 const insKasse = sqlite.prepare(
   `INSERT INTO kasse (id, member_id, termin_id, grund, betrag_cents, kind, status, created_at)
@@ -83,10 +83,25 @@ vergangene.forEach((w, wi) => {
   const wid = id('w');
   insWirtshaus.run(wid, w.name, w.adresse, w.bezirk, w.lat, w.lng, now());
   const tid = id('t');
-  insTermin.run(tid, w.datum, 'abgeschlossen', ids[wi], wid, now());
+  // da Sepp schließt immer ab → Schriftführer (Amt wird automatisch vergeben)
+  insTermin.run(tid, w.datum, 'abgeschlossen', ids[wi], wid, ids[0], `${w.datum}T22:00:00.000Z`, now());
   ids.forEach((mid, i) => {
     const anwesend = !(wi === 0 && i === 3) ? 1 : 0; // da Toni hat beim ersten g'schwänzt
-    insBesuch.run(id('b'), tid, mid, anwesend, anwesend ? 2 + ((i + wi) % 4) : 0, anwesend && i % 2 === 0 ? 1 : 0, anwesend ? 3 + ((i + wi) % 3) : null);
+    const kaisi = anwesend && i % 2 === 0 ? 1 : 0;
+    const brodn = anwesend && (i + wi) % 2 === 1 ? 1 : 0;
+    // Der Planer des Abends hat Kaisi & Brodn mitbewertet (inkl. Notiz)
+    const istPlaner = i === wi;
+    insBesuch.run(
+      id('b'), tid, mid, anwesend,
+      anwesend ? 2 + ((i + wi) % 4) : 0, kaisi, brodn,
+      anwesend && i === 4 ? 1 : 0, // d'Vroni is da Taxler
+      anwesend ? 3 + ((i + wi) % 3) : null,
+      istPlaner ? 4 + wi % 2 : null,
+      istPlaner ? 3 + wi : null,
+      istPlaner ? (wi === 0 ? 'Fluffig, aber Rosinen ohne zu fragen.' : 'Riesenportion, locker für zwoa.') : null,
+      istPlaner ? (wi === 0 ? 'Kruste resch, Soß könnt kräftiger sein.' : 'A Traum — mit Dunkelbiersoß.') : null,
+      istPlaner ? 'Bedienung top, Reservierung hat tadellos passt.' : null
+    );
   });
 });
 
@@ -94,7 +109,7 @@ vergangene.forEach((w, wi) => {
 const wid = id('w');
 insWirtshaus.run(wid, 'Wirtshaus am Hart', 'Sudetendeutsche Straße 40, 80937 München', 'Am Hart', 48.1963, 11.5869, now());
 const tid = id('t');
-insTermin.run(tid, '2026-07-23', 'reserviert', ids[1], wid, now());
+insTermin.run(tid, '2026-07-23', 'reserviert', ids[1], wid, null, null, now());
 (['zu', 'zu', 'vielleicht', 'ab', 'zu'] as const).forEach((wert, i) => {
   insVote.run(id('v'), tid, ids[i], wert, now());
 });
@@ -104,10 +119,8 @@ insKasse.run(id('k'), ids[3], 'Zugesagt & nicht erschienen', -1000, 'strafe', 'o
 insKasse.run(id('k'), ids[1], 'Strafe beglichen', 1000, 'einzahlung', 'beglichen', now());
 insKasse.run(id('k'), ids[4], 'Runde geschmissen 🍻', 2400, 'runde', 'beglichen', now());
 
-// Ämter
+// Ämter (Präsident = WP-Rang 1 und Schriftführer = meiste Abschlüsse laufen automatisch)
 const jahr = String(new Date().getFullYear());
-insAmt.run(id('a'), 'Bierwart', '🍺', ids[0], jahr);
-insAmt.run(id('a'), 'Kassenwartin', '💰', ids[1], jahr);
-insAmt.run(id('a'), 'Spätzünder', '🐌', ids[3], jahr);
+insAmt.run(id('a'), 'Kassenwart', '💰', ids[1], jahr);
 
 console.log('Demo-Daten angelegt. Demo-Logins: sepp@demo.wirtschaftln.de usw. (Passwort: servus123)');

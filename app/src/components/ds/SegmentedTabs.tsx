@@ -8,17 +8,21 @@ export function SegmentedTabs({
   tabs = [],
   value,
   onChange,
+  fullWidth = false,
   style = {},
 }: {
   tabs: Array<string | { value: string; label: string }>;
   value: string;
   onChange?: (value: string) => void;
+  /** Nimmt die volle Breite ein, Tabs teilen sich den Platz gleichmäßig. */
+  fullWidth?: boolean;
   style?: React.CSSProperties;
 }) {
   return (
     <div
       style={{
-        display: 'inline-flex', background: 'var(--ink-100)', borderRadius: 'var(--r-pill)',
+        display: fullWidth ? 'flex' : 'inline-flex', width: fullWidth ? '100%' : undefined,
+        background: 'var(--ink-100)', borderRadius: 'var(--r-pill)',
         padding: 3, gap: 2, ...style,
       }}
     >
@@ -32,7 +36,8 @@ export function SegmentedTabs({
             onClick={() => onChange?.(key)}
             style={{
               border: 'none', cursor: 'pointer', borderRadius: 'var(--r-pill)',
-              padding: '7px 16px', fontFamily: 'var(--font-ui)', fontWeight: 700, fontSize: 13,
+              flex: fullWidth ? 1 : undefined,
+              padding: fullWidth ? '7px 8px' : '7px 16px', fontFamily: 'var(--font-ui)', fontWeight: 700, fontSize: 13,
               color: active ? 'var(--muc-blau)' : 'var(--ink-500)',
               background: active ? 'var(--weiss)' : 'transparent',
               boxShadow: active ? 'var(--sh-xs)' : 'none',

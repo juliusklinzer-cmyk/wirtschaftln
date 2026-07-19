@@ -1,7 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import type { Bier } from '@/lib/biersorten';
+import type { Bier, BierOption } from '@/lib/biersorten';
+
+const istBier = (o: BierOption): o is Bier => 'name' in o;
 
 /** Bier-Dropdown mit Brauerei-Logos (natives select kann keine Bilder). */
 export function BierWahl({
@@ -12,13 +14,13 @@ export function BierWahl({
   leerLabel,
 }: {
   label: string;
-  biere: Bier[];
+  biere: BierOption[];
   value: string;
   onChange: (v: string) => void;
   leerLabel?: string;
 }) {
   const [offen, setOffen] = useState(false);
-  const gewaehlt = biere.find((b) => b.name === value) ?? null;
+  const gewaehlt = biere.find((b): b is Bier => istBier(b) && b.name === value) ?? null;
   return (
     <div style={{ position: 'relative' }}>
       <label style={{ display: 'block', fontSize: 13, fontWeight: 700, color: 'var(--ink-700)', marginBottom: 6 }}>{label}</label>
@@ -36,12 +38,20 @@ export function BierWahl({
               <span>{leerLabel}</span>
             </BierZeile>
           )}
-          {biere.map((b) => (
-            <BierZeile key={b.name} aktiv={b.name === value} onClick={() => { onChange(b.name); setOffen(false); }}>
-              <BierLogo bier={b} />
-              <span>{b.name}</span>
-            </BierZeile>
-          ))}
+          {biere.map((b, i) =>
+            istBier(b) ? (
+              <BierZeile key={b.name} aktiv={b.name === value} onClick={() => { onChange(b.name); setOffen(false); }}>
+                <BierLogo bier={b} />
+                <span>{b.name}</span>
+              </BierZeile>
+            ) : (
+              <div key={`div-${i}`} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 14px', background: 'var(--pergament)', borderTop: '1px solid var(--ink-100)', borderBottom: '1px solid var(--ink-100)' }}>
+                <span style={{ flex: 1, height: 1, background: 'var(--ink-200)' }} />
+                <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--ink-500)' }}>{b.divider}</span>
+                <span style={{ flex: 1, height: 1, background: 'var(--ink-200)' }} />
+              </div>
+            )
+          )}
         </div>
       )}
     </div>

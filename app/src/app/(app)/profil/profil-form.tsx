@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Button, Input, Switch } from '@/components/ds';
 import { BierWahl } from '@/components/domain/BierWahl';
 import { FotoZuschnitt } from '@/components/domain/FotoZuschnitt';
-import { HELLE, WEISSBIERE } from '@/lib/biersorten';
+import { HELLE_WAHL, WEISSBIERE } from '@/lib/biersorten';
 import { profilSpeichern, type ProfilState } from './actions';
 
 export type ProfilWerte = {
@@ -58,7 +58,7 @@ export function ProfilForm({ werte, onGespeichert }: { werte: ProfilWerte; onGes
       <Input label="Spitzname (optional) — so steht’s auf der Rangliste, sonst dein Name" name="spitzname" defaultValue={werte.spitzname ?? ''} placeholder="da Sepp" />
       <Input label="Herkunft — Viertel oder woher’s di gspuit hat" name="herkunft" defaultValue={werte.herkunft ?? ''} placeholder="z. B. Giesing" />
 
-      <BierWahl label="Lieblingsbier (Helles)" biere={HELLE} value={bier} onChange={setBier} leerLabel="No ned festglegt" />
+      <BierWahl label="Lieblingsbier (Helles)" biere={HELLE_WAHL} value={bier} onChange={setBier} leerLabel="No ned festglegt" />
       <input type="hidden" name="lieblingsbier" value={bier} />
       <BierWahl label="Lieblingsweißbier" biere={WEISSBIERE} value={weissbier} onChange={setWeissbier} leerLabel="No ned festglegt" />
       <input type="hidden" name="lieblingsweissbier" value={weissbier} />

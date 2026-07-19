@@ -5,6 +5,8 @@
  * bessere Dateien einfach unter gleichem Namen drüberlegen).
  */
 export type Bier = { name: string; logo: string };
+/** Dropdown-Eintrag: entweder a Bier oder a Trennstrich mit Überschrift. */
+export type BierOption = Bier | { divider: string };
 
 const logo = (slug: string) => `/brand/biersorten/${slug}.png`;
 
@@ -76,12 +78,26 @@ export const WEISSBIERE: Bier[] = [
   { name: 'Paulaner – Weißbier Kristall', logo: logo('paulaner') },
 ];
 
+/** Alkoholfreie Helle — Julius' Karte (19.07.), stehen unterm Trennstrich. */
+export const ALKOHOLFREIE_HELLE: Bier[] = [
+  { name: 'Augustiner – Hell Alkoholfrei', logo: logo('augustiner') },
+  { name: 'Weihenstephan – Original Helles Alkoholfrei', logo: logo('weihenstephan') },
+  { name: 'Neumarkter Lammsbräu – Alkoholfrei', logo: logo('neumarkter-lammsbraeu') },
+  { name: 'Hofbräu – Münchner Sommer Alkoholfrei', logo: logo('hofbraeu') },
+  { name: 'Paulaner – Münchner Hell Alkoholfrei', logo: logo('paulaner') },
+  { name: 'Giesinger – Erhellung Alkoholfrei', logo: logo('giesinger') },
+  { name: 'Tegernseer – Hell Alkoholfrei', logo: logo('tegernseer') },
+];
+
+/** Helle-Auswahl fürs Dropdown: normale Helle, Trennstrich, alkoholfreie Helle. */
+export const HELLE_WAHL: BierOption[] = [...HELLE, { divider: 'Alkoholfrei' }, ...ALKOHOLFREIE_HELLE];
+
 // Standard beim Abschluss = das erste Helle der Karte (Augustiner Lagerbier Hell)
 export const STANDARD_BIERSORTE = HELLE[0].name;
 
 export function bierLogo(name: string | null): string | null {
   if (!name) return null;
-  const alle = [...HELLE, ...WEISSBIERE];
+  const alle = [...HELLE, ...WEISSBIERE, ...ALKOHOLFREIE_HELLE];
   const exakt = alle.find((b) => b.name === name);
   if (exakt) return exakt.logo;
   // Alt-Einträge aus der DB (z. B. „Schneider Weisse" vor der 30er-Karte):

@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { Avatar, Button } from '@/components/ds';
-import { HELLE, WEISSBIERE, STANDARD_BIERSORTE } from '@/lib/biersorten';
+import { HELLE_WAHL, WEISSBIERE, STANDARD_BIERSORTE } from '@/lib/biersorten';
 import { PTS } from '@/lib/punkte';
 import { BierWahl } from '@/components/domain/BierWahl';
 
@@ -196,7 +196,7 @@ export function AbschlussForm({
 
       {/* Bier & Weißbier */}
       <div style={{ marginTop: 14 }}>
-        <BierWahl label="Welches Helle?" biere={HELLE} value={biersorte} onChange={setBiersorte} />
+        <BierWahl label="Welches Helle?" biere={HELLE_WAHL} value={biersorte} onChange={setBiersorte} />
       </div>
       <div style={{ marginTop: 10 }}>
         <BierWahl label="Welches Weißbier?" biere={WEISSBIERE} value={weissbier} onChange={setWeissbier} leerLabel="Koa Weißbier / wissen wir nimmer" />

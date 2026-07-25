@@ -1,9 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import type { Bier, BierOption } from '@/lib/biersorten';
 
 const istBier = (o: BierOption): o is Bier => 'name' in o;
+// Nur ei Bierwahl offen: geht oane auf, schließen d'anderen
+const OFFEN_EVENT = 'wn-bierwahl-offen';
 
 /** Bier-Dropdown mit Brauerei-Logos (natives select kann keine Bilder). */
 export function BierWahl({
@@ -19,19 +21,55 @@ export function BierWahl({
   onChange: (v: string) => void;
   leerLabel?: string;
 }) {
+  const id = useId();
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const btnRef = useRef<HTMLButtonElement>(null);
   const [offen, setOffen] = useState(false);
+  const [nachOben, setNachOben] = useState(false);
+  const [maxH, setMaxH] = useState(300);
   const gewaehlt = biere.find((b): b is Bier => istBier(b) && b.name === value) ?? null;
+
+  // Andere Bierwahl geht auf → diese zua
+  useEffect(() => {
+    const zu = (e: Event) => { if ((e as CustomEvent).detail !== id) setOffen(false); };
+    window.addEventListener(OFFEN_EVENT, zu);
+    return () => window.removeEventListener(OFFEN_EVENT, zu);
+  }, [id]);
+
+  // Außerhalb tippen schließt (koa Vollbild-Overlay, damit's ned's Scrollen blockiert)
+  useEffect(() => {
+    if (!offen) return;
+    const ausserhalb = (e: Event) => { if (!wrapRef.current?.contains(e.target as Node)) setOffen(false); };
+    document.addEventListener('pointerdown', ausserhalb);
+    return () => document.removeEventListener('pointerdown', ausserhalb);
+  }, [offen]);
+
+  const umschalten = () => {
+    if (offen) { setOffen(false); return; }
+    // Richtung + Höhe nach'm verfügbaren Platz — damit's ned hinter da TabBar verschwindt
+    const r = btnRef.current?.getBoundingClientRect();
+    if (r) {
+      const platzUnten = window.innerHeight - r.bottom - 96; // ~TabBar + Rand
+      const platzOben = r.top - 72;
+      const oben = platzUnten < 220 && platzOben > platzUnten;
+      setNachOben(oben);
+      setMaxH(Math.max(180, Math.min(340, oben ? platzOben : platzUnten)));
+    }
+    window.dispatchEvent(new CustomEvent(OFFEN_EVENT, { detail: id }));
+    setOffen(true);
+  };
+
   return (
-    <div style={{ position: 'relative' }}>
+    <div ref={wrapRef} style={{ position: 'relative' }}>
       <label style={{ display: 'block', fontSize: 13, fontWeight: 700, color: 'var(--ink-700)', marginBottom: 6 }}>{label}</label>
-      <button type="button" onClick={() => setOffen(!offen)}
+      <button ref={btnRef} type="button" onClick={umschalten}
         style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '10px 14px', border: '1.5px solid var(--ink-200)', borderRadius: 'var(--r-md)', background: 'var(--weiss)', cursor: 'pointer', fontFamily: 'var(--font-ui)', fontSize: 15, fontWeight: 600, color: gewaehlt ? 'var(--ink-900)' : 'var(--ink-500)', textAlign: 'left' }}>
         {gewaehlt ? <BierLogo bier={gewaehlt} /> : <span style={{ width: 26, textAlign: 'center' }}>🍺</span>}
         <span style={{ flex: 1 }}>{gewaehlt?.name ?? leerLabel ?? 'Auswählen…'}</span>
         <span style={{ color: 'var(--ink-300)', fontSize: 12 }}>▼</span>
       </button>
       {offen && (
-        <div style={{ position: 'absolute', left: 0, right: 0, top: '100%', zIndex: 40, marginTop: 4, background: 'var(--weiss)', border: '1px solid var(--ink-100)', borderRadius: 'var(--r-md)', boxShadow: 'var(--sh-lg)', overflow: 'hidden', maxHeight: 280, overflowY: 'auto' }}>
+        <div style={{ position: 'absolute', left: 0, right: 0, ...(nachOben ? { bottom: '100%', marginBottom: 4 } : { top: '100%', marginTop: 4 }), zIndex: 50, background: 'var(--weiss)', border: '1px solid var(--ink-100)', borderRadius: 'var(--r-md)', boxShadow: 'var(--sh-lg)', overflow: 'hidden', maxHeight: maxH, overflowY: 'auto' }}>
           {leerLabel && (
             <BierZeile aktiv={!gewaehlt} onClick={() => { onChange(''); setOffen(false); }}>
               <span style={{ width: 26, textAlign: 'center' }}>—</span>

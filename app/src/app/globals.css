@@ -179,10 +179,10 @@ body {
   margin: 0;
   padding: 0;
   height: 100%;
-  /* App-Verhalten wie native: Body selber scrollt/wippt ned (koa Rubber-Band,
-     koa Pull-to-Refresh, Header lasst se ned verziehen) — gscrollt wird nur
-     im Inhalt (<main>). */
-  overflow: hidden;
+  /* App-Verhalten wie native: koa Rubber-Band / Pull-to-Refresh (Header lasst
+     se ned verziehen). In da App scrollt <main>; Login/Beitreten scrollen über
+     den Body — drum KOA overflow:hidden hier, sonst kommt ma auf kloane Displays
+     ned zum Button. overscroll-behavior reicht gegen's Wippen. */
   overscroll-behavior: none;
 }
 

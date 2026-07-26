@@ -13,6 +13,7 @@ import {
 } from '@/lib/punkte';
 import { vergabeStand } from '@/lib/badges';
 import { aktuelleSaison } from '@/lib/saison';
+import type { BekanntesWirtshaus } from '@/lib/wirtshaus-abgleich';
 
 export type Termin = typeof termine.$inferSelect;
 export type Member = typeof members.$inferSelect;
@@ -94,17 +95,28 @@ export function getAktiveMitglieder() {
   return db.select().from(members).where(eq(members.status, 'aktiv')).orderBy(asc(members.name)).all();
 }
 
-/** Namen aller schon besuchten Wirtshäuser (Termine + Altbestand) — für die „schon gwesen"-Warnung in der Suche. */
-export function getBesuchteWirtshausNamen(): string[] {
+/**
+ * ALLE bekannten Wirtshäuser mit Kategorie — für die Warnung in der Suche und
+ * die harte Vorschlags-Regel: besucht (Chronik/Altbestand), eingeplant
+ * (laufender Termin) oder vorgeschlagen (offener Pin, samt Finder-Name).
+ */
+export function getBekannteWirtshaeuser(): BekanntesWirtshaus[] {
   const besuchtIds = new Set(
     db.select().from(termine).where(eq(termine.phase, 'abgeschlossen')).all().map((t) => t.wirtshausId).filter(Boolean),
   );
+  const eingeplantIds = new Set(
+    db.select().from(termine).where(ne(termine.phase, 'abgeschlossen')).all().map((t) => t.wirtshausId).filter(Boolean),
+  );
+  const finder = new Map(db.select().from(members).all().map((m) => [m.id, anzeigeName(m)]));
   return db
     .select()
     .from(wirtshaeuser)
     .all()
-    .filter((w) => w.altbestand || besuchtIds.has(w.id))
-    .map((w) => w.name);
+    .map((w): BekanntesWirtshaus => ({
+      name: w.name,
+      art: w.altbestand || besuchtIds.has(w.id) ? 'besucht' : eingeplantIds.has(w.id) ? 'eingeplant' : 'vorgeschlagen',
+      von: (w.vorgeschlagenVon && finder.get(w.vorgeschlagenVon)) || null,
+    }));
 }
 
 /** Aktueller Kassenwart (gewähltes Amt der laufenden Saison) — darf Ausgaben buchen. */

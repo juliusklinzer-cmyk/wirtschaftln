@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Button } from '@/components/ds';
 import { WirtshausSuche } from '@/components/domain/WirtshausSuche';
+import type { BekanntesWirtshaus } from '@/lib/wirtshaus-abgleich';
 
 /**
  * „Reservierung ändern"-Klappe: schließt sich nach dem Speichern von selbst
@@ -11,10 +12,10 @@ import { WirtshausSuche } from '@/components/domain/WirtshausSuche';
  */
 export function ReservierungAendern({
   action,
-  schonBesucht,
+  bekannte,
 }: {
   action: (formData: FormData) => Promise<void>;
-  schonBesucht: string[];
+  bekannte: BekanntesWirtshaus[];
 }) {
   const [offen, setOffen] = useState(false);
   const [erfolg, setErfolg] = useState(false);
@@ -43,7 +44,7 @@ export function ReservierungAendern({
         </summary>
         <div style={{ padding: '4px 18px 18px' }}>
           <form action={speichern} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-            <WirtshausSuche schonBesucht={schonBesucht} />
+            <WirtshausSuche bekannte={bekannte} />
             <Button type="submit" fullWidth variant="gold">
               Wirtshaus ändern
             </Button>

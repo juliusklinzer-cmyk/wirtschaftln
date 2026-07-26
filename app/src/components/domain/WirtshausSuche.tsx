@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { loadGoogleMaps } from '@/lib/google-maps';
+import { findeBekanntes, type BekanntesWirtshaus } from '@/lib/wirtshaus-abgleich';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -22,28 +23,19 @@ export type WirtshausTreffer = {
  */
 export function WirtshausSuche({
   namePrefix = 'w',
-  schonBesucht = [],
+  bekannte = [],
 }: {
   namePrefix?: string;
-  /** Namen aller schon besuchten Wirtshäuser (Termine + Altbestand) — Regel: koa Wirtshaus zweimal. */
-  schonBesucht?: string[];
+  /** Alle bekannten Wirtshäuser (besucht/eingeplant/vorgeschlagen) — Regel: koa Wirtshaus zweimal. */
+  bekannte?: BekanntesWirtshaus[];
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [treffer, setTreffer] = useState<WirtshausTreffer | null>(null);
   const [eingabe, setEingabe] = useState('');
   const [status, setStatus] = useState<'lade' | 'bereit' | 'fehler'>('lade');
 
-  // Unscharfer Abgleich: „Max Emanuel Brauerei Wirtshaus und Biergarten" trifft auch „Max Emanuel"
-  const norm = (s: string) => s.toLowerCase().replace(/\s+/g, ' ').trim();
-  const bekanntes = (() => {
-    const n = norm(treffer?.name ?? eingabe);
-    if (n.length < 4) return null;
-    for (const b of schonBesucht) {
-      const bn = norm(b);
-      if (bn === n || (bn.length >= 6 && n.includes(bn)) || (n.length >= 6 && bn.includes(n))) return b;
-    }
-    return null;
-  })();
+  // Unscharfer Abgleich (gleiche Logik wie die Server-Regel beim Vorschlagen)
+  const bekanntes = findeBekanntes(treffer?.name ?? eingabe, bekannte);
 
   useEffect(() => {
     let aufgeraeumt = false;
@@ -111,10 +103,18 @@ export function WirtshausSuche({
       <FreitextFallback namePrefix={namePrefix} inputRef={inputRef} hatTreffer={!!treffer} />
 
       {bekanntes && (
-        <div style={{ display: 'flex', gap: 10, padding: '10px 12px', background: 'var(--strafe-bg)', border: '1.5px solid var(--strafe)', borderRadius: 'var(--r-md)', alignItems: 'flex-start' }}>
-          <span style={{ fontSize: 18, lineHeight: 1.2 }}>⚠️</span>
-          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--strafe)', lineHeight: 1.5 }}>
-            Do warts’s scho! „{bekanntes}“ steht in eurer Chronik — und a Wirtshaus wird nie zweimal bsucht.
+        <div
+          style={{
+            display: 'flex', gap: 10, padding: '10px 12px', borderRadius: 'var(--r-md)', alignItems: 'flex-start',
+            background: bekanntes.art === 'vorgeschlagen' ? 'var(--pergament)' : 'var(--strafe-bg)',
+            border: `1.5px solid ${bekanntes.art === 'vorgeschlagen' ? 'var(--gold)' : 'var(--strafe)'}`,
+          }}
+        >
+          <span style={{ fontSize: 18, lineHeight: 1.2 }}>{bekanntes.art === 'vorgeschlagen' ? '📍' : '⚠️'}</span>
+          <div style={{ fontSize: 13, fontWeight: 700, color: bekanntes.art === 'vorgeschlagen' ? 'var(--gold-700)' : 'var(--strafe)', lineHeight: 1.5 }}>
+            {bekanntes.art === 'besucht' && <>Do warts’s scho! „{bekanntes.name}“ steht in eurer Chronik — und a Wirtshaus wird nie zweimal bsucht.</>}
+            {bekanntes.art === 'eingeplant' && <>„{bekanntes.name}“ steht scho als nächster Stammtisch fest.</>}
+            {bekanntes.art === 'vorgeschlagen' && <>„{bekanntes.name}“ {bekanntes.von ? `hat ${bekanntes.von} scho gfunden` : 'is scho vorgschlagen'} — steht als „Offen“ auf da Kartn.</>}
           </div>
         </div>
       )}

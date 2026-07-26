@@ -9,6 +9,7 @@ export function SegmentedTabs({
   value,
   onChange,
   fullWidth = false,
+  compact = false,
   style = {},
 }: {
   tabs: Array<string | { value: string; label: string }>;
@@ -16,6 +17,8 @@ export function SegmentedTabs({
   onChange?: (value: string) => void;
   /** Nimmt die volle Breite ein, Tabs teilen sich den Platz gleichmäßig. */
   fullWidth?: boolean;
+  /** Weniger Innenabstand — für 5+ Tabs auf schmalen Handys. */
+  compact?: boolean;
   style?: React.CSSProperties;
 }) {
   return (
@@ -37,7 +40,8 @@ export function SegmentedTabs({
             style={{
               border: 'none', cursor: 'pointer', borderRadius: 'var(--r-pill)',
               flex: fullWidth ? 1 : undefined,
-              padding: fullWidth ? '7px 8px' : '7px 16px', fontFamily: 'var(--font-ui)', fontWeight: 700, fontSize: 13,
+              padding: fullWidth ? '7px 8px' : compact ? '7px 10px' : '7px 16px',
+              fontFamily: 'var(--font-ui)', fontWeight: 700, fontSize: compact ? 12.5 : 13,
               color: active ? 'var(--muc-blau)' : 'var(--ink-500)',
               background: active ? 'var(--weiss)' : 'transparent',
               boxShadow: active ? 'var(--sh-xs)' : 'none',

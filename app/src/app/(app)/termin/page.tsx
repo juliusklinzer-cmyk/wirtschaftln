@@ -12,7 +12,7 @@ import {
   getOffeneWirtshaeuser,
   nachtragsfristOffen,
   getPraesidentId,
-  getBesuchteWirtshausNamen,
+  getBekannteWirtshaeuser,
 } from '@/lib/queries';
 import { datumLang, datumKurz } from '@/lib/format';
 import { PTS, rechtzeitigAbgestimmt, berlinTag } from '@/lib/punkte';
@@ -207,7 +207,7 @@ async function AktiverTermin({ terminId, meId, isAdmin }: { terminId: string; me
       {termin.phase === 'reserviert' && darfVerwalten && (
         <ReservierungAendern
           action={wirtshausFestlegen.bind(null, termin.id)}
-          schonBesucht={getBesuchteWirtshausNamen()}
+          bekannte={getBekannteWirtshaeuser()}
         />
       )}
 
@@ -248,7 +248,7 @@ async function AktiverTermin({ terminId, meId, isAdmin }: { terminId: string; me
                     </div>
                   </>
                 )}
-                <WirtshausSuche schonBesucht={getBesuchteWirtshausNamen()} />
+                <WirtshausSuche bekannte={getBekannteWirtshaeuser()} />
                 <Button type="submit" fullWidth variant="gold">
                   Reservierung eintragen
                 </Button>

@@ -4,7 +4,7 @@ import { useRef, useState, useTransition } from 'react';
 import { SegmentedTabs, Badge, Avatar } from '@/components/ds';
 import { Stars } from '@/components/domain/Stars';
 import { ArchivKarte } from '@/components/domain/ArchivKarte';
-import { nachbewerten } from '@/app/(app)/karte/actions';
+import { nachbewerten, wirtshausEntfernen } from '@/app/(app)/karte/actions';
 
 export type ArchivTeilnehmer = {
   name: string;
@@ -28,6 +28,8 @@ export type ArchivEintrag = {
   organisator: { name: string; photoUrl: string | null } | null;
   /** Spezl, der das Wirtshaus über „Wirtshaus gfunden" vorgeschlagen hat. */
   gfundenVon?: string | null;
+  /** Member-ID des Finders — für den Entfernen-Button im „Offen"-Tab. */
+  gfundenVonId?: string | null;
   rating: number;
   kaiser: number;
   brodn: number;
@@ -82,13 +84,22 @@ function BiersorteChip({ sorte, hell = false }: { sorte: string; hell?: boolean 
   );
 }
 
-export function ArchivScreen({ eintraege }: { eintraege: ArchivEintrag[] }) {
-  const [view, setView] = useState<'karte' | MetrikKey>('karte');
+export function ArchivScreen({
+  eintraege,
+  ich,
+}: {
+  eintraege: ArchivEintrag[];
+  /** Eingeloggter Spezl — darfModerieren = Admin oder aktueller Präsident. */
+  ich: { id: string; darfModerieren: boolean };
+}) {
+  const [view, setView] = useState<'karte' | 'offen' | MetrikKey>('karte');
   const [idx, setIdx] = useState(0);
   const [detail, setDetail] = useState<{ e: ArchivEintrag; rank: number | null } | null>(null);
 
   // Altbestand zählt als besucht (Chronik) — rankt aber nur mit Nachbewertungen (> 0 Sterne)
   const besucht = eintraege.filter((e) => e.besuchtAm || e.altbestand);
+  // Offene Vorschläge: no ned besucht, koa nächster Termin, koa Altbestand
+  const offene = eintraege.filter((e) => !e.besuchtAm && !e.naechstes && !e.altbestand);
   // Top 3 nach Sternen → goldene Pins auf der Karte
   const top3Ids = new Set(
     [...besucht].sort((a, b) => b.rating - a.rating).slice(0, 3).filter((e) => e.rating > 0).map((e) => e.id),
@@ -98,11 +109,13 @@ export function ArchivScreen({ eintraege }: { eintraege: ArchivEintrag[] }) {
     <SegmentedTabs
       value={view}
       onChange={(v) => setView(v as typeof view)}
+      compact
       tabs={[
         { label: 'Karte', value: 'karte' },
         { label: 'Sterne', value: 'rang' },
         { label: 'Schmarrn', value: 'kaiser' },
         { label: 'Brodn', value: 'brodn' },
+        { label: 'Offen', value: 'offen' },
       ]}
     />
   );
@@ -142,6 +155,42 @@ export function ArchivScreen({ eintraege }: { eintraege: ArchivEintrag[] }) {
             Sobald a Wirtshaus abgeschlossen is’, erscheint’s hier auf der Karte. 🗺️
           </div>
         )}
+      </div>
+    );
+  }
+
+  /* ── OFFEN: alle vorgeschlagenen Wirtshäuser — mit Entfernen für Admin/Präsi/Finder ── */
+  if (view === 'offen') {
+    return (
+      <div style={{ padding: '12px 16px 24px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <div
+          style={{
+            position: 'sticky', top: 0, zIndex: 15,
+            margin: '-12px -16px 0', padding: '10px 16px',
+            background: 'var(--bg-app)', borderBottom: '1px solid var(--ink-100)',
+          }}
+        >
+          {toggle}
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '2px 2px 0' }}>
+          <span style={{ fontFamily: 'var(--font-fraktur)', fontSize: 22, color: 'var(--navy)', lineHeight: 1 }}>Offene Vorschläge</span>
+          <span className="wn-tnum" style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink-500)' }}>({offene.length})</span>
+        </div>
+        <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink-500)', margin: '-8px 2px 0' }}>
+          Entfernen dürfen Admin, Präsident und der Finder selbst — der Vorschlags-WP geht dann wieder weg.
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {offene.map((e) => (
+            <OffenerVorschlag key={e.id} e={e} ich={ich} />
+          ))}
+          {offene.length === 0 && (
+            <div style={{ textAlign: 'center', padding: '30px 16px', color: 'var(--ink-500)', fontSize: 14, fontWeight: 600 }}>
+              Koane offenen Vorschläge — wer a Wirtshaus gfunden hat, trägt’s auf der Heim-Seite ein. 📍
+            </div>
+          )}
+        </div>
       </div>
     );
   }
@@ -291,6 +340,97 @@ const navBtn: React.CSSProperties = {
   fontSize: 20, fontWeight: 800, color: 'var(--navy)', lineHeight: 1,
   display: 'flex', alignItems: 'center', justifyContent: 'center',
 };
+
+/* ── Zeile im „Offen"-Tab: Vorschlag mit Finder + Zwei-Schritt-Entfernen ── */
+function OffenerVorschlag({ e, ich }: { e: ArchivEintrag; ich: { id: string; darfModerieren: boolean } }) {
+  const [nachfrage, setNachfrage] = useState(false);
+  const [meldung, setMeldung] = useState<{ ok: boolean; text: string } | null>(null);
+  const [pending, startTransition] = useTransition();
+  const darfEntfernen = ich.darfModerieren || (e.gfundenVonId != null && e.gfundenVonId === ich.id);
+
+  const entfernen = () =>
+    startTransition(async () => {
+      const ergebnis = await wirtshausEntfernen(e.id);
+      setNachfrage(false);
+      setMeldung(
+        ergebnis.ok
+          ? { ok: true, text: `✓ „${e.name}“ is von der Karte — der Vorschlags-WP is wieder weg.` }
+          : { ok: false, text: ergebnis.meldung ?? 'Hat ned klappt.' },
+      );
+    });
+
+  // Nach erfolgreichem Entfernen verschwindet der Eintrag beim nächsten Server-Refresh —
+  // bis dahin zeigen wir die Erfolgsmeldung anstelle der Karte.
+  if (meldung?.ok) {
+    return (
+      <div style={{ padding: '12px 14px', borderRadius: 'var(--r-md)', textAlign: 'center', background: 'var(--erfolg-bg)', border: '1px solid var(--erfolg)', fontSize: 13, fontWeight: 800, color: 'var(--erfolg)' }}>
+        {meldung.text}
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ background: 'var(--weiss)', borderRadius: 'var(--r-lg)', border: '1px solid var(--ink-100)', boxShadow: 'var(--sh-sm)', overflow: 'hidden' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px' }}>
+        <div style={{ flex: 'none', width: 54, height: 54, borderRadius: 'var(--r-md)', overflow: 'hidden', background: 'var(--ink-100)' }}>
+          {e.photoUrl && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={e.photoUrl} alt={e.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          )}
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ fontSize: 15, fontWeight: 800, color: 'var(--ink-900)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{e.name}</span>
+            <Badge tone="neutral" solid>Offen</Badge>
+          </div>
+          <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink-500)', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{e.bezirk}</div>
+          {e.gfundenVon && (
+            <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--gold-700)', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              gfunden von {e.gfundenVon}
+            </div>
+          )}
+        </div>
+        {darfEntfernen && !nachfrage && (
+          <button
+            type="button"
+            onClick={() => setNachfrage(true)}
+            aria-label={`${e.name} entfernen`}
+            style={{ flex: 'none', border: '1.5px solid var(--ink-200)', background: 'var(--weiss)', borderRadius: 'var(--r-md)', padding: '7px 10px', fontFamily: 'var(--font-ui)', fontSize: 12, fontWeight: 800, color: 'var(--strafe)', cursor: 'pointer' }}
+          >
+            🗑 Entfernen
+          </button>
+        )}
+      </div>
+      {nachfrage && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px', background: 'var(--strafe-bg)', borderTop: '1px solid var(--ink-100)' }}>
+          <span style={{ flex: 1, fontSize: 12, fontWeight: 700, color: 'var(--strafe)' }}>
+            Wirklich? Der WP vom Finder geht damit wieder weg.
+          </span>
+          <button
+            type="button"
+            onClick={() => setNachfrage(false)}
+            style={{ border: 'none', background: 'none', fontFamily: 'var(--font-ui)', fontSize: 12, fontWeight: 800, color: 'var(--ink-500)', cursor: 'pointer', padding: '6px 8px' }}
+          >
+            Doch ned
+          </button>
+          <button
+            type="button"
+            onClick={entfernen}
+            disabled={pending}
+            style={{ border: 'none', background: 'var(--strafe)', color: '#fff', borderRadius: 'var(--r-md)', fontFamily: 'var(--font-ui)', fontSize: 12, fontWeight: 800, cursor: 'pointer', padding: '7px 12px', opacity: pending ? 0.6 : 1 }}
+          >
+            Weg damit
+          </button>
+        </div>
+      )}
+      {meldung && !meldung.ok && (
+        <div style={{ padding: '8px 12px', borderTop: '1px solid var(--ink-100)', fontSize: 12, fontWeight: 700, color: 'var(--strafe)', background: 'var(--strafe-bg)' }}>
+          {meldung.text}
+        </div>
+      )}
+    </div>
+  );
+}
 
 /* ── Nummerierte Ranking-Zeile mit Medaille ── */
 function RankedCard({

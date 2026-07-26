@@ -14,7 +14,7 @@ import {
   getAktiveMitglieder,
   getUmfragen,
   type MitgliedStats,
-  getBesuchteWirtshausNamen,
+  getBekannteWirtshaeuser,
 } from '@/lib/queries';
 import { PTS, WACKELT_AB_UNENTSCHULDIGT, rechtzeitigAbgestimmt } from '@/lib/punkte';
 import { vergabeWechsel, wechselTexte, AEMTER_INFO } from '@/lib/badges';
@@ -263,7 +263,7 @@ export default async function HomePage() {
       {/* Wirtshaus gfunden — darf jeder: landet als offener Pin auf der Karte */}
       <SectionHeader eyebrow="Für’s nächste Mal" title="Wirtshaus gfunden?" fraktur />
       <Card>
-        <WirtshausGfunden schonBesucht={getBesuchteWirtshausNamen()} />
+        <WirtshausGfunden bekannte={getBekannteWirtshaeuser()} />
       </Card>
 
       {/* Umfragen: neue starten + scho beantwortete mit Ergebnis */}

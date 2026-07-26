@@ -5,7 +5,8 @@ import { anzeigeName } from '@/lib/namen';
 import { and, eq } from 'drizzle-orm';
 import { db, termine, votes, besuche, wirtshaeuser, kasse, pushSubscriptions } from '@/lib/db';
 import { getCurrentMember } from '@/lib/session';
-import { getAktiveMitglieder, nachtragsfristOffen, getVergabeStand, getStats, getPraesidentId } from '@/lib/queries';
+import { getAktiveMitglieder, nachtragsfristOffen, getVergabeStand, getStats, getPraesidentId, getBekannteWirtshaeuser } from '@/lib/queries';
+import { findeBekanntes } from '@/lib/wirtshaus-abgleich';
 import { vergabeWechsel, wechselTexte } from '@/lib/badges';
 import { WACKELT_AB_UNENTSCHULDIGT, berlinTag } from '@/lib/punkte';
 import { HOIBE_KELLERPREIS_CENTS } from '@/lib/preise';
@@ -109,15 +110,35 @@ async function wirtshausAusSuche(formData: FormData, vorgeschlagenVon: string | 
   return wid;
 }
 
+export type VorschlagErgebnis = { ok: true } | { ok: false; meldung: string };
+
 /**
  * „Wirtshaus gfunden" — darf jeder: landet als offener Pin auf der Karte
  * und steht dem nächsten Organisator zur Auswahl.
+ *
+ * Harte Regeln (serverseitig, unscharfer Namensabgleich wie in der Suche):
+ * schon besuchte/Altbestand-Wirtshäuser, das eingeplante nächste und schon
+ * vorgeschlagene dürfen NICHT nochmal vorgeschlagen werden — sonst gäb's
+ * doppelte Pins und erschummelte Vorschlags-WP.
  */
-export async function wirtshausVorschlagen(formData: FormData) {
+export async function wirtshausVorschlagen(formData: FormData): Promise<VorschlagErgebnis> {
   const me = await getCurrentMember();
-  if (!me) return;
+  if (!me) return { ok: false, meldung: 'Ned angmeldt — bitte neu einloggen.' };
+  const name = String(formData.get('w_name') ?? '').trim() || String(formData.get('w_freitext') ?? '').trim();
+  if (!name) return { ok: false, meldung: 'Koa Wirtshaus eingeben — such oans aus oder tipp an Namen.' };
+  const bekannt = findeBekanntes(name, getBekannteWirtshaeuser());
+  if (bekannt) {
+    const meldung =
+      bekannt.art === 'besucht'
+        ? `„${bekannt.name}“ steht scho in eurer Chronik — a Wirtshaus wird nie zweimal bsucht.`
+        : bekannt.art === 'eingeplant'
+          ? `„${bekannt.name}“ steht scho als nächster Stammtisch fest.`
+          : `„${bekannt.name}“ ${bekannt.von ? `hat ${bekannt.von} scho gfunden` : 'is scho vorgschlagen'} — steht als „Offen“ auf da Kartn.`;
+    return { ok: false, meldung };
+  }
   await wirtshausAusSuche(formData, me.id);
   revalidateAll();
+  return { ok: true };
 }
 
 export async function wirtshausFestlegen(terminId: string, formData: FormData) {

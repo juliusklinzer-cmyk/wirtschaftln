@@ -91,6 +91,7 @@ export function ladeArchivEintraege(meId: string): ArchivEintrag[] {
       besuchtAm: null,
       organisator: null,
       gfundenVon: finder ? anzeigeName(finder) : null,
+      gfundenVonId: wirtshaus.vorgeschlagenVon,
       rating: 0,
       kaiser: 0,
       brodn: 0,

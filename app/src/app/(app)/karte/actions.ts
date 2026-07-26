@@ -2,9 +2,34 @@
 
 import { revalidatePath } from 'next/cache';
 import { eq } from 'drizzle-orm';
-import { db, wirtshaeuser, wirtshausBewertungen } from '@/lib/db';
+import { db, termine, wirtshaeuser, wirtshausBewertungen } from '@/lib/db';
 import { getCurrentMember } from '@/lib/session';
+import { getPraesidentId } from '@/lib/queries';
 import { newId, nowIso } from '@/lib/ids';
+
+/**
+ * Offenen Vorschlag von der Karte nehmen — dürfen Admin, der aktuelle
+ * Präsident und der Finder selbst. Nur solange das Wirtshaus wirklich offen
+ * is (koa Termin, koa Altbestand). Mit der Zeile verschwindet auch der
+ * Vorschlags-WP automatisch, weil der live aus `vorgeschlagenVon` grechnet wird.
+ */
+export async function wirtshausEntfernen(wirtshausId: string): Promise<{ ok: boolean; meldung?: string }> {
+  const me = await getCurrentMember();
+  if (!me) return { ok: false, meldung: 'Ned angmeldt.' };
+  const w = db.select().from(wirtshaeuser).where(eq(wirtshaeuser.id, wirtshausId)).get();
+  if (!w) return { ok: false, meldung: 'Wirtshaus gibt’s nimmer.' };
+  const darf = me.role === 'admin' || me.id === getPraesidentId() || (w.vorgeschlagenVon != null && w.vorgeschlagenVon === me.id);
+  if (!darf) return { ok: false, meldung: 'Entfernen derf nur Admin, Präsident oder der Finder selbst.' };
+  if (w.altbestand) return { ok: false, meldung: 'Chronik-Wirtshäuser bleiben stehen.' };
+  const belegt = db.select().from(termine).where(eq(termine.wirtshausId, wirtshausId)).get();
+  if (belegt) return { ok: false, meldung: 'Des Wirtshaus hängt scho an am Termin — do werd nix glöscht.' };
+  db.delete(wirtshaeuser).where(eq(wirtshaeuser.id, wirtshausId)).run();
+  revalidatePath('/');
+  revalidatePath('/termin');
+  revalidatePath('/karte');
+  revalidatePath('/spezln'); // WP des Finders ändert sich
+  return { ok: true };
+}
 
 /**
  * Freiwillige Nachbewertung — für Altbestand-Wirtshäuser oder wenn wer ohne

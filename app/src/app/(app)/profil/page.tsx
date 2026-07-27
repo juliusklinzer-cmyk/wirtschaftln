@@ -5,6 +5,7 @@ import { getStats, getAemter, getArchiv } from '@/lib/queries';
 import { aktuelleSaison } from '@/lib/saison';
 import { saisonBadgesVergeben, serienAbzeichen, amtInfo, AEMTER_INFO } from '@/lib/badges';
 import { Avatar, Card, SectionHeader } from '@/components/ds';
+import { SchrumpfKopf, MiniKopfLeiste } from '@/components/domain/SchrumpfKopf';
 import { StreakChip } from '@/components/domain/StreakChip';
 import { Steckbrief, steckbriefLeer } from '@/components/domain/Steckbrief';
 import { BadgeBild, SerienLeiste } from '@/components/domain/BadgeBild';
@@ -56,8 +57,18 @@ export default async function ProfilPage() {
         </Card>
       )}
 
-      {/* ── Urkunden-Kopf: wie im Spezl-Detail der Rangliste, bleibt beim Scrollen oben ── */}
-      <Card tone="dark" framed pad={0} style={{ overflow: 'hidden', position: 'sticky', top: 0, zIndex: 5 }}>
+      {/* ── Urkunden-Kopf: wie im Spezl-Detail der Rangliste. Scrollt normal weg —
+          dafür erscheint dann die schmale Mini-Leiste (SchrumpfKopf), damit auf
+          kleinen Handys beim Profil-Ausfüllen der ganze Schirm frei is. ── */}
+      <SchrumpfKopf
+        gapAusgleich={16}
+        kompakt={
+          <div style={{ paddingTop: 8 }}>
+            <MiniKopfLeiste photoUrl={me.photoUrl} name={anzeigeName(me)} wp={meineSaison?.punkte ?? 0} verein={me.verein} schwebend />
+          </div>
+        }
+      >
+      <Card tone="dark" framed pad={0} style={{ overflow: 'hidden' }}>
         <style>{`
           @keyframes wnFederPop { 0% { transform: scale(0.4); opacity: 0; } 62% { transform: scale(1.12); opacity: 1; } 100% { transform: scale(1); opacity: 1; } }
         `}</style>
@@ -122,6 +133,7 @@ export default async function ProfilPage() {
         </div>
         <div style={{ height: 1.5, background: 'linear-gradient(90deg, transparent, var(--gold), transparent)' }} />
       </Card>
+      </SchrumpfKopf>
 
       {/* ── D'Auszeichnungen: große Grafiken, koa Text — Details stehen im Badge ── */}
       {(badges.length > 0 || serien.length > 0) && (

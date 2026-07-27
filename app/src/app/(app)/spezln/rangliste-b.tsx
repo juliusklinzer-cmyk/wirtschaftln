@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Avatar, SegmentedTabs, SectionHeader } from '@/components/ds';
 import { StreakChip } from '@/components/domain/StreakChip';
+import { SchrumpfKopf, MiniKopfLeiste } from '@/components/domain/SchrumpfKopf';
 import { SerienLeiste } from '@/components/domain/BadgeBild';
 import { BadgeInfo, amtKey, type BadgeInfoDaten } from '@/components/domain/BadgeInfo';
 import { PunkteInfo } from '@/components/domain/PunkteInfo';
@@ -316,8 +317,24 @@ function SpezlDetailB({
       `}</style>
       <div onClick={onClose} style={{ position: 'absolute', inset: 0, background: 'rgba(7,25,58,0.6)', backdropFilter: 'blur(2px)' }} />
       <div style={{ position: 'relative', width: '100%', maxWidth: 360, maxHeight: '88dvh', overflowY: 'auto', background: 'var(--weiss)', borderRadius: 'var(--r-xl)', boxShadow: 'var(--sh-lg)', animation: 'wnSheetRein 320ms cubic-bezier(0.32, 0.72, 0, 1) both' }}>
-        {/* ── Kopf: Navy-Zeremonie mit Rauten-Band ── */}
-        <div style={{ position: 'sticky', top: 0, zIndex: 3, background: 'var(--grad-navy)', borderRadius: 'var(--r-xl) var(--r-xl) 0 0', overflow: 'hidden', paddingBottom: 18 }}>
+        {/* ── Kopf: Navy-Zeremonie mit Rauten-Band. Scrollt weg — dafür kommt die
+            Mini-Leiste (SchrumpfKopf), damit auf kleinen Handys gnua Platz bleibt. ── */}
+        <SchrumpfKopf
+          kompakt={
+            <MiniKopfLeiste
+              photoUrl={e.photoUrl}
+              name={e.name}
+              wp={s.punkte}
+              verein={e.steckbrief.verein}
+              rechts={
+                <button onClick={onClose} aria-label="Schließen" style={{ flex: 'none', width: 26, height: 26, borderRadius: '50%', border: 'none', background: 'rgba(255,255,255,0.16)', color: '#fff', fontSize: 14, fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  ×
+                </button>
+              }
+            />
+          }
+        >
+        <div style={{ position: 'relative', background: 'var(--grad-navy)', borderRadius: 'var(--r-xl) var(--r-xl) 0 0', overflow: 'hidden', paddingBottom: 18 }}>
           <div className="wn-raute wn-raute--sm" style={{ height: 7 }} />
           <button onClick={onClose} aria-label="Schließen" style={{ position: 'absolute', top: 15, right: 12, width: 30, height: 30, borderRadius: '50%', border: 'none', background: 'rgba(255,255,255,0.16)', color: '#fff', fontSize: 16, fontWeight: 800, cursor: 'pointer', zIndex: 2 }}>
             ×
@@ -369,6 +386,7 @@ function SpezlDetailB({
             )}
           </div>
         </div>
+        </SchrumpfKopf>
         {/* Gold-Haarlinie als Zeremonie-Trenner */}
         <div style={{ height: 1.5, background: 'linear-gradient(90deg, transparent, var(--gold), transparent)' }} />
 

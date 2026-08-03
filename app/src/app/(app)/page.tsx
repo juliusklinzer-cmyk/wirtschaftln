@@ -26,6 +26,7 @@ import { VotePills } from '@/components/domain/VotePills';
 import { StreakChip } from '@/components/domain/StreakChip';
 import { PushAktivieren } from '@/components/domain/PushAktivieren';
 import { WirtshausGfunden } from '@/components/domain/WirtshausGfunden';
+import { RichtungsKnopf } from '@/components/domain/RichtungsKnopf';
 import { BadgeFeier, type FeierBadge } from '@/components/domain/BadgeFeier';
 import { UmfrageKarte } from '@/components/domain/UmfrageKarte';
 import { UmfrageNeu } from '@/components/domain/UmfrageNeu';
@@ -93,9 +94,16 @@ export default async function HomePage() {
     hero = (
       <Card tone="dark" framed pad={0} style={{ overflow: 'hidden' }}>
         <div className="wn-raute wn-raute--sm" style={{ height: 7 }} />
-        <div style={{ padding: 20 }}>
+        <div style={{ padding: 20, position: 'relative' }}>
+          {/* Schnell hinnavigieren — Google-Wegbeschreibung zum eingeplanten Wirtshaus */}
+          {wirtshaus && (
+            <RichtungsKnopf
+              ziel={{ name: wirtshaus.name, adresse: wirtshaus.adresse, lat: wirtshaus.lat, lng: wirtshaus.lng }}
+              style={{ position: 'absolute', top: 18, right: 18 }}
+            />
+          )}
           <div className="wn-eyebrow" style={{ color: 'var(--gold)' }}>Nächster Stammtisch</div>
-          <div style={{ fontFamily: 'var(--font-fraktur)', fontSize: 30, color: 'var(--pergament)', margin: '6px 0 2px' }}>
+          <div style={{ fontFamily: 'var(--font-fraktur)', fontSize: 30, color: 'var(--pergament)', margin: '6px 0 2px', paddingRight: wirtshaus ? 48 : 0 }}>
             {wirtshaus ? wirtshaus.name : `organisiert von ${(planer ? anzeigeName(planer) : '—')}`}
           </div>
           <div style={{ fontSize: 14, fontWeight: 600, color: 'rgba(246,240,226,0.75)', display: 'flex', alignItems: 'center', gap: 6 }}>

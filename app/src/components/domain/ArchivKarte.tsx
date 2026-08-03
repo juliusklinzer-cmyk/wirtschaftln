@@ -96,15 +96,37 @@ export function ArchivKarte({
     loadGoogleMaps()
       .then((google) => {
         if (aufgeraeumt || !containerRef.current || mapRef.current) return;
+        const MUENCHEN = { lat: 48.137, lng: 11.575 };
         const map = new google.maps.Map(containerRef.current, {
-          center: { lat: 48.137, lng: 11.575 },
+          center: MUENCHEN,
           zoom: 12,
+          // minZoom: näher als „München & Umland" raus geht's nicht — verhindert
+          // den Bug, bei dem die Karte plötzlich auf die ganze Welt rausspringt
+          // (fitBounds/Resize bei noch unvermessenem Container → Zoom 0).
+          minZoom: 9,
           disableDefaultUI: true,
-          zoomControl: true,
+          zoomControl: false, // cleaner — gezoomt wird mit zwei Fingern
           gestureHandling: 'greedy',
           clickableIcons: false,
         });
         mapRef.current = map;
+
+        // Rettungsanker: springt der Kartenstand trotzdem weg (Safari/PWA nach
+        // dem Aufwachen), letzten guten Stand merken und zurückspringen.
+        const guterStand = { center: MUENCHEN as { lat: number; lng: number }, zoom: 12 };
+        map.addListener('idle', () => {
+          const c = map.getCenter();
+          const z = map.getZoom();
+          if (c == null || z == null) return;
+          const plausibel = z >= 9 && Math.abs(c.lat() - MUENCHEN.lat) < 1.5 && Math.abs(c.lng() - MUENCHEN.lng) < 2.5;
+          if (plausibel) {
+            guterStand.center = { lat: c.lat(), lng: c.lng() };
+            guterStand.zoom = z;
+          } else {
+            map.setZoom(guterStand.zoom);
+            map.setCenter(guterStand.center);
+          }
+        });
 
         // Eigene Pins als OverlayView (funktioniert ohne mapId, volle Design-Freiheit)
         const overlay = new google.maps.OverlayView();

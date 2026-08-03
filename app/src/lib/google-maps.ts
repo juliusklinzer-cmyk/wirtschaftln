@@ -6,6 +6,25 @@
  */
 let mapsPromise: Promise<any> | null = null;
 
+/**
+ * Universeller Google-Maps-Navigationslink (öffnet am Handy direkt die
+ * Maps-App im Routen-Modus). Adresse schlägt Koordinaten — dann steht in
+ * Google Maps das Wirtshaus mit Namen statt einem nackten Punkt.
+ */
+export function navigationsUrl(ziel: {
+  name: string;
+  adresse?: string | null;
+  lat?: number | null;
+  lng?: number | null;
+}): string {
+  const destination = ziel.adresse
+    ? `${ziel.name}, ${ziel.adresse}`
+    : ziel.lat != null && ziel.lng != null
+      ? `${ziel.lat},${ziel.lng}`
+      : `${ziel.name}, München`;
+  return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(destination)}`;
+}
+
 export function loadGoogleMaps(): Promise<any> {
   if (typeof window === 'undefined') return new Promise(() => {});
   const w = window as any;

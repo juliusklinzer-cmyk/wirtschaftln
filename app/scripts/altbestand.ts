@@ -59,6 +59,7 @@ const NAMEN = [
   'Lindwurmstüberl',
   'Haxengrill',
   'Wirtshaus Eder',
+  'Zum Tattenbach', // nachgetragen 03.08.2026 — hat in Julius' Liste gfehlt
 ];
 
 const dbPath = process.env.DATABASE_PATH ?? path.join(process.cwd(), 'data', 'wirtschaftln.db');

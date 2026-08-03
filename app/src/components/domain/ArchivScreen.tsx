@@ -5,7 +5,7 @@ import { SegmentedTabs, Badge, Avatar } from '@/components/ds';
 import { Stars } from '@/components/domain/Stars';
 import { ArchivKarte } from '@/components/domain/ArchivKarte';
 import { RichtungsKnopf } from '@/components/domain/RichtungsKnopf';
-import { navigationsUrl } from '@/lib/google-maps';
+import { navigationsUrl, ortsUrl } from '@/lib/google-maps';
 import { nachbewerten, wirtshausEntfernen } from '@/app/(app)/karte/actions';
 
 export type ArchivTeilnehmer = {
@@ -153,7 +153,13 @@ export function ArchivScreen({
                   window.open(navigationsUrl({ name: aktiv.name, lat: aktiv.lat, lng: aktiv.lng }), '_blank', 'noopener');
                   return;
                 }
-                if (aktiv.besuchtAm || aktiv.altbestand || aktiv.gfundenVon) setDetail({ e: aktiv, rank: null });
+                // Besuchte & Altbestand → eigenes Detail mit Bewertungen
+                if (aktiv.besuchtAm || aktiv.altbestand) {
+                  setDetail({ e: aktiv, rank: null });
+                  return;
+                }
+                // Gfundene (offene) → Google-Maps-Ort zum Anschauen (Fotos, Bewertungen, Zeiten)
+                window.open(ortsUrl({ name: aktiv.name }), '_blank', 'noopener');
               }}
             />
           </div>
@@ -301,13 +307,13 @@ function MapBottomCard({
         boxShadow: 'var(--sh-lg)',
       }}
     >
-      <div onClick={onOpen} style={{ position: 'relative', width: 104, flex: 'none', background: 'var(--ink-100)', cursor: e.naechstes || e.besuchtAm || e.altbestand ? 'pointer' : 'default' }}>
+      <div onClick={onOpen} style={{ position: 'relative', width: 104, flex: 'none', background: 'var(--ink-100)', cursor: 'pointer' }}>
         {e.photoUrl && (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={e.photoUrl} alt={e.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
         )}
       </div>
-      <div onClick={onOpen} style={{ flex: 1, minWidth: 0, padding: '12px 12px 12px 14px', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 6, cursor: e.naechstes || e.besuchtAm || e.altbestand ? 'pointer' : 'default' }}>
+      <div onClick={onOpen} style={{ flex: 1, minWidth: 0, padding: '12px 12px 12px 14px', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 6, cursor: 'pointer' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           {e.naechstes ? (
             <Badge tone="gold" solid iconLeft="📍">Nächstes Mal</Badge>
@@ -336,6 +342,9 @@ function MapBottomCard({
           <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink-500)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{e.bezirk}</span>
           {e.naechstes ? (
             <RichtungsKnopf ziel={{ name: e.name, lat: e.lat, lng: e.lng }} size={30} />
+          ) : !e.besuchtAm && !e.altbestand ? (
+            // Gfundenes Wirtshaus → in Google Maps anschauen
+            <RichtungsKnopf ziel={{ name: e.name }} modus="ort" size={30} />
           ) : (
             e.rating > 0 && <Stars rating={e.rating} size={13} />
           )}

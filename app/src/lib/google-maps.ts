@@ -25,6 +25,14 @@ export function navigationsUrl(ziel: {
   return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(destination)}`;
 }
 
+/**
+ * Google-Maps-Ortsansicht (Fotos, Bewertungen, Öffnungszeiten) — für
+ * „gfundene" Wirtshäuser, die man si erst amoi anschauen mog.
+ */
+export function ortsUrl(ziel: { name: string; adresse?: string | null }): string {
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${ziel.name}, ${ziel.adresse ?? 'München'}`)}`;
+}
+
 export function loadGoogleMaps(): Promise<any> {
   if (typeof window === 'undefined') return new Promise(() => {});
   const w = window as any;

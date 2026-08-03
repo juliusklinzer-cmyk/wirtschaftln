@@ -1,28 +1,31 @@
 'use client';
 
 import { Icon } from '@/components/ds';
-import { navigationsUrl } from '@/lib/google-maps';
+import { navigationsUrl, ortsUrl } from '@/lib/google-maps';
 
 /**
  * Runder Gold-Knopf mit dem Wegbeschreibungs-Symbol — öffnet Google Maps
- * im Routen-Modus zum Wirtshaus (am Handy direkt die Maps-App).
+ * (am Handy direkt die Maps-App): Modus „route" navigiert hin, Modus „ort"
+ * zeigt das Wirtshaus mit Fotos, Bewertungen und Öffnungszeiten.
  */
 export function RichtungsKnopf({
   ziel,
   size = 40,
+  modus = 'route',
   style,
 }: {
   ziel: { name: string; adresse?: string | null; lat?: number | null; lng?: number | null };
   size?: number;
+  modus?: 'route' | 'ort';
   style?: React.CSSProperties;
 }) {
   return (
     <a
-      href={navigationsUrl(ziel)}
+      href={modus === 'ort' ? ortsUrl(ziel) : navigationsUrl(ziel)}
       target="_blank"
       rel="noopener noreferrer"
-      aria-label={`Navigation zum ${ziel.name}`}
-      title="Zum Wirtshaus navigieren"
+      aria-label={modus === 'ort' ? `${ziel.name} in Google Maps anschauen` : `Navigation zum ${ziel.name}`}
+      title={modus === 'ort' ? 'In Google Maps anschauen' : 'Zum Wirtshaus navigieren'}
       onClick={(e) => e.stopPropagation()}
       style={{
         width: size, height: size, flex: 'none', borderRadius: '50%',

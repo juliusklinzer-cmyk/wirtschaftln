@@ -15,7 +15,8 @@ import {
   getBekannteWirtshaeuser,
 } from '@/lib/queries';
 import { datumLang, datumKurz } from '@/lib/format';
-import { PTS, rechtzeitigAbgestimmt, berlinTag } from '@/lib/punkte';
+import { PTS, rechtzeitigAbgestimmt, berlinTag, bierdeckelOffen } from '@/lib/punkte';
+import { nowIso } from '@/lib/ids';
 import { Card, SectionHeader, Avatar, Badge, Button, Input, Icon } from '@/components/ds';
 import { VotePills } from '@/components/domain/VotePills';
 import { neuerTermin, wirtshausFestlegen, phaseSetzen, besuchAbschliessen } from './actions';
@@ -25,6 +26,33 @@ import { ReservierungAendern } from './reservierung-aendern';
 import { ChronikListe } from '@/components/domain/ChronikListe';
 import { ladeArchivEintraege } from '@/lib/archiv-eintraege';
 import { WirtshausSuche } from '@/components/domain/WirtshausSuche';
+import { Bierdeckel, type BierdeckelSpezl } from '@/components/domain/Bierdeckel';
+
+/**
+ * Vorbelegung des Abschluss-Zettels am Abend selbst: Zugesagte stehen auf der
+ * Liste, und wer am Bierdeckel gstrichelt hat, bringt seine Hoiben (und wer
+ * über den Deckel dazukam, seine Anwesenheit) schon mit.
+ */
+function abschlussVorbelegung(
+  besucheLive: ReturnType<typeof getBesucheFuerTermin>,
+  zugesagtIds: string[],
+  wirtshaus: { biersorte: string; weissbier: string | null } | null,
+): AbschlussWerte {
+  const rows: NonNullable<AbschlussWerte>['rows'] = {};
+  for (const id of zugesagtIds) rows[id] = { hoiben: 0, brodn: false, taxi: false, runde: false, abgsagt: false };
+  for (const b of besucheLive) {
+    if (!b.anwesend) continue;
+    rows[b.memberId] = { hoiben: b.hoiben, brodn: b.schweinsbraten > 0, taxi: b.taxi, runde: false, abgsagt: false };
+  }
+  return {
+    rows,
+    sterne: null, kommentar: '',
+    kaisiBestellt: false, kaiserSterne: null, kaiserNotiz: '',
+    brodnSterne: null, brodnNotiz: '',
+    biersorte: wirtshaus?.biersorte ?? 'Augustiner',
+    weissbier: wirtshaus?.weissbier ?? '',
+  };
+}
 
 /** Gespeicherten Stand des Abschlusses fürs Nachtragen wieder ins Formular laden. */
 function nachtragInitial(terminId: string, meId: string): AbschlussWerte {
@@ -162,6 +190,17 @@ async function AktiverTermin({ terminId, meId, isAdmin }: { terminId: string; me
   // Organisator, aktueller Präsident oder Admin
   const darfVerwalten = isAdmin || termin.planerId === meId || meId === getPraesidentId();
 
+  // Bierdeckel: am Stammtisch-Abend (ab Termin-Uhrzeit bis zum Abschluss)
+  // strichelt jeder seine eigenen Hoiben live — Stand aus den Besuchs-Einträgen.
+  const deckelOffen = bierdeckelOffen(termin, nowIso());
+  const besucheLive = deckelOffen || termin.phase === 'heute' ? getBesucheFuerTermin(termin.id) : [];
+  const deckelSpezln: BierdeckelSpezl[] = besucheLive
+    .filter((b) => b.anwesend && b.hoiben > 0 && b.memberId !== meId)
+    .flatMap((b) => {
+      const m = mitglieder.find((x) => x.id === b.memberId);
+      return m ? [{ name: anzeigeName(m), photoUrl: m.photoUrl, verein: m.verein, hoiben: b.hoiben }] : [];
+    });
+
   const phasenLabel = {
     planung: 'In Planung',
     reserviert: 'Reserviert',
@@ -201,6 +240,19 @@ async function AktiverTermin({ terminId, meId, isAdmin }: { terminId: string; me
           )}
         </div>
       </Card>
+
+      {/* Bierdeckel — am Stammtisch-Abend strichelt jeder seine eigenen Hoiben */}
+      {deckelOffen && (
+        <>
+          <SectionHeader eyebrow="Heit am Tisch" title="Dei Bierdeckel" fraktur />
+          <Bierdeckel
+            terminId={termin.id}
+            wirtshausName={wirtshaus?.name ?? null}
+            initialHoiben={besucheLive.find((b) => b.memberId === meId)?.hoiben ?? 0}
+            spezln={deckelSpezln}
+          />
+        </>
+      )}
 
       {/* Reservierung ändern — direkt unter der Termin-Karte, vor der Abstimmung.
           Organisator, Präsident oder Admin; schließt sich nach dem Speichern und meldet Erfolg. */}
@@ -345,6 +397,11 @@ async function AktiverTermin({ terminId, meId, isAdmin }: { terminId: string; me
                 zugesagt: alleVotes.some((v) => v.vote.memberId === m.id && v.vote.wert === 'zu'),
               }))}
               action={besuchAbschliessen.bind(null, termin.id)}
+              initial={abschlussVorbelegung(
+                besucheLive,
+                mitglieder.filter((m) => alleVotes.some((v) => v.vote.memberId === m.id && v.vote.wert === 'zu')).map((m) => m.id),
+                wirtshaus,
+              )}
             />
           </Card>
         </>

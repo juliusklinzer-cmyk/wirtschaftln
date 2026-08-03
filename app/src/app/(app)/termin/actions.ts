@@ -8,7 +8,7 @@ import { getCurrentMember } from '@/lib/session';
 import { getAktiveMitglieder, nachtragsfristOffen, getVergabeStand, getStats, getPraesidentId, getBekannteWirtshaeuser } from '@/lib/queries';
 import { findeBekanntes } from '@/lib/wirtshaus-abgleich';
 import { vergabeWechsel, wechselTexte } from '@/lib/badges';
-import { WACKELT_AB_UNENTSCHULDIGT, berlinTag } from '@/lib/punkte';
+import { WACKELT_AB_UNENTSCHULDIGT, berlinTag, bierdeckelOffen } from '@/lib/punkte';
 import { HOIBE_KELLERPREIS_CENTS } from '@/lib/preise';
 import { mailAn } from '@/lib/mail';
 import { pushAnAlle, pushAn } from '@/lib/push';
@@ -240,6 +240,33 @@ export async function phaseSetzen(terminId: string, phase: 'planung' | 'reservie
   if (phase === 'heute' && termin.datum !== berlinTag(nowIso())) return;
   db.update(termine).set({ phase }).where(eq(termine.id, terminId)).run();
   revalidateAll();
+}
+
+export type BierdeckelErgebnis = { ok: true; hoiben: number } | { ok: false; meldung: string };
+
+/**
+ * Bierdeckel: eigene Hoiben LIVE am Stammtisch-Abend stricheln (ab der
+ * Termin-Uhrzeit bis zum Abschluss). Schreibt den absoluten Stand in den
+ * eigenen Besuchs-Eintrag — der Abschluss-Zettel übernimmt die Striche
+ * dann als Vorbelegung. Jeder derf NUR für sich selber stricheln.
+ */
+export async function hoibenStricheln(terminId: string, hoiben: number): Promise<BierdeckelErgebnis> {
+  const me = await getCurrentMember();
+  if (!me) return { ok: false, meldung: 'Ned angmeldt — bitte neu einloggen.' };
+  const termin = db.select().from(termine).where(eq(termine.id, terminId)).get();
+  if (!termin) return { ok: false, meldung: 'Der Termin is nimmer da.' };
+  if (!bierdeckelOffen(termin, nowIso())) {
+    return { ok: false, meldung: `Da Bierdeckel is zua — gstrichelt wird erst am Stammtisch-Abend ab ${termin.zeit || '19:00'} Uhr.` };
+  }
+  const wert = Math.max(0, Math.min(30, Math.round(Number(hoiben) || 0)));
+  const werte = { anwesend: true, hoiben: wert };
+  db.insert(besuche)
+    .values({ id: newId('b'), terminId, memberId: me.id, ...werte })
+    .onConflictDoUpdate({ target: [besuche.terminId, besuche.memberId], set: werte })
+    .run();
+  revalidatePath('/termin');
+  revalidatePath('/');
+  return { ok: true, hoiben: wert };
 }
 
 const STRAFE_GRUND_PREFIX = 'Zugesagt & nicht erschienen';

@@ -58,6 +58,26 @@ export function berlinTag(iso: string): string {
   return new Date(iso).toLocaleDateString('sv-SE', { timeZone: 'Europe/Berlin' });
 }
 
+/** ISO-Zeitstempel → Uhrzeit (HH:MM) in Europe/Berlin. */
+export function berlinUhrzeit(iso: string): string {
+  return new Date(iso).toLocaleTimeString('sv-SE', { timeZone: 'Europe/Berlin', hour: '2-digit', minute: '2-digit' });
+}
+
+/**
+ * Bierdeckel offen? Am Stammtisch-Abend derf jeder seine eigenen Hoiben
+ * stricheln: ab der Termin-Uhrzeit (Standard 19:00, Berlin-Zeit) am
+ * Stammtisch-Tag — bzw. sobald d'Anmeldung zua is (Phase „heute") —
+ * bis der Besuch abgschlossen is.
+ */
+export function bierdeckelOffen(
+  termin: { datum: string; zeit: string; phase: string },
+  jetztIso: string,
+): boolean {
+  if (termin.phase === 'abgeschlossen') return false;
+  if (termin.phase === 'heute') return true;
+  return berlinTag(jetztIso) === termin.datum && berlinUhrzeit(jetztIso) >= (termin.zeit || '19:00');
+}
+
 /** Letzter Tag, an dem die Stimme noch den Bonus bringt: 3 Kalendertage vor dem Termin (inklusive). */
 export function abstimmFristTag(terminDatum: string): string {
   const d = new Date(`${terminDatum}T12:00:00Z`);

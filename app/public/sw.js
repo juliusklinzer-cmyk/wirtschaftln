@@ -1,7 +1,7 @@
 // Wirtschaftln Service Worker — minimal: macht die App installierbar
 // und hält Brand-Assets offline vor. Daten bleiben network-first.
-const CACHE = 'wirtschaftln-v2';
-const ASSETS = ['/brand/shield-256.png', '/brand/shield-512.png', '/brand/munich-alps-panorama.jpg'];
+const CACHE = 'wirtschaftln-v3';
+const ASSETS = ['/brand/kindl-256.png', '/brand/kindl-512.png', '/brand/shield-256.png', '/brand/munich-alps-panorama.jpg'];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS)));
@@ -26,8 +26,8 @@ self.addEventListener('push', (event) => {
   event.waitUntil(
     self.registration.showNotification(data.title || 'Wirtschaftln', {
       body: data.body || '',
-      icon: '/brand/shield-256.png',
-      badge: '/brand/shield-256.png',
+      icon: '/brand/kindl-256.png',
+      badge: '/brand/kindl-256.png',
       data: { url: data.url || '/' },
     })
   );

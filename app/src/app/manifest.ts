@@ -10,10 +10,12 @@ export default function manifest(): MetadataRoute.Manifest {
     background_color: '#07193A',
     theme_color: '#07193A',
     lang: 'de',
+    // App-Icon: das Münchner Kindl mit der Hoibe (seit 09.08.2026)
     icons: [
-      { src: '/brand/shield-256.png', sizes: '256x256', type: 'image/png' },
-      { src: '/brand/shield-512.png', sizes: '512x512', type: 'image/png' },
-      { src: '/brand/shield-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+      { src: '/brand/kindl-192.png', sizes: '192x192', type: 'image/png' },
+      { src: '/brand/kindl-256.png', sizes: '256x256', type: 'image/png' },
+      { src: '/brand/kindl-512.png', sizes: '512x512', type: 'image/png' },
+      { src: '/brand/kindl-maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
     ],
   };
 }

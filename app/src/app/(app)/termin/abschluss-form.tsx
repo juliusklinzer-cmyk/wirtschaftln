@@ -124,7 +124,7 @@ export function AbschlussForm({
               </button>
               {r.abgsagt ? (
                 <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--strafe)', whiteSpace: 'nowrap' }}>
-                  ❌ Abgsagt · zahlt a Runde
+                  Abgsagt · zahlt a Runde
                 </span>
               ) : (
                 <>

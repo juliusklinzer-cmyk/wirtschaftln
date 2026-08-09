@@ -18,6 +18,8 @@ const ICON_PATHS: Record<string, string> = {
   clock: '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>',
   bell: '<path d="M6 9a6 6 0 0 1 12 0c0 5 2 6 2 6H4s2-1 2-6z"/><path d="M10 20a2 2 0 0 0 4 0"/>',
   flame: '<path d="M12 3s5 4 5 9a5 5 0 0 1-10 0c0-1.5.7-2.8 1.5-3.5C9 10 9.5 11 10 11.5 10 9 11 5 12 3z"/>',
+  daumen:
+    '<path d="M7 10.5V21"/><path d="M14.9 5.9 14 10h5.6a2 2 0 0 1 1.94 2.5l-2.1 7A2 2 0 0 1 17.5 21H4.5A1.5 1.5 0 0 1 3 19.5v-7A1.5 1.5 0 0 1 4.5 11h2.3a2 2 0 0 0 1.8-1.1L11.9 3a3 3 0 0 1 3 2.9Z"/>',
   // Google-Maps-Wegbeschreibung: aufgestellte Raute mit rechtwinklig abknickendem Pfeil
   richtung:
     '<path d="M12 2.6 21.4 12 12 21.4 2.6 12 12 2.6z"/><path d="M9.5 15.5v-2.5a1.8 1.8 0 0 1 1.8-1.8h3.4"/><path d="m12.6 9.1 2.4 2.1-2.4 2.1"/>',

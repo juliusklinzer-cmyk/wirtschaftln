@@ -150,7 +150,7 @@ export function Rangliste({
                     {e.name}
                   </div>
                   <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: '0.04em', textTransform: 'uppercase', color: e.amt ? 'var(--gold-700)' : (textNeben ?? 'var(--ink-500)'), marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    {e.amt ? `${e.amt.icon} ${e.amt.titel}` : 'Mitglied'}
+                    {e.amt ? e.amt.titel : 'Mitglied'}
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 4, flexWrap: 'wrap' }}>
                     {s.streak !== 0 && <StreakChip streak={s.streak} size="sm" wackelt={s.unentschuldigtStreak >= 3} />}
@@ -370,7 +370,7 @@ function SpezlDetailB({
               </div>
             )}
             <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--pergament)', opacity: 0.85, marginTop: 6 }}>
-              {e.amt ? `${e.amt.icon} ${e.amt.titel}` : 'Mitglied'} · {saisonLabel}
+              {e.amt ? e.amt.titel : 'Mitglied'} · {saisonLabel}
             </div>
 
             {/* WP mit Feder-Pop */}

@@ -22,7 +22,7 @@ import { datumLang, datumKurz } from '@/lib/format';
 import { euro } from '@/lib/format';
 import { Card, SectionHeader, Avatar, Icon } from '@/components/ds';
 import { MEDAILLE } from './spezln/rangliste';
-import { VotePills } from '@/components/domain/VotePills';
+import { AbstimmungsStand } from '@/components/domain/AbstimmungsStand';
 import { StreakChip } from '@/components/domain/StreakChip';
 import { PushAktivieren } from '@/components/domain/PushAktivieren';
 import { WirtshausGfunden } from '@/components/domain/WirtshausGfunden';
@@ -88,8 +88,11 @@ export default async function HomePage() {
     const alleVotes = getVotesFuerTermin(termin.id);
     const meinVoteRow = alleVotes.find((v) => v.vote.memberId === me.id)?.vote ?? null;
     const meinVote = meinVoteRow?.wert ?? null;
-    const zu = alleVotes.filter((v) => v.vote.wert === 'zu').length;
+    const zugesagte = alleVotes
+      .filter((v) => v.vote.wert === 'zu')
+      .map((v) => ({ name: anzeigeName(v.member), photoUrl: v.member.photoUrl, verein: v.member.verein }));
     const ab = alleVotes.filter((v) => v.vote.wert === 'ab').length;
+    const offen = Math.max(0, getAktiveMitglieder().length - zugesagte.length - ab);
 
     hero = (
       <Card tone="dark" framed pad={0} style={{ overflow: 'hidden' }}>
@@ -123,15 +126,13 @@ export default async function HomePage() {
             {wirtshaus?.bezirk ?? 'Wirtshaus wird no g’suacht'} · {datumLang(termin.datum)}, {termin.zeit} Uhr
           </div>
 
-          <div style={{ margin: '16px 0 10px', fontSize: 13, fontWeight: 800, color: 'var(--gold-bright)' }}>
-            Hast du Zeit?
-          </div>
-          <VotePills
+          <AbstimmungsStand
             terminId={termin.id}
-            current={meinVote}
             terminDatum={termin.datum}
-            links={<>✅ {zu} zugesagt · ❌ {ab} abgesagt</>}
-            onDark
+            meinVote={meinVote}
+            zugesagte={zugesagte}
+            abgesagt={ab}
+            offen={offen}
           />
         </div>
       </Card>
@@ -353,12 +354,14 @@ function LetzterStammtisch({ meId, stats }: { meId: string; stats: MitgliedStats
     <>
       <SectionHeader eyebrow="Letzter Stammtisch" title="So is’ glaufen" fraktur />
       <Card pad={0} style={{ overflow: 'hidden' }}>
-        {/* Wirtshaus-Kopf mit Foto (wie im Archiv-Detail) — hoch genug,
-            damit das Foto ned zerquetscht wirkt */}
-        <div style={{ position: 'relative', height: 150, background: 'var(--grad-navy)' }}>
-          {wirtshaus?.photoUrl && (
+        {/* Wirtshaus-Kopf mit Foto — in der ORIGINAL-Proportion des Bilds
+            (koa Beschnitt/Verzerrung mehr), nur nach oben hin gedeckelt */}
+        <div style={{ position: 'relative', background: 'var(--grad-navy)' }}>
+          {wirtshaus?.photoUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={wirtshaus.photoUrl} alt={wirtshaus.name} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+            <img src={wirtshaus.photoUrl} alt={wirtshaus.name} style={{ width: '100%', height: 'auto', maxHeight: 280, objectFit: 'cover', display: 'block' }} />
+          ) : (
+            <div style={{ height: 110 }} />
           )}
           <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(7,25,58,0.05) 20%, rgba(7,25,58,0.82) 100%)' }} />
           <div style={{ position: 'absolute', left: 14, right: 14, bottom: 10, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 8 }}>

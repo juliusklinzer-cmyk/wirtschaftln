@@ -58,10 +58,11 @@ export type ArchivEintrag = {
 /** Bewertung immer mit Kommastelle: 4,6 */
 const dez = (n: number) => n.toLocaleString('de-DE', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 
+// Bewertungen bewusst ohne Emojis — nur der ★ als Sterne-Symbol bleibt
 const METRIKEN = {
   rang: { field: 'rating', icon: '★', label: 'STERNE', champ: 'Wirtshaus Nr. 1', heading: 'Alle Wirtshäuser', empty: 'Noch keine Bewertung.' },
-  kaiser: { field: 'kaiser', icon: '🥞', label: 'SCHMARRN', champ: 'Schmarrn-König', heading: 'Beste Kaiserschmarrn', empty: 'Noch kein Kaiserschmarrn bewertet. 🥞' },
-  brodn: { field: 'brodn', icon: '🍖', label: 'BRODN', champ: 'Brodn-König', heading: 'Beste Schweinsbraten', empty: 'Noch kein Brodn bewertet. 🍖' },
+  kaiser: { field: 'kaiser', icon: '', label: 'SCHMARRN', champ: 'Schmarrn-König', heading: 'Beste Kaiserschmarrn', empty: 'Noch kein Kaiserschmarrn bewertet.' },
+  brodn: { field: 'brodn', icon: '', label: 'BRODN', champ: 'Brodn-König', heading: 'Beste Schweinsbraten', empty: 'Noch kein Brodn bewertet.' },
 } as const;
 type MetrikKey = keyof typeof METRIKEN;
 
@@ -258,7 +259,7 @@ export function ArchivScreen({
           {!champ.photoUrl && <div style={{ height: 150, background: 'var(--grad-navy)' }} />}
           <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(7,25,58,0.05) 0%, rgba(7,25,58,0.85) 100%)' }} />
           <div style={{ position: 'absolute', top: 12, left: 12, display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--grad-gold)', color: 'var(--navy-900)', fontSize: 11, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', padding: '5px 12px', borderRadius: 'var(--r-pill)', boxShadow: 'var(--sh-sm)' }}>
-            👑 {mc.champ}
+            {mc.champ}
           </div>
           <div style={{ position: 'absolute', left: 14, right: 14, bottom: 12, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 10 }}>
             <div style={{ minWidth: 0 }}>
@@ -267,7 +268,7 @@ export function ArchivScreen({
             </div>
             <div style={{ flex: 'none', display: 'flex', alignItems: 'baseline', gap: 3, color: '#fff' }}>
               <span className="wn-tnum" style={{ fontSize: 30, fontWeight: 800, lineHeight: 1 }}>{dez(champ[mc.field as 'rating' | 'kaiser' | 'brodn'])}</span>
-              <span style={{ fontSize: 20 }}>{mc.icon}</span>
+              {mc.icon && <span style={{ fontSize: 20, color: 'var(--gold-bright)' }}>{mc.icon}</span>}
             </div>
           </div>
         </div>
@@ -542,7 +543,7 @@ function RankedCard({
       <div style={{ flex: 'none', textAlign: 'right' }}>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 3, justifyContent: 'flex-end' }}>
           <span className="wn-tnum" style={{ fontSize: 22, fontWeight: 800, color: 'var(--navy)', lineHeight: 1 }}>{dez(e[field])}</span>
-          <span style={{ fontSize: 16 }}>{icon}</span>
+          {icon && <span style={{ fontSize: 16, color: 'var(--gold)' }}>{icon}</span>}
         </div>
         <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', color: 'var(--gold-700)', marginTop: 3 }}>{label}</div>
       </div>
@@ -569,7 +570,7 @@ export function DetailModal({ e, rank, onClose }: { e: ArchivEintrag; rank: numb
           </button>
           {rank && (
             <div style={{ position: 'absolute', top: 12, left: 12, display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--grad-gold)', color: 'var(--navy-900)', fontSize: 11, fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase', padding: '5px 11px', borderRadius: 'var(--r-pill)', boxShadow: 'var(--sh-sm)' }}>
-              {rank === 1 ? '👑 ' : ''}Platz {rank}
+              Platz {rank}
             </div>
           )}
           {e.altbestand && (
@@ -591,10 +592,10 @@ export function DetailModal({ e, rank, onClose }: { e: ArchivEintrag; rank: numb
         <div style={{ padding: '16px 18px 20px' }}>
           {/* 3 Bewertungs-Kacheln */}
           <div style={{ display: 'flex', gap: 8 }}>
-            {([['rating', 'Sterne', '★'], ['kaiser', 'Schmarrn', '🥞'], ['brodn', 'Brodn', '🍖']] as const).map(([f, lbl, ic]) => (
+            {([['rating', 'Sterne', '★'], ['kaiser', 'Schmarrn', ''], ['brodn', 'Brodn', '']] as const).map(([f, lbl, ic]) => (
               <div key={f} style={{ flex: 1, textAlign: 'center', padding: '12px 4px', background: 'var(--pergament)', borderRadius: 'var(--r-md)' }}>
                 <div className="wn-tnum" style={{ fontSize: 20, fontWeight: 800, color: 'var(--navy)', lineHeight: 1 }}>
-                  {e[f] > 0 ? dez(e[f]) : '–'} <span style={{ fontSize: 14 }}>{ic}</span>
+                  {e[f] > 0 ? dez(e[f]) : '–'}{ic && <span style={{ fontSize: 14, color: 'var(--gold)' }}> {ic}</span>}
                 </div>
                 <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--ink-500)', marginTop: 5 }}>{lbl}</div>
               </div>
@@ -633,7 +634,7 @@ export function DetailModal({ e, rank, onClose }: { e: ArchivEintrag; rank: numb
                     <Avatar src={t.photoUrl} name={t.name} size={28} verein={t.verein} />
                     <span style={{ flex: 1, fontSize: 13, fontWeight: 700, color: 'var(--ink-900)', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.name}</span>
                     <span className="wn-tnum" style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink-500)', whiteSpace: 'nowrap' }}>
-                      {t.hoiben} 🍺{t.kaiserschmarrn > 0 && <> · {t.kaiserschmarrn} 🥞</>}{t.schweinsbraten > 0 && <> · {t.schweinsbraten} 🍖</>}
+                      {t.hoiben} {t.hoiben === 1 ? 'Hoibe' : 'Hoiben'}{t.kaiserschmarrn > 0 && <> · Schmarrn</>}{t.schweinsbraten > 0 && <> · Brodn</>}
                     </span>
                   </div>
                 ))}
@@ -651,7 +652,11 @@ export function DetailModal({ e, rank, onClose }: { e: ArchivEintrag; rank: numb
                 {e.hinweise.map((h, i) => (
                   <div key={i} style={{ padding: '10px 12px', background: 'var(--pergament)', border: '1px solid var(--pergament-edge)', borderRadius: 'var(--r-md)' }}>
                     <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink-900)', lineHeight: 1.45 }}>
-                      {h.art === 'kaisi' ? '🥞 ' : h.art === 'brodn' ? '🍖 ' : '💬 '}
+                      {h.art !== 'allgemein' && (
+                        <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--gold-700)', marginRight: 6 }}>
+                          {h.art === 'kaisi' ? 'Schmarrn' : 'Brodn'}
+                        </span>
+                      )}
                       {h.text}
                     </div>
                     <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--gold-700)', marginTop: 4 }}>— {h.von}</div>
@@ -811,8 +816,8 @@ function Nachbewertung({
         maxLength={500}
         style={notizStyle}
       />
-      {optionalBlock('🥞 Schmarrn', kaiserAktiv, setKaiserAktiv, kaiserSterne, setKaiserSterne, kaiserNotiz, setKaiserNotiz, 'Wia war da Schmarrn? (optional)')}
-      {optionalBlock('🍖 Brodn', brodnAktiv, setBrodnAktiv, brodnSterne, setBrodnSterne, brodnNotiz, setBrodnNotiz, 'Wia war da Brodn? (optional)')}
+      {optionalBlock('Schmarrn', kaiserAktiv, setKaiserAktiv, kaiserSterne, setKaiserSterne, kaiserNotiz, setKaiserNotiz, 'Wia war da Schmarrn? (optional)')}
+      {optionalBlock('Brodn', brodnAktiv, setBrodnAktiv, brodnSterne, setBrodnSterne, brodnNotiz, setBrodnNotiz, 'Wia war da Brodn? (optional)')}
       <button
         type="button"
         onClick={speichern}

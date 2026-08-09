@@ -6,6 +6,7 @@ import { Stars } from '@/components/domain/Stars';
 import { ArchivKarte } from '@/components/domain/ArchivKarte';
 import { RichtungsKnopf } from '@/components/domain/RichtungsKnopf';
 import { navigationsUrl, ortsUrl } from '@/lib/google-maps';
+import { bierLogo } from '@/lib/biersorten';
 import { nachbewerten, wirtshausEntfernen } from '@/app/(app)/karte/actions';
 
 export type ArchivTeilnehmer = {
@@ -70,7 +71,25 @@ const MEDAILLE: Record<number, { bg: string; fg: string }> = {
   3: { bg: 'linear-gradient(135deg,#E0A267,#C9853F)', fg: '#fff' },
 };
 
+/** Brauerei-Logo auf weißem Rund statt Text-Chip — antippen/hovern zeigt den vollen Namen. */
 function BiersorteChip({ sorte, hell = false }: { sorte: string; hell?: boolean }) {
+  const logo = bierLogo(sorte);
+  if (logo) {
+    return (
+      <span
+        title={sorte}
+        aria-label={`Bier: ${sorte}`}
+        style={{
+          width: 42, height: 42, flex: 'none', borderRadius: '50%',
+          background: 'var(--weiss)', border: `1.5px solid ${hell ? 'rgba(255,255,255,0.55)' : 'var(--pergament-edge)'}`,
+          boxShadow: 'var(--sh-sm)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+        }}
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={logo} alt={sorte} width={28} height={28} style={{ width: 28, height: 28, objectFit: 'contain' }} />
+      </span>
+    );
+  }
   return (
     <span
       style={{
@@ -411,6 +430,14 @@ function OffenerVorschlag({ e, ich }: { e: ArchivEintrag; ich: { id: string; dar
               gfunden von {e.gfundenVon}
             </div>
           )}
+          {/* Welches Helle gibt's? Kommt vom Finder (bzw. Standard Augustiner) */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 3, minWidth: 0 }}>
+            {bierLogo(e.biersorte) && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={bierLogo(e.biersorte)!} alt="" width={15} height={15} style={{ width: 15, height: 15, objectFit: 'contain', flex: 'none' }} />
+            )}
+            <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink-500)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{e.biersorte}</span>
+          </div>
         </div>
         {darfEntfernen && !nachfrage && (
           <button

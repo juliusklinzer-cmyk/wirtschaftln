@@ -3,6 +3,8 @@
 import { useState, useTransition } from 'react';
 import { Button } from '@/components/ds';
 import { WirtshausSuche } from '@/components/domain/WirtshausSuche';
+import { BierWahl } from '@/components/domain/BierWahl';
+import { HELLE_WAHL } from '@/lib/biersorten';
 import { wirtshausVorschlagen } from '@/app/(app)/termin/actions';
 import { PTS } from '@/lib/punkte';
 import type { BekanntesWirtshaus } from '@/lib/wirtshaus-abgleich';
@@ -18,6 +20,7 @@ export function WirtshausGfunden({ bekannte }: { bekannte: BekanntesWirtshaus[] 
   const [danke, setDanke] = useState(false);
   const [fehler, setFehler] = useState<string | null>(null);
   const [suchKey, setSuchKey] = useState(0);
+  const [biersorte, setBiersorte] = useState('');
   const [pending, startTransition] = useTransition();
 
   const eintragen = (formData: FormData) =>
@@ -30,12 +33,22 @@ export function WirtshausGfunden({ bekannte }: { bekannte: BekanntesWirtshaus[] 
       }
       setFehler(null);
       setSuchKey((k) => k + 1); // Suchfeld leeren (Remount)
+      setBiersorte('');
       setDanke(true);
     });
 
   return (
     <form action={eintragen} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
       <WirtshausSuche key={suchKey} bekannte={bekannte} />
+      {/* Welches Helle schenken s' aus? Optional — steht dann am offenen Pin dabei */}
+      <input type="hidden" name="w_biersorte" value={biersorte} />
+      <BierWahl
+        label="Welches Helle gibt's dort? (wenn'st es woaßt)"
+        biere={HELLE_WAHL}
+        value={biersorte}
+        onChange={setBiersorte}
+        leerLabel="Woaß i ned — samma gspannt"
+      />
       <Button type="submit" fullWidth variant="secondary" disabled={pending}>
         📍 Auf d’Karte damit
       </Button>

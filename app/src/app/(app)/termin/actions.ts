@@ -9,6 +9,7 @@ import { getAktiveMitglieder, nachtragsfristOffen, getVergabeStand, getStats, ge
 import { findeBekanntes } from '@/lib/wirtshaus-abgleich';
 import { vergabeWechsel, wechselTexte } from '@/lib/badges';
 import { WACKELT_AB_UNENTSCHULDIGT, berlinTag, bierdeckelOffen } from '@/lib/punkte';
+import { HELLE, ALKOHOLFREIE_HELLE } from '@/lib/biersorten';
 import { HOIBE_KELLERPREIS_CENTS } from '@/lib/preise';
 import { mailAn } from '@/lib/mail';
 import { pushAnAlle, pushAn } from '@/lib/push';
@@ -103,9 +104,12 @@ async function wirtshausAusSuche(formData: FormData, vorgeschlagenVon: string | 
     lat = coords?.lat ?? null;
     lng = coords?.lng ?? null;
   }
+  // Optional: das Helle vom Finder — nur echte Einträge von der Karte zulassen
+  const biersorteRoh = String(formData.get('w_biersorte') ?? '').trim();
+  const biersorte = [...HELLE, ...ALKOHOLFREIE_HELLE].some((b) => b.name === biersorteRoh) ? biersorteRoh : undefined;
   const wid = newId('w');
   db.insert(wirtshaeuser)
-    .values({ id: wid, name, adresse, bezirk, telefon, photoUrl, lat, lng, vorgeschlagenVon, createdAt: nowIso() })
+    .values({ id: wid, name, adresse, bezirk, telefon, photoUrl, lat, lng, vorgeschlagenVon, ...(biersorte ? { biersorte } : {}), createdAt: nowIso() })
     .run();
   return wid;
 }

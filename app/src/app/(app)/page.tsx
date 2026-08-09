@@ -95,15 +95,27 @@ export default async function HomePage() {
       <Card tone="dark" framed pad={0} style={{ overflow: 'hidden' }}>
         <div className="wn-raute wn-raute--sm" style={{ height: 7 }} />
         <div style={{ padding: 20, position: 'relative' }}>
-          {/* Schnell hinnavigieren — Google-Wegbeschreibung zum eingeplanten Wirtshaus */}
-          {wirtshaus && (
-            <RichtungsKnopf
-              ziel={{ name: wirtshaus.name, adresse: wirtshaus.adresse, lat: wirtshaus.lat, lng: wirtshaus.lng }}
-              style={{ position: 'absolute', top: 18, right: 18 }}
-            />
-          )}
+          {/* Schnell-Aktionen: Termin in Kalender speichern + Google-Navigation */}
+          <div style={{ position: 'absolute', top: 18, right: 18, display: 'flex', gap: 8 }}>
+            <a
+              href={`/termin/${termin.id}/ics`}
+              aria-label="Termin im Kalender speichern"
+              title="Im Kalender speichern"
+              style={{
+                width: 40, height: 40, flex: 'none', borderRadius: '50%',
+                background: 'rgba(255,255,255,0.14)', border: '1px solid rgba(255,255,255,0.3)',
+                color: 'var(--pergament)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                textDecoration: 'none',
+              }}
+            >
+              <Icon name="calendar" size={19} />
+            </a>
+            {wirtshaus && (
+              <RichtungsKnopf ziel={{ name: wirtshaus.name, adresse: wirtshaus.adresse, lat: wirtshaus.lat, lng: wirtshaus.lng }} />
+            )}
+          </div>
           <div className="wn-eyebrow" style={{ color: 'var(--gold)' }}>Nächster Stammtisch</div>
-          <div style={{ fontFamily: 'var(--font-fraktur)', fontSize: 30, color: 'var(--pergament)', margin: '6px 0 2px', paddingRight: wirtshaus ? 48 : 0 }}>
+          <div style={{ fontFamily: 'var(--font-fraktur)', fontSize: 30, color: 'var(--pergament)', margin: '6px 0 2px', paddingRight: wirtshaus ? 96 : 48 }}>
             {wirtshaus ? wirtshaus.name : `organisiert von ${(planer ? anzeigeName(planer) : '—')}`}
           </div>
           <div style={{ fontSize: 14, fontWeight: 600, color: 'rgba(246,240,226,0.75)', display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -341,8 +353,9 @@ function LetzterStammtisch({ meId, stats }: { meId: string; stats: MitgliedStats
     <>
       <SectionHeader eyebrow="Letzter Stammtisch" title="So is’ glaufen" fraktur />
       <Card pad={0} style={{ overflow: 'hidden' }}>
-        {/* Wirtshaus-Kopf mit Foto (wie im Archiv-Detail) */}
-        <div style={{ position: 'relative', height: 96, background: 'var(--grad-navy)' }}>
+        {/* Wirtshaus-Kopf mit Foto (wie im Archiv-Detail) — hoch genug,
+            damit das Foto ned zerquetscht wirkt */}
+        <div style={{ position: 'relative', height: 150, background: 'var(--grad-navy)' }}>
           {wirtshaus?.photoUrl && (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={wirtshaus.photoUrl} alt={wirtshaus.name} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />

@@ -10,3 +10,22 @@ wirtschaftln.de, www.wirtschaftln.de {
         Referrer-Policy "strict-origin-when-cross-origin"
     }
 }
+
+# Firmengolf-Staging (03.08.2026, Absprache Julius): eigene Container auf
+# demselben Server (edge-Netz), Wirtschaftln bleibt unberührt.
+# Details: firmengolf-app/deploy/staging/README.md
+staging.firmengolf.app {
+    encode gzip zstd
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains"
+        X-Content-Type-Options "nosniff"
+        Referrer-Policy "strict-origin-when-cross-origin"
+        X-Robots-Tag "noindex, nofollow"
+    }
+    handle /api/* {
+        reverse_proxy fg-api:3001
+    }
+    handle {
+        reverse_proxy fg-web:80
+    }
+}

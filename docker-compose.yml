@@ -33,8 +33,18 @@ services:
       - caddy-config:/config
     depends_on:
       - app
+    # Firmengolf-Staging (03.08.2026, Absprache Julius): Caddy hängt
+    # zusätzlich am externen edge-Netz und routet staging.firmengolf.app zu
+    # den Firmengolf-Containern (siehe Caddyfile). Wirtschaftln unberührt.
+    networks:
+      - default
+      - edge
 
 volumes:
   app-data:
   caddy-data:
   caddy-config:
+
+networks:
+  edge:
+    external: true

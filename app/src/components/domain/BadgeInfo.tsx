@@ -64,6 +64,7 @@ export function BadgeInfo({ info, onClose }: { info: BadgeInfoDaten; onClose: ()
   return (
     <div
       onClick={onClose}
+      className="wn-scroll-still"
       style={{
         position: 'fixed', inset: 0, zIndex: 70, overflowY: 'auto', overscrollBehavior: 'contain',
         background: 'radial-gradient(circle at 50% 24%, #10305F 0%, var(--navy-900) 62%)',
@@ -147,7 +148,7 @@ export function BadgeInfo({ info, onClose }: { info: BadgeInfoDaten; onClose: ()
               </div>
             ) : (
               <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--pergament)', opacity: 0.7, fontStyle: 'italic' }}>
-                No ned vergeben — vielleicht du beim nächsten Stammtisch?
+                No ned vergeben, vielleicht du beim nächsten Stammtisch?
               </div>
             )}
           </div>

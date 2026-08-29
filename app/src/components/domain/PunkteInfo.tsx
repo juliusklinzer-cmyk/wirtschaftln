@@ -26,7 +26,7 @@ export function PunkteInfo() {
       </button>
 
       {offen && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 70, overflowY: 'auto', overscrollBehavior: 'contain', background: 'var(--weiss)', animation: 'wnPunkteRein 240ms ease-out both' }}>
+        <div className="wn-scroll-still" style={{ position: 'fixed', inset: 0, zIndex: 70, overflowY: 'auto', overscrollBehavior: 'contain', background: 'var(--weiss)', animation: 'wnPunkteRein 240ms ease-out both' }}>
           <style>{`
             @keyframes wnPunkteRein { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
             @keyframes wnPunkteZeile { from { transform: translateY(8px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }

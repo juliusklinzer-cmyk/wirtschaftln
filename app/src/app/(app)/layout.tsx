@@ -30,20 +30,24 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     >
       {/* 🤳 Dani-Modus: der weiße Streifen liegt über der ganzen App */}
       <DaniStreifen />
-      {/* Statische Navy-Fläche in der Safe-Area (Statusleiste/Kamera-Insel):
-          der Inhalt scrollt drunter durch, Uhr & Akku bleiben lesbar.
-          Auf Geräten ohne Notch is env() = 0 und der Streifen unsichtbar. */}
+      {/* Safe-Area-Fläche (Statusleiste/Kamera-Insel): halbdurchsichtiges Navy
+          mit Blur — der Inhalt scrollt sichtbar drunter durch (wertig wie bei
+          nativen Apps), Uhr & Akku bleiben trotzdem lesbar. Ohne Notch is
+          env() = 0 und nix zu sehen. */}
       <div
         aria-hidden
         style={{
           position: 'absolute', top: 0, left: 0, right: 0, zIndex: 40,
-          height: 'env(safe-area-inset-top)', background: 'var(--navy-900)',
+          height: 'env(safe-area-inset-top)',
+          background: 'rgba(7,25,58,0.55)',
+          backdropFilter: 'blur(14px) saturate(160%)',
+          WebkitBackdropFilter: 'blur(14px) saturate(160%)',
           pointerEvents: 'none',
         }}
       />
       {/* Header scrollt MIT dem Inhalt weg (bewusst ned sticky, Julius 29.08.) —
           nur d'Tab-Leiste unten bleibt stehen */}
-      <main style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', position: 'relative', overscrollBehavior: 'contain' }}>
+      <main className="wn-scroll-still" style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', position: 'relative', overscrollBehavior: 'contain' }}>
         <AppBar
           name={anzeigeName(me)}
           photoUrl={me.photoUrl}

@@ -29,3 +29,38 @@ staging.firmengolf.app {
         reverse_proxy fg-web:80
     }
 }
+
+# Wirtschaftln-Staging (Design-Spielwiese, 29.08.2026): eigener Checkout unter
+# /opt/wirtschaftln-staging mit eigener DB (Demodaten), Container am edge-Netz.
+staging.wirtschaftln.de {
+    reverse_proxy wirtschaftln-staging-app:3000
+    encode gzip zstd
+
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains"
+        X-Content-Type-Options "nosniff"
+        X-Frame-Options "DENY"
+        Referrer-Policy "strict-origin-when-cross-origin"
+        # Spielwiese, ghört ned in Suchmaschinen
+        X-Robots-Tag "noindex, nofollow"
+    }
+}
+
+# Dart-Turnier "Blink 180" (24.08.2026, Absprache Julius): eigener Container am
+# edge-Netz, Wirtschaftln bleibt unberührt. Ein einziger Node-Prozess liefert
+# dort Seite UND API aus, deshalb braucht es keine getrennten handle-Blöcke
+# wie beim Firmengolf-Staging.
+# Details: darts-app/DEPLOY.md
+darts.wirtschaftln.de {
+    reverse_proxy darts-app:3002
+    encode gzip zstd
+
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains"
+        X-Content-Type-Options "nosniff"
+        X-Frame-Options "DENY"
+        Referrer-Policy "strict-origin-when-cross-origin"
+        # Private Runde – die App gehört nicht in Suchmaschinen.
+        X-Robots-Tag "noindex, nofollow"
+    }
+}

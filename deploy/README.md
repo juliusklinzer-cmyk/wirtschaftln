@@ -50,6 +50,15 @@ docker compose --env-file deploy/.env up -d --build
 Migrationen laufen beim App-Start automatisch (einmal pro `.sql`-Datei, Bookkeeping in `wn_migrations`).
 Die Datenbank liegt im benannten Volume `app-data` und übersteht Redeploys.
 
+**Wirtshaus-Fotos** werden seit 27.08.2026 beim Speichern als Data-URL in die DB geholt (Google-Places-URLs
+laufen ab). Falls doch mal wieder `http`-Foto-URLs in der DB stehen (Altbestand, Importe):
+
+```bash
+docker compose exec -T app node scripts/fotos-cachen.ts
+```
+
+Das cacht, was noch lädt, und löscht tote URLs — die Karte holt sich beim nächsten Öffnen frische Fotos.
+
 ## Backup (einrichten!)
 
 Die SQLite-DB läuft im WAL-Modus — **nie** die Datei roh kopieren. `scripts/backup.ts` nutzt die
@@ -63,6 +72,23 @@ Host-Crontab (`crontab -e`), täglich 04:30 + Kopie raus aus dem Container:
 ```
 
 Idealerweise `./backups-offsite` zusätzlich per rsync/rclone auf einen anderen Rechner spiegeln.
+
+## Staging (Design-Spielwiese, seit 29.08.2026)
+
+`https://staging.wirtschaftln.de` — eigener Checkout unter `/opt/wirtschaftln-staging` mit eigener
+DB (Volume `staging-data`, Demodaten: Login `sepp@demo.wirtschaftln.de` / `servus123`).
+Läuft mit `docker-compose.staging.yml`; der Prod-Caddy routet die Subdomain übers edge-Netz.
+Die Staging-`deploy/.env` ist eine Kopie der Prod-Env **ohne SMTP_PASSWORD** (Mails werden
+übersprungen und nur geloggt) — Push geht, aber nur an Geräte, die sich auf Staging abonniert haben.
+
+```bash
+# Lokalen Stand (Design-Experimente) auf Staging schieben:
+./deploy/staging-deploy.sh
+```
+
+Voraussetzungen (einmalig): DNS `staging.wirtschaftln.de` → A 178.105.234.52; Google-Maps-Key in
+der Cloud Console zusätzlich für `https://staging.wirtschaftln.de/*` freischalten (sonst lädt die
+Karte dort nicht).
 
 ## Nach jedem Deploy kurz prüfen (Smoke-Test)
 

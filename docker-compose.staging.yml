@@ -1,0 +1,37 @@
+# Staging (Design-Spielwiese): eigene App + eigene DB mit Demodaten, läuft
+# neben Prod auf demselben Server. Liegt als eigener Checkout unter
+# /opt/wirtschaftln-staging, damit dort ANDERER Code laufen kann als live.
+# Der Prod-Caddy routet staging.wirtschaftln.de übers edge-Netz hierher.
+# Details: deploy/README.md („Staging").
+services:
+  # ⚠️ Service heißt bewusst NICHT „app": Compose hängt den Service-Namen als
+  # DNS-Alias ans edge-Netz, und dort hätte Caddys „reverse_proxy app:3000"
+  # (Prod!) dann zwei Kandidaten — genau der Vorfall vom 29.08.2026, bei dem
+  # aller Prod-Verkehr in der Staging-Demo-DB gelandet ist.
+  staging-app:
+    build:
+      context: ./app
+      args:
+        - NEXT_PUBLIC_GMAPS_KEY=${NEXT_PUBLIC_GMAPS_KEY}
+        - NEXT_PUBLIC_VAPID_PUBLIC_KEY=${NEXT_PUBLIC_VAPID_PUBLIC_KEY}
+        - NEXT_PUBLIC_PAYPAL_POOL_URL=${NEXT_PUBLIC_PAYPAL_POOL_URL}
+    container_name: wirtschaftln-staging-app
+    restart: unless-stopped
+    env_file:
+      - ./deploy/.env
+    environment:
+      - DATABASE_PATH=/data/wirtschaftln.db
+      - HOSTNAME=0.0.0.0
+    volumes:
+      - staging-data:/data
+    expose:
+      - "3000"
+    networks:
+      - edge
+
+volumes:
+  staging-data:
+
+networks:
+  edge:
+    external: true

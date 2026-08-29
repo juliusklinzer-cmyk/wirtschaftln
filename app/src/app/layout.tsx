@@ -28,7 +28,10 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     title: 'Wirtschaftln',
-    statusBarStyle: 'default',
+    // black-translucent: d'App zeichnet bis ganz oben, der Inhalt scrollt
+    // unter Kamera-Insel/Statusleiste durch; den statischen Navy-Streifen
+    // dafür legt's App-Layout in die Safe-Area (Julius, 29.08.2026)
+    statusBarStyle: 'black-translucent',
   },
 };
 

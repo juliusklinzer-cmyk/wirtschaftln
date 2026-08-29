@@ -30,6 +30,17 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     >
       {/* 🤳 Dani-Modus: der weiße Streifen liegt über der ganzen App */}
       <DaniStreifen />
+      {/* Statische Navy-Fläche in der Safe-Area (Statusleiste/Kamera-Insel):
+          der Inhalt scrollt drunter durch, Uhr & Akku bleiben lesbar.
+          Auf Geräten ohne Notch is env() = 0 und der Streifen unsichtbar. */}
+      <div
+        aria-hidden
+        style={{
+          position: 'absolute', top: 0, left: 0, right: 0, zIndex: 40,
+          height: 'env(safe-area-inset-top)', background: 'var(--navy-900)',
+          pointerEvents: 'none',
+        }}
+      />
       {/* Header scrollt MIT dem Inhalt weg (bewusst ned sticky, Julius 29.08.) —
           nur d'Tab-Leiste unten bleibt stehen */}
       <main style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', position: 'relative', overscrollBehavior: 'contain' }}>

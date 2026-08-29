@@ -72,6 +72,10 @@ export function AppBar({
     }
   }, [wp]);
 
+  // Archiv/Karte: Vollbild-Karte mit eigenen Filtern oben, da braucht's
+  // koan Header (Julius, 29.08.2026) — der lag sonst über den Filtern
+  if (pathname.startsWith('/karte')) return null;
+
   return (
     <header
       style={{

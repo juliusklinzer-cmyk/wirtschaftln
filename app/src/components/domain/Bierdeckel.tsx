@@ -12,58 +12,115 @@ export type BierdeckelSpezl = {
   hoiben: number;
 };
 
-/** Leichte „Hand-Zittrigkeit" je Strich — deterministisch, damit's beim Rendern stabil bleibt. */
-const STRICH_ROTATION = [-4, 3, -2, 5];
+/** Stift-Schwarz wie auf'm echten Deckel, bewusst KEIN Design-Token, des is Tinte, ned UI. */
+const TINTE = '#202226';
 
 /**
- * Eine Fünfergruppe wie am Wirtshaus-Deckel: bis zu 4 senkrechte Striche,
- * der fünfte streicht quer durch. Der jeweils neueste Strich wird
- * „gezogen" (stroke-dashoffset-Animation wie ein Filzstift).
+ * Deterministisches „Zittern" (−1…1) je Strich & Merkmal, stabil über
+ * SSR/Re-Render (koa Math.random, sonst springen d'Striche beim Hydrieren).
  */
-function StrichGruppe({ n, klein = false }: { n: number; klein?: boolean }) {
+function zitter(i: number, salz: number): number {
+  const x = Math.sin(i * 127.1 + salz * 311.7) * 43758.5453;
+  return (x - Math.floor(x)) * 2 - 1;
+}
+
+/**
+ * D'Striche am Deckel, schwarz wie mit'm Stift hingekritzelt (Vorlage:
+ * „Wirtschaftln Logo 2 (1).png"): leichte Bögen statt gerader Linien, Druck &
+ * Deckung schwanken, und je mehr Hoibe scho drauf san, desto krummer wird der
+ * nächste Strich (ab ~18 volle Schräglage). Fünfergruppen wie im Wirtshaus:
+ * 4 senkrecht, der 5. quer durch. Die Gruppen wandern IM BOGEN am Deckelrand
+ * entlang (unten links anfangend, radial gedreht, quer übern blauen Ring) —
+ * der neueste Strich wird „gezogen" (dashoffset-Animation).
+ */
+function KritzelStriche({ anzahl }: { anzahl: number }) {
+  // Gruppen-Plätze als Winkel am Rand-Ring (viewBox 264×264, Zentrum 132/132,
+  // Ring-Radius ~103): von links unten übern unteren Rand nach rechts.
+  const WINKEL = [150, 126, 102, 78, 54, 30];
+  const RADIUS = 103;
+  const gruppen: React.ReactNode[] = [];
+  for (let g = 0; g * 5 < anzahl; g++) {
+    const winkel = WINKEL[g % WINKEL.length];
+    const rad = (winkel * Math.PI) / 180;
+    const gx = 132 + RADIUS * Math.cos(rad);
+    const gy = 132 + RADIUS * Math.sin(rad);
+    const wg = Math.min(1, (g * 5) / 18);
+    // Grundausrichtung: Striche stehen radial (senkrecht zum Rand) + Zittern
+    const dreh = winkel - 90 + zitter(g, 3) * (2 + 7 * wg);
+    const striche: React.ReactNode[] = [];
+    for (let p = 0; p < Math.min(5, anzahl - g * 5); p++) {
+      const k = g * 5 + p; // globaler Strich-Index → so wird jeder spätere Strich zittriger
+      const w = Math.min(1, k / 18);
+      const j = (salz: number, amp: number) => zitter(k, salz) * amp;
+      let x1: number, y1: number, x2: number, y2: number;
+      if (p < 4) {
+        // Lokale Koordinaten: Gruppe zentriert um (0,0), Striche von oben nach unten
+        const x = -17 + p * 11;
+        x1 = x + j(11, 0.5 + 4 * w);
+        y1 = -16 + j(12, 0.5 + 4 * w);
+        x2 = x + 1.5 + j(13, 0.5 + 5.5 * w);
+        y2 = 16 + j(14, 0.5 + 5 * w);
+      } else {
+        // Der Fünfte streicht quer durch d'Gruppe
+        x1 = -23 + j(11, 1 + 5 * w);
+        y1 = 11 + j(12, 1 + 5 * w);
+        x2 = 21 + j(13, 1 + 6 * w);
+        y2 = -11 + j(14, 1 + 5.5 * w);
+      }
+      const cx = (x1 + x2) / 2 + j(15, 1.5 + 6.5 * w);
+      const cy = (y1 + y2) / 2 + j(16, 1 + 4 * w);
+      striche.push(
+        <path
+          key={k}
+          d={`M ${x1.toFixed(1)} ${y1.toFixed(1)} Q ${cx.toFixed(1)} ${cy.toFixed(1)} ${x2.toFixed(1)} ${y2.toFixed(1)}`}
+          stroke={TINTE}
+          strokeWidth={3.3 + zitter(k, 17) * 0.5 + w * 0.4}
+          strokeLinecap="round"
+          fill="none"
+          opacity={0.9 + zitter(k, 18) * 0.08}
+          className={k === anzahl - 1 ? 'wn-strich-neu' : undefined}
+        />,
+      );
+    }
+    gruppen.push(
+      <g key={g} transform={`translate(${(gx + zitter(g, 1) * (1 + 5 * wg)).toFixed(1)} ${(gy + zitter(g, 2) * (1 + 5 * wg)).toFixed(1)}) rotate(${dreh.toFixed(1)})`}>
+        {striche}
+      </g>,
+    );
+  }
   return (
-    <svg
-      width={klein ? 26 : 46}
-      height={klein ? 24 : 42}
-      viewBox="0 0 46 42"
-      fill="none"
-      style={{ overflow: 'visible', flex: 'none' }}
-    >
-      {Array.from({ length: Math.min(4, n) }, (_, i) => (
-        <line
-          key={i}
-          x1={8 + i * 10} y1={5} x2={9.5 + i * 10} y2={37}
-          stroke="var(--navy)" strokeWidth={4} strokeLinecap="round"
-          transform={`rotate(${STRICH_ROTATION[i]} ${8 + i * 10} 21)`}
-          className={n < 5 && i === n - 1 ? 'wn-strich-neu' : undefined}
-        />
-      ))}
-      {n >= 5 && (
-        <line
-          x1={1} y1={33} x2={45} y2={9}
-          stroke="var(--navy)" strokeWidth={4} strokeLinecap="round"
-          className="wn-strich-neu"
-        />
-      )}
+    <svg viewBox="0 0 264 264" fill="none" aria-hidden style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none', overflow: 'visible' }}>
+      {gruppen}
     </svg>
   );
 }
 
-function Strichliste({ anzahl, klein = false }: { anzahl: number; klein?: boolean }) {
+/** Mini-Strichliste für d'Spezl-Zeilen („Aa am Stricheln"), gleiche Tinte, kompakt. */
+function MiniStrichliste({ anzahl }: { anzahl: number }) {
   const gruppen: number[] = [];
   for (let rest = anzahl; rest > 0; rest -= 5) gruppen.push(Math.min(5, rest));
+  const ROTATION = [-4, 3, -2, 5];
   return (
-    <div style={{ display: 'flex', flexWrap: 'wrap', gap: klein ? 4 : '6px 12px', justifyContent: klein ? 'flex-end' : 'center', alignItems: 'center' }}>
-      {gruppen.map((n, i) => (
-        // key mit Füllstand: die angefangene Gruppe remountet beim Stricheln → Zieh-Animation
-        <StrichGruppe key={i === gruppen.length - 1 ? `${i}-${n}` : i} n={n} klein={klein} />
+    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, justifyContent: 'flex-end', alignItems: 'center' }}>
+      {gruppen.map((n, gi) => (
+        <svg key={gi} width={26} height={24} viewBox="0 0 46 42" fill="none" style={{ overflow: 'visible', flex: 'none' }}>
+          {Array.from({ length: Math.min(4, n) }, (_, i) => (
+            <line
+              key={i}
+              x1={8 + i * 10} y1={5} x2={9.5 + i * 10} y2={37}
+              stroke={TINTE} strokeWidth={4} strokeLinecap="round"
+              transform={`rotate(${ROTATION[i]} ${8 + i * 10} 21)`}
+            />
+          ))}
+          {n >= 5 && <line x1={1} y1={33} x2={45} y2={9} stroke={TINTE} strokeWidth={4} strokeLinecap="round" />}
+        </svg>
       ))}
     </div>
   );
 }
 
 /**
- * Dei Bierdeckel — Strichliste wie im Wirtshaus. Am Stammtisch-Abend
+ * Dei Bierdeckel, Strichliste wie im Wirtshaus. Am Stammtisch-Abend
  * (ab Termin-Uhrzeit bis zum Abschluss) strichelt jeder Spezl seine eigenen
  * Hoiben LIVE: aufn Deckel tippen = a Strich dazu. Der Stand landet im
  * eigenen Besuchs-Eintrag und belegt den Abschluss-Zettel vor.
@@ -89,7 +146,7 @@ export function Bierdeckel({
 
   useEffect(() => () => { if (timer.current) clearTimeout(timer.current); }, []);
 
-  // Kurz sammeln, dann speichern — schnelles Nachstricheln hämmert so nicht den Server.
+  // Kurz sammeln, dann speichern, schnelles Nachstricheln hämmert so nicht den Server.
   const speichern = (wert: number) => {
     if (timer.current) clearTimeout(timer.current);
     setStatus('speichert');
@@ -125,51 +182,48 @@ export function Bierdeckel({
         .wn-bierdeckel:active { transform: scale(0.97); }
       `}</style>
 
-      {/* Der Deckel: Pergament-Rund mit klassischem Doppelring — antippen strichelt */}
+      {/* Der Deckel: unser echter Wirtschaftln-Deckel, antippen strichelt,
+          d'Striche kritzeln sich wie mit'm blauen Kugelschreiber drüber */}
       <button
         type="button"
         onClick={() => aendern(1)}
         aria-label="A Hoibe dazustricheln"
         className="wn-bierdeckel"
         style={{
-          width: 264, height: 264, borderRadius: '50%', cursor: 'pointer', padding: '0 26px',
-          background: 'radial-gradient(circle at 50% 40%, #FBF7EC 0%, var(--pergament) 60%, #EDE3C9 100%)',
-          border: '2px solid var(--pergament-edge)', boxShadow: 'var(--sh-md)',
-          position: 'relative', fontFamily: 'var(--font-ui)',
-          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 7,
+          width: 264, height: 264, position: 'relative', padding: 0, border: 'none',
+          background: 'transparent', cursor: 'pointer', borderRadius: '50%',
+          filter: 'drop-shadow(0 6px 14px rgba(12,43,90,0.22))',
           transition: 'transform var(--dur-fast) var(--ease-standard)',
           WebkitTapHighlightColor: 'transparent',
         }}
       >
-        <span style={{ position: 'absolute', inset: 9, borderRadius: '50%', border: '1.5px solid rgba(12,43,90,0.3)', pointerEvents: 'none' }} />
-        <span style={{ position: 'absolute', inset: 14, borderRadius: '50%', border: '3px solid rgba(12,43,90,0.45)', pointerEvents: 'none' }} />
-
-        <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--gold-700)' }}>
-          Dei Strichliste
-        </span>
-        <span style={{ fontFamily: 'var(--font-fraktur)', fontSize: 21, lineHeight: 1.1, color: 'var(--navy)', maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-          {wirtshausName ?? 'Stammtisch'}
-        </span>
-
-        <span style={{ minHeight: 48, maxWidth: 180, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          {hoiben > 0 ? (
-            <Strichliste anzahl={hoiben} />
-          ) : (
-            <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink-500)', lineHeight: 1.4 }}>
-              Aufn Deckel tippen —<br />a Strich pro Hoibe 🍺
-            </span>
-          )}
-        </span>
-
-        <span className="wn-tnum" style={{ fontSize: 15, fontWeight: 800, color: 'var(--gold-700)' }}>
-          <span key={hoiben} className="wn-hoiben-pop">{hoiben}</span> {hoiben === 1 ? 'Hoibe' : 'Hoiben'}
-        </span>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/bierdeckel.webp"
+          alt=""
+          draggable={false}
+          style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', userSelect: 'none', pointerEvents: 'none' }}
+        />
+        <KritzelStriche anzahl={hoiben} />
       </button>
+
+      <div style={{ textAlign: 'center' }}>
+        <span className="wn-tnum" style={{ fontSize: 16, fontWeight: 800, color: 'var(--gold-700)' }}>
+          <span key={hoiben} className="wn-hoiben-pop">{hoiben}</span> Hoibe
+          {wirtshausName && <span style={{ fontWeight: 700, color: 'var(--ink-500)' }}> · {wirtshausName}</span>}
+        </span>
+        {hoiben === 0 && (
+          <div style={{ marginTop: 2, fontSize: 12, fontWeight: 600, color: 'var(--ink-500)' }}>
+            Aufn Deckel tippen, a Strich pro Hoibe
+          </div>
+        )}
+      </div>
 
       {/* Korrektur + Speicher-Stand */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
         <button
           type="button"
+          className="wn-press"
           onClick={() => aendern(-1)}
           disabled={hoiben === 0}
           style={{
@@ -190,7 +244,7 @@ export function Bierdeckel({
         </div>
       )}
       <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink-500)', textAlign: 'center' }}>
-        Deine Striche stehen beim Abschluss-Zettel scho drin — 1 Hoibe = 1 WP. 🍺
+        Deine Striche stehen beim Abschluss-Zettel scho drin: 1 Hoibe = 1 WP.
       </div>
 
       {/* De anderen am Tisch */}
@@ -206,7 +260,7 @@ export function Bierdeckel({
                 <span style={{ flex: 1, minWidth: 0, fontSize: 13, fontWeight: 700, color: 'var(--ink-900)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {s.name}
                 </span>
-                <Strichliste anzahl={s.hoiben} klein />
+                <MiniStrichliste anzahl={s.hoiben} />
                 <span className="wn-tnum" style={{ flex: 'none', width: 26, textAlign: 'right', fontSize: 13, fontWeight: 800, color: 'var(--gold-700)' }}>
                   {s.hoiben}
                 </span>

@@ -11,7 +11,7 @@ export type ZugesagterSpezl = { name: string; photoUrl: string | null; verein: '
  * Zusagen/Absagen-Knöpfe offen. Danach is die Karte „zua": Daumen + eigene
  * Antwort fix, drunter wer scho kommt (Avatare) und der Zählerstand
  * („6 kemman · 1 ko ned · 3 warten no"). Ändern geht weiterhin über den
- * kleinen Knopf — bis zum Abend derf jeder umschwenken.
+ * kleinen Knopf, bis zum Abend derf jeder umschwenken.
  */
 export function AbstimmungsStand({
   terminId,
@@ -73,7 +73,7 @@ export function AbstimmungsStand({
             <Icon name="daumen" size={19} style={dabei ? undefined : { transform: 'rotate(180deg) scaleX(-1)' }} />
           </span>
           <span style={{ flex: 1, minWidth: 0, fontSize: 14, fontWeight: 800, color: 'var(--pergament)' }}>
-            {dabei ? 'Passt — du bist dabei!' : 'Du hast abgsagt.'}
+            {dabei ? 'Passt, du bist dabei!' : 'Du hast abgsagt.'}
           </span>
           <button
             type="button"
@@ -89,7 +89,7 @@ export function AbstimmungsStand({
         </div>
       )}
 
-      {/* Wer kommt — Avatare der Zugesagten + Zählerstand */}
+      {/* Wer kommt, Avatare der Zugesagten + Zählerstand */}
       <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
         {zu > 0 && (
           <span style={{ display: 'inline-flex', flex: 'none' }}>

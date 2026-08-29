@@ -1,4 +1,4 @@
-// Wirtschaftln — Inline-Icon-Set (Lucide-Stil, 24px Stroke-Pfade).
+// Wirtschaftln, Inline-Icon-Set (Lucide-Stil, 24px Stroke-Pfade).
 // Substitut laut Design-System; bei Bedarf gegen echtes Lucide tauschen.
 
 const ICON_PATHS: Record<string, string> = {

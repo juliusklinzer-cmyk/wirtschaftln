@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * Wirtschaftln — Switch
+ * Wirtschaftln, Switch
  * An/Aus-Toggle. An = Münchner Blau (oder Gold). Apple-Style Knopf.
  */
 export function Switch({

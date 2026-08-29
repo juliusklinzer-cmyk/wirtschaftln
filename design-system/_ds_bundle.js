@@ -5026,7 +5026,7 @@ try { (() => {
         opacity: 0.7,
         marginTop: 4
       }
-    }, "Hoiben")), /*#__PURE__*/React.createElement("div", {
+    }, "Hoibe")), /*#__PURE__*/React.createElement("div", {
       style: {
         textAlign: 'center'
       }
@@ -7022,7 +7022,7 @@ try { (() => {
         color: 'var(--ink-500)',
         marginBottom: 8
       }
-    }, "Pro Mitglied \xB7 ", totalHoiben, " Hoiben gesamt"), /*#__PURE__*/React.createElement("div", {
+    }, "Pro Mitglied \xB7 ", totalHoiben, " Hoibe gesamt"), /*#__PURE__*/React.createElement("div", {
       style: {
         display: 'flex',
         flexDirection: 'column',

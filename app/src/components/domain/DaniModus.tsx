@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { Switch } from '@/components/ds';
 
 /**
- * 🤳 Dani-Modus — Hommage an Danis kaputtes Handy: ein 3px breiter weißer
+ * 🤳 Dani-Modus, Hommage an Danis kaputtes Handy: ein 3px breiter weißer
  * Streifen läuft von oben bis unten übers Display, drin wird nix angezeigt.
  * Pro Gerät (localStorage), rein für d'Gaudi.
  */
@@ -19,7 +19,7 @@ function istAn(): boolean {
   }
 }
 
-/** Der Streifen selbst — sitzt im App-Layout über allem (auch über Modals). */
+/** Der Streifen selbst, sitzt im App-Layout über allem (auch über Modals). */
 export function DaniStreifen() {
   const [an, setAn] = useState(false);
   useEffect(() => {
@@ -35,7 +35,7 @@ export function DaniStreifen() {
   if (!an) return null;
   return (
     <>
-      {/* Dezenter Schleier über der ganzen App — der Streifen liegt drüber und wirkt so mehr */}
+      {/* Dezenter Schleier über der ganzen App, der Streifen liegt drüber und wirkt so mehr */}
       <div
         aria-hidden
         style={{
@@ -43,7 +43,7 @@ export function DaniStreifen() {
           zIndex: 9998, pointerEvents: 'none',
         }}
       />
-      {/* Der weiße Streifen — leuchtet mit leichtem Glow gegen den Schleier */}
+      {/* Der weiße Streifen, leuchtet mit leichtem Glow gegen den Schleier */}
       <div
         aria-hidden
         style={{
@@ -66,7 +66,7 @@ export function DaniModusSchalter() {
     try {
       localStorage.setItem(KEY, neu ? 'an' : 'aus');
     } catch {
-      /* koa localStorage — dann halt koa Streifen */
+      /* koa localStorage, dann halt koa Streifen */
     }
     window.dispatchEvent(new Event(EVENT));
   };
@@ -77,7 +77,7 @@ export function DaniModusSchalter() {
       <div style={{ flex: 1 }}>
         <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--ink-900)' }}>Dani-Modus</div>
         <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink-500)', lineHeight: 1.4 }}>
-          Der legendäre weiße Streifen vom Dani seim Handy — für’s authentische Gfui. Gilt nur auf dem Gerät.
+          Der legendäre weiße Streifen vom Dani seim Handy, für’s authentische Gfui. Gilt nur auf dem Gerät.
         </div>
       </div>
       <Switch checked={an} onChange={umschalten} tone="gold" />

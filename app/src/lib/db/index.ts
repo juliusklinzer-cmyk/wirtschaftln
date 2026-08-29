@@ -29,7 +29,10 @@ function migrateDb() {
       for (const stmt of sql.split('--> statement-breakpoint')) {
         if (stmt.trim()) sqlite.exec(stmt);
       }
-      sqlite.prepare('INSERT INTO wn_migrations (name, applied_at) VALUES (?, ?)').run(file, new Date().toISOString());
+      // OR IGNORE: beim Build öffnen mehrere Worker die DB gleichzeitig, wenn
+      // zwei dieselbe (idempotente) Migration anwenden, derf die Buchführung
+      // ned am Unique-Konflikt sterben.
+      sqlite.prepare('INSERT OR IGNORE INTO wn_migrations (name, applied_at) VALUES (?, ?)').run(file, new Date().toISOString());
     });
     tx();
   }

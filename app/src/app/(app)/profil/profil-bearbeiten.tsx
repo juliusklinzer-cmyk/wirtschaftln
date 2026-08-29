@@ -1,12 +1,13 @@
 'use client';
 
 import { useState } from 'react';
+import { KlappenKopf } from '@/components/ds';
 import { ProfilForm, type ProfilWerte } from './profil-form';
 
 /**
  * „Profil bearbeiten" als Klappe: schließt sich nach dem Speichern und
  * bedankt sich (Julius' UI-Prinzip). Bei der Erstanmeldung steht das Formular
- * offen da — da führt eh kein Weg dran vorbei.
+ * offen da, da führt eh kein Weg dran vorbei.
  */
 export function ProfilBearbeiten({ werte }: { werte: ProfilWerte }) {
   const [offen, setOffen] = useState(false);
@@ -33,9 +34,7 @@ export function ProfilBearbeiten({ werte }: { werte: ProfilWerte }) {
           borderRadius: 'var(--r-lg)', boxShadow: 'var(--sh-sm)', overflow: 'hidden',
         }}
       >
-        <summary style={{ padding: '14px 18px', fontSize: 15, fontWeight: 800, color: 'var(--ink-900)', cursor: 'pointer', listStyle: 'none', userSelect: 'none' }}>
-          ✏️ Profil bearbeiten
-        </summary>
+        <KlappenKopf>Profil bearbeiten</KlappenKopf>
         <div style={{ padding: '4px 18px 18px' }}>
           <ProfilForm
             werte={werte}
@@ -54,7 +53,7 @@ export function ProfilBearbeiten({ werte }: { werte: ProfilWerte }) {
             fontSize: 13, fontWeight: 800, color: 'var(--erfolg)',
           }}
         >
-          ✓ Profil gspeichert — vergelt’s Gott! 🍺
+          ✓ Profil gspeichert, vergelt’s Gott!
         </div>
       )}
     </div>

@@ -9,7 +9,7 @@ import { createSession, destroySession } from '@/lib/session';
 export type LoginState = { error?: string };
 
 // Brute-Force-Bremse: 5 Fehlversuche pro E-Mail → 15 Minuten Sperre.
-// In-Memory reicht — die App läuft als einzelne Container-Instanz; nebenbei
+// In-Memory reicht, die App läuft als einzelne Container-Instanz; nebenbei
 // bremst die Sperre das synchrone scrypt (sonst DoS-Hebel ohne Account).
 const MAX_FEHLVERSUCHE = 5;
 const SPERRE_MS = 15 * 60_000;
@@ -27,7 +27,7 @@ export async function login(_prev: LoginState, formData: FormData): Promise<Logi
 
   const sperre = fehlversuche.get(email);
   if (sperre && sperre.count >= MAX_FEHLVERSUCHE) {
-    if (Date.now() < sperre.bis) return { error: 'Z’viele Fehlversuche — probier’s in a Viertelstund nomoi.' };
+    if (Date.now() < sperre.bis) return { error: 'Z’viele Fehlversuche, probier’s in a Viertelstund nomoi.' };
     fehlversuche.delete(email);
   }
 
@@ -39,11 +39,11 @@ export async function login(_prev: LoginState, formData: FormData): Promise<Logi
     }
     const f = fehlversuche.get(email) ?? { count: 0, bis: 0 };
     fehlversuche.set(email, { count: f.count + 1, bis: Date.now() + SPERRE_MS });
-    return { error: 'Des passt ned — E-Mail oder Passwort falsch.' };
+    return { error: 'Des passt ned, E-Mail oder Passwort falsch.' };
   }
   fehlversuche.delete(email);
   if (member.status !== 'aktiv') {
-    return { error: 'Dein Antrag läuft noch — a bisserl Geduld.' };
+    return { error: 'Dein Antrag läuft noch, a bisserl Geduld.' };
   }
   await createSession(member.id);
   // Erstanmeldung: zuerst Passwort setzen und Profil ausfüllen

@@ -25,7 +25,7 @@ export async function umfrageStarten(formData: FormData) {
   revalidatePath('/');
 }
 
-/** Abstimmen bzw. Stimme ändern — eine Stimme pro Spezl und Umfrage. */
+/** Abstimmen bzw. Stimme ändern, eine Stimme pro Spezl und Umfrage. */
 export async function umfrageAbstimmen(formData: FormData) {
   const me = await getCurrentMember();
   if (!me) return;
@@ -43,7 +43,7 @@ export async function umfrageAbstimmen(formData: FormData) {
   revalidatePath('/');
 }
 
-/** Löschen darf nur, wer die Umfrage gestartet hat — oder der Admin. */
+/** Löschen darf nur, wer die Umfrage gestartet hat, oder der Admin. */
 export async function umfrageLoeschen(formData: FormData) {
   const me = await getCurrentMember();
   if (!me) return;

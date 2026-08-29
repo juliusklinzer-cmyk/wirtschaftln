@@ -4,7 +4,7 @@ import { sqliteTable, text, integer, real, uniqueIndex } from 'drizzle-orm/sqlit
 
 export const members = sqliteTable('members', {
   id: text('id').primaryKey(),
-  /** Voller Name („Julius Klinzer") — Fallback; Anzeige läuft über lib/namen.ts. */
+  /** Voller Name („Julius Klinzer"), Fallback; Anzeige läuft über lib/namen.ts. */
   name: text('name').notNull(),
   vorname: text('vorname'),
   nachname: text('nachname'),
@@ -14,7 +14,7 @@ export const members = sqliteTable('members', {
   photoUrl: text('photo_url'), // Upload wird als Data-URL gespeichert (klein skaliert)
   role: text('role', { enum: ['admin', 'mitglied'] }).notNull().default('mitglied'),
   status: text('status', { enum: ['aktiv', 'antrag', 'inaktiv'] }).notNull().default('aktiv'),
-  // Profil — alles was bayrisch und witzig is
+  // Profil, alles was bayrisch und witzig is
   herkunft: text('herkunft'), // Stadtviertel/Herkunft
   lieblingsbier: text('lieblingsbier'),
   lieblingsweissbier: text('lieblingsweissbier'),
@@ -55,7 +55,7 @@ export const wirtshaeuser = sqliteTable('wirtshaeuser', {
 
 // Freiwillige Nachbewertung (Altbestand oder Wiederbesuch ohne Stammtisch):
 // eine pro Spezl & Wirtshaus, änderbar, bringt bewusst KEINE WP.
-// Ziel: saubere Doku aller Münchner Wirtshäuser — wo is' gut, wo der beste
+// Ziel: saubere Doku aller Münchner Wirtshäuser, wo is' gut, wo der beste
 // Kaiserschmarrn, wo der beste Brodn.
 export const wirtshausBewertungen = sqliteTable(
   'wirtshaus_bewertungen',
@@ -63,7 +63,7 @@ export const wirtshausBewertungen = sqliteTable(
     id: text('id').primaryKey(),
     wirtshausId: text('wirtshaus_id').notNull().references(() => wirtshaeuser.id, { onDelete: 'cascade' }),
     memberId: text('member_id').notNull().references(() => members.id, { onDelete: 'cascade' }),
-    // Bewertungen mit einer Kommastelle (±-Stepper ab 3,0) — wie beim Besuch-Abschluss.
+    // Bewertungen mit einer Kommastelle (±-Stepper ab 3,0), wie beim Besuch-Abschluss.
     // SQLite-Affinität macht den Wechsel integer→real migrationsfrei.
     sterne: real('sterne').notNull(), // 1,0–5,0
     kaiserSterne: real('kaiser_sterne'), // 1,0–5,0, optional
@@ -137,6 +137,21 @@ export const besuche = sqliteTable(
   (t) => [uniqueIndex('besuche_termin_member').on(t.terminId, t.memberId)],
 );
 
+// Wer scho im Wirtshaus sitzt, checkt ein: der Erste kriegt an WP, verrät im
+// Freitext wo die Spezln hocken („hinten rechts, bei der Band") und alle
+// anderen kriegen an Push. Einchecken geht ab 2 Stunden vor Termin-Beginn.
+export const checkins = sqliteTable(
+  'checkins',
+  {
+    id: text('id').primaryKey(),
+    terminId: text('termin_id').notNull().references(() => termine.id, { onDelete: 'cascade' }),
+    memberId: text('member_id').notNull().references(() => members.id, { onDelete: 'cascade' }),
+    platz: text('platz'),
+    createdAt: text('created_at').notNull(),
+  },
+  (t) => [uniqueIndex('checkins_termin_member').on(t.terminId, t.memberId)],
+);
+
 export const kasse = sqliteTable('kasse', {
   id: text('id').primaryKey(),
   memberId: text('member_id').references(() => members.id),
@@ -145,13 +160,13 @@ export const kasse = sqliteTable('kasse', {
   betragCents: integer('betrag_cents').notNull(), // Forderung/Ausgabe negativ, Einzahlung positiv
   kind: text('kind', { enum: ['strafe', 'einzahlung', 'ausgabe', 'runde'] }).notNull(),
   status: text('status', { enum: ['offen', 'beglichen', 'aufgehoben'] }).notNull().default('offen'),
-  // Wer den Eintrag angelegt/gemeldet hat — null = automatisch von der App (z. B. Abschluss-Strafen)
+  // Wer den Eintrag angelegt/gemeldet hat, null = automatisch von der App (z. B. Abschluss-Strafen)
   gemeldetVon: text('gemeldet_von').references(() => members.id),
   createdAt: text('created_at').notNull(),
 });
 
 // Umfragen: jeder Spezl kann eine starten (Frage + beliebig viele Antworten).
-// Antworten als JSON-Array — die Position im Array ist der antwortIndex der Stimmen.
+// Antworten als JSON-Array, die Position im Array ist der antwortIndex der Stimmen.
 export const umfragen = sqliteTable('umfragen', {
   id: text('id').primaryKey(),
   frage: text('frage').notNull(),

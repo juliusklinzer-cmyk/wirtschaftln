@@ -2,9 +2,13 @@ import type { MetadataRoute } from 'next';
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
+    // id + scope: stabile App-Identität für Chrome/WebAPK, hilft gegen
+    // Play-Protect-Zicken bei der Installation
+    id: '/',
+    scope: '/',
     name: 'Wirtschaftln',
     short_name: 'Wirtschaftln',
-    description: 'Oiwei anders. Oiwei dahoam. — Der Stammtisch, München · seit 2019',
+    description: 'Oiwei anders. Oiwei dahoam. Der Stammtisch, München · seit 2019',
     start_url: '/',
     display: 'standalone',
     background_color: '#07193A',

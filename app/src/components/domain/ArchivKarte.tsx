@@ -15,13 +15,13 @@ export type KartenPin = {
   photoUrl: string | null;
   naechstes?: boolean;
   top3?: boolean;
-  /** „Gfunden", aber no ned besucht — hellgrauer Pin mit ❓ statt Bierkrug. */
+  /** „Gfunden", aber no ned besucht, hellgrauer Pin mit ❓ statt Bierkrug. */
   offen?: boolean;
 };
 
 /**
  * Bierkrug-Teardrop-Pin wie im Design-Prototyp (WirtshausScreen.jsx).
- * Offene („gfundene") Pins sind bewusst klein und dezent — heller
+ * Offene („gfundene") Pins sind bewusst klein und dezent, heller
  * Pergament-Tropfen mit grauem ?, damit die blauen Krüge und die goldenen
  * Top-Pins die Karte dominieren.
  */
@@ -52,7 +52,7 @@ function pinElement(pin: KartenPin, aktiv: boolean, onClick: () => void): HTMLBu
     background:${hintergrund};`;
   const icon = document.createElement('span');
   if (pin.offen) {
-    // schlichtes graues ? statt rotem Emoji — deutlich leiser als die Bierkrüge
+    // schlichtes graues ? statt rotem Emoji, deutlich leiser als die Bierkrüge
     icon.style.cssText = `transform:rotate(45deg);font-family:var(--font-ui),sans-serif;
       font-size:${aktiv ? 15 : 11}px;font-weight:800;line-height:1;
       color:${aktiv ? '#fff' : '#9AA6B5'};`;
@@ -100,12 +100,12 @@ export function ArchivKarte({
         const map = new google.maps.Map(containerRef.current, {
           center: MUENCHEN,
           zoom: 12,
-          // minZoom: näher als „München & Umland" raus geht's nicht — verhindert
+          // minZoom: näher als „München & Umland" raus geht's nicht, verhindert
           // den Bug, bei dem die Karte plötzlich auf die ganze Welt rausspringt
           // (fitBounds/Resize bei noch unvermessenem Container → Zoom 0).
           minZoom: 9,
           disableDefaultUI: true,
-          zoomControl: false, // cleaner — gezoomt wird mit zwei Fingern
+          zoomControl: false, // cleaner, gezoomt wird mit zwei Fingern
           gestureHandling: 'greedy',
           clickableIcons: false,
         });
@@ -166,7 +166,7 @@ export function ArchivKarte({
         }
 
         // Backfill über Places (einmal pro Wirtshaus, wird in der DB gespeichert):
-        // Foto UND — für Altbestand-Einträge ohne Ortsdaten — Koordinaten/Adresse.
+        // Foto UND, für Altbestand-Einträge ohne Ortsdaten, Koordinaten/Adresse.
         if (!backfillDone.current && google.maps.places) {
           backfillDone.current = true;
           const service = new google.maps.places.PlacesService(map);
@@ -202,7 +202,7 @@ export function ArchivKarte({
       .catch(() => {
         if (containerRef.current) {
           containerRef.current.innerHTML =
-            '<div style="display:flex;align-items:center;justify-content:center;height:100%;padding:24px;text-align:center;font-family:var(--font-ui);font-size:13px;font-weight:600;color:var(--ink-500)">Karte konnte nicht geladen werden — Google-Maps-Key prüfen (Cloud Console → Freischaltung für diese Domain).</div>';
+            '<div style="display:flex;align-items:center;justify-content:center;height:100%;padding:24px;text-align:center;font-family:var(--font-ui);font-size:13px;font-weight:600;color:var(--ink-500)">Karte konnte nicht geladen werden, Google-Maps-Key prüfen (Cloud Console → Freischaltung für diese Domain).</div>';
         }
       });
     return () => {

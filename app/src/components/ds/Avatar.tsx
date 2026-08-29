@@ -1,7 +1,7 @@
 /**
- * Wirtschaftln — Avatar
+ * Wirtschaftln, Avatar
  * Mitgliederfoto mit optionalem Gold-Ring (Amtsträger), Vereins-Ring
- * (Bayern rot / Sechzig blau / neutral Biergarten-grün — Gold sticht),
+ * (Bayern rot / Sechzig blau / neutral Biergarten-grün, Gold sticht),
  * Rang-Badge und Anwesenheits-Punkt. Fallback: Initialen.
  *
  * verein: null = neutraler Münchner (🥨 Koa Fuaßboi → grüner Ring);

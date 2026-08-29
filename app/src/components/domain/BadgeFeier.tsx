@@ -9,7 +9,7 @@ export type FeierBadge = {
   icon: string;
   name: string;
   spruch: string;
-  /** Bei Ämtern: Patron + Pflichten — stehen unterm Spruch. */
+  /** Bei Ämtern: Patron + Pflichten, stehen unterm Spruch. */
   infos?: string[] | null;
   /** Wen der Spezl damit abglöst hat („Damit hast’d n Sepp abglöst"). */
   vorherName?: string | null;
@@ -19,7 +19,7 @@ const FARBEN = ['#E6C684', '#D0AD66', '#DC052D', '#1E9CD7', '#F6F0E2', '#FFD700'
 
 /**
  * Vollbild-Feier, wenn der Spezl ein neues Badge/Amt gewonnen hat:
- * Feuerwerk, Badge groß mit Pop, „Servus — du bist jetza da neue …!"
+ * Feuerwerk, Badge groß mit Pop, „Servus, du bist jetza da neue …!"
  * Wird pro Gerät nur einmal gezeigt (localStorage je Termin+Badge).
  */
 export function BadgeFeier({ terminId, feiern }: { terminId: string; feiern: FeierBadge[] }) {
@@ -151,7 +151,7 @@ export function BadgeFeier({ terminId, feiern }: { terminId: string; feiern: Fei
               fontFamily: 'var(--font-ui)', fontSize: 16, fontWeight: 800, color: 'var(--navy-900)',
             }}
           >
-            {letzter ? 'Passt — eini geht’s! 🍺' : `Weiter (${index + 1}/${offen.length})`}
+            {letzter ? 'Passt, eini geht’s!' : `Weiter (${index + 1}/${offen.length})`}
           </button>
         </div>
       </div>

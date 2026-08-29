@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Button } from '@/components/ds';
+import { Button, KlappenKopf } from '@/components/ds';
 import { WirtshausSuche } from '@/components/domain/WirtshausSuche';
 import type { BekanntesWirtshaus } from '@/lib/wirtshaus-abgleich';
 
@@ -39,9 +39,7 @@ export function ReservierungAendern({
           borderRadius: 'var(--r-lg)', boxShadow: 'var(--sh-sm)', overflow: 'hidden',
         }}
       >
-        <summary style={{ padding: '14px 18px', fontSize: 15, fontWeight: 800, color: 'var(--ink-900)', cursor: 'pointer', listStyle: 'none', userSelect: 'none' }}>
-          🔁 Reservierung ändern (anderes Wirtshaus)
-        </summary>
+        <KlappenKopf>Reservierung ändern (anderes Wirtshaus)</KlappenKopf>
         <div style={{ padding: '4px 18px 18px' }}>
           <form action={speichern} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             <WirtshausSuche bekannte={bekannte} />
@@ -62,7 +60,7 @@ export function ReservierungAendern({
             fontSize: 13, fontWeight: 800, color: 'var(--erfolg)',
           }}
         >
-          ✓ Wirtshaus gändert — alle Spezln kriegen Bescheid! 📣
+          ✓ Wirtshaus gändert, alle Spezln kriegen Bescheid!
         </div>
       )}
     </div>

@@ -3,12 +3,13 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev -p 3010",
     "build": "next build",
     "start": "next start",
     "db:generate": "drizzle-kit generate",
     "db:seed": "node scripts/seed.ts",
-    "db:demo": "node scripts/demo.ts"
+    "db:demo": "node scripts/demo.ts",
+    "db:probeabend": "node scripts/probe-abend.ts"
   },
   "dependencies": {
     "@fontsource/libre-caslon-text": "^5.2.7",

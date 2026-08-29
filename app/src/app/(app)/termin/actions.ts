@@ -3,14 +3,15 @@
 import { revalidatePath } from 'next/cache';
 import { anzeigeName } from '@/lib/namen';
 import { and, eq } from 'drizzle-orm';
-import { db, termine, votes, besuche, wirtshaeuser, kasse, pushSubscriptions } from '@/lib/db';
+import { db, termine, votes, besuche, wirtshaeuser, kasse, pushSubscriptions, checkins } from '@/lib/db';
 import { getCurrentMember } from '@/lib/session';
-import { getAktiveMitglieder, nachtragsfristOffen, getVergabeStand, getStats, getPraesidentId, getBekannteWirtshaeuser } from '@/lib/queries';
+import { getAktiveMitglieder, nachtragsfristOffen, getVergabeStand, getStats, getPraesidentId, getBekannteWirtshaeuser, getLetzterAbgeschlossenerTermin } from '@/lib/queries';
 import { findeBekanntes } from '@/lib/wirtshaus-abgleich';
 import { vergabeWechsel, wechselTexte } from '@/lib/badges';
-import { WACKELT_AB_UNENTSCHULDIGT, berlinTag, bierdeckelOffen } from '@/lib/punkte';
+import { WACKELT_AB_UNENTSCHULDIGT, berlinTag, bierdeckelOffen, abschlussOffen, checkinOffen, CHECKIN_VORLAUF_STUNDEN } from '@/lib/punkte';
 import { HELLE, ALKOHOLFREIE_HELLE } from '@/lib/biersorten';
 import { HOIBE_KELLERPREIS_CENTS } from '@/lib/preise';
+import { fotoAlsDataUrl } from '@/lib/foto';
 import { mailAn } from '@/lib/mail';
 import { pushAnAlle, pushAn } from '@/lib/push';
 import { datumLang } from '@/lib/format';
@@ -23,21 +24,25 @@ function revalidateAll() {
   revalidatePath('/spezln');
 }
 
+/**
+ * Neuen Termin anlegen (typisch: der Abschließer, direkt am Tisch), OHNE
+ * Organisator: den Posten schnappt sich danach jeder selber („I regle das!"),
+ * nur wer den letzten Stammtisch organisiert hat, muss aussetzen.
+ */
 export async function neuerTermin(formData: FormData) {
   const me = await getCurrentMember();
   if (!me) return;
   const datum = String(formData.get('datum') ?? '');
   const zeit = String(formData.get('zeit') ?? '19:00');
-  const planerId = String(formData.get('planerId') ?? me.id);
   if (!datum) return;
   db.insert(termine)
-    .values({ id: newId('t'), datum, zeit, phase: 'planung', planerId, createdAt: nowIso() })
+    .values({ id: newId('t'), datum, zeit, phase: 'planung', planerId: null, createdAt: nowIso() })
     .run();
 
-  // 📣 Startschuss für d'Abstimmung — alle Spezln kriegen Push + Mail
+  // 📣 Startschuss für d'Abstimmung, alle Spezln kriegen Push + Mail
   const wann = `${datumLang(datum)}, ${zeit} Uhr`;
-  const titel = '🗳️ Neuer Stammtisch — jetzt abstimmen!';
-  const text = `Da nächste Stammtisch steht: ${wann}. Sag zua oder ab — wer bis 3 Tag vorher abstimmt, kriagt an WP dafür! 🍺`;
+  const titel = '🗳️ Neuer Stammtisch, jetzt abstimmen!';
+  const text = `Da nächste Stammtisch steht: ${wann}. Sag zua oder ab, wer bis 3 Tag vorher abstimmt, kriagt an WP! Und: D'Orga is no frei, wer reglt's? 🍺`;
   const empfaenger = getAktiveMitglieder().filter((m) => m.id !== me.id).map((m) => m.email);
   await Promise.allSettled([
     pushAnAlle(titel, text, '/termin'),
@@ -46,7 +51,7 @@ export async function neuerTermin(formData: FormData) {
   revalidateAll();
 }
 
-/** Best-effort-Geocoding über Nominatim (OSM) — scheitert leise. */
+/** Best-effort-Geocoding über Nominatim (OSM), scheitert leise. */
 async function geocode(query: string): Promise<{ lat: number; lng: number } | null> {
   try {
     const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=de&q=${encodeURIComponent(query)}`;
@@ -64,7 +69,7 @@ async function geocode(query: string): Promise<{ lat: number; lng: number } | nu
 }
 
 /**
- * Nur Google-Hosts als Wirtshaus-Foto-URL — sonst könnte ein manipulierter
+ * Nur Google-Hosts als Wirtshaus-Foto-URL, sonst könnte ein manipulierter
  * Request beliebige Fremd-URLs einschleusen, die dann bei allen Mitgliedern
  * als <img> laden (Tracking) oder die DB aufblähen.
  */
@@ -96,7 +101,10 @@ async function wirtshausAusSuche(formData: FormData, vorgeschlagenVon: string | 
   const bezirk = String(formData.get('w_bezirk') ?? '').trim() || null;
   const telefon = String(formData.get('w_telefon') ?? '').trim() || null;
   const fotoRoh = erlaubteFotoUrl(String(formData.get('w_photoUrl') ?? '').trim());
-  const photoUrl = fotoRoh ? await stabileFotoUrl(fotoRoh) : null;
+  // Foto sofort als Data-URL in die DB holen, Google-URLs laufen ab/zicken.
+  // Klappt der Download grad ned, bleibt die stabile URL als Fallback.
+  const fotoStabil = fotoRoh ? await stabileFotoUrl(fotoRoh) : null;
+  const photoUrl = fotoStabil ? ((await fotoAlsDataUrl(fotoStabil)) ?? fotoStabil) : null;
   let lat = Number(formData.get('w_lat')) || null;
   let lng = Number(formData.get('w_lng')) || null;
   if (lat == null || lng == null) {
@@ -104,7 +112,7 @@ async function wirtshausAusSuche(formData: FormData, vorgeschlagenVon: string | 
     lat = coords?.lat ?? null;
     lng = coords?.lng ?? null;
   }
-  // Optional: das Helle vom Finder — nur echte Einträge von der Karte zulassen
+  // Optional: das Helle vom Finder, nur echte Einträge von der Karte zulassen
   const biersorteRoh = String(formData.get('w_biersorte') ?? '').trim();
   const biersorte = [...HELLE, ...ALKOHOLFREIE_HELLE].some((b) => b.name === biersorteRoh) ? biersorteRoh : undefined;
   const wid = newId('w');
@@ -117,27 +125,27 @@ async function wirtshausAusSuche(formData: FormData, vorgeschlagenVon: string | 
 export type VorschlagErgebnis = { ok: true } | { ok: false; meldung: string };
 
 /**
- * „Wirtshaus gfunden" — darf jeder: landet als offener Pin auf der Karte
+ * „Wirtshaus gfunden", darf jeder: landet als offener Pin auf der Karte
  * und steht dem nächsten Organisator zur Auswahl.
  *
  * Harte Regeln (serverseitig, unscharfer Namensabgleich wie in der Suche):
  * schon besuchte/Altbestand-Wirtshäuser, das eingeplante nächste und schon
- * vorgeschlagene dürfen NICHT nochmal vorgeschlagen werden — sonst gäb's
+ * vorgeschlagene dürfen NICHT nochmal vorgeschlagen werden, sonst gäb's
  * doppelte Pins und erschummelte Vorschlags-WP.
  */
 export async function wirtshausVorschlagen(formData: FormData): Promise<VorschlagErgebnis> {
   const me = await getCurrentMember();
-  if (!me) return { ok: false, meldung: 'Ned angmeldt — bitte neu einloggen.' };
+  if (!me) return { ok: false, meldung: 'Ned angmeldt, bitte neu einloggen.' };
   const name = String(formData.get('w_name') ?? '').trim() || String(formData.get('w_freitext') ?? '').trim();
-  if (!name) return { ok: false, meldung: 'Koa Wirtshaus eingeben — such oans aus oder tipp an Namen.' };
+  if (!name) return { ok: false, meldung: 'Koa Wirtshaus eingeben, such oans aus oder tipp an Namen.' };
   const bekannt = findeBekanntes(name, getBekannteWirtshaeuser());
   if (bekannt) {
     const meldung =
       bekannt.art === 'besucht'
-        ? `„${bekannt.name}“ steht scho in eurer Chronik — a Wirtshaus wird nie zweimal bsucht.`
+        ? `„${bekannt.name}“ steht scho in eurer Chronik, a Wirtshaus wird nie zweimal bsucht.`
         : bekannt.art === 'eingeplant'
           ? `„${bekannt.name}“ steht scho als nächster Stammtisch fest.`
-          : `„${bekannt.name}“ ${bekannt.von ? `hat ${bekannt.von} scho gfunden` : 'is scho vorgschlagen'} — steht als „Offen“ auf da Kartn.`;
+          : `„${bekannt.name}“ ${bekannt.von ? `hat ${bekannt.von} scho gfunden` : 'is scho vorgschlagen'}, steht als „Offen“ auf da Kartn.`;
     return { ok: false, meldung };
   }
   await wirtshausAusSuche(formData, me.id);
@@ -150,10 +158,10 @@ export async function wirtshausFestlegen(terminId: string, formData: FormData) {
   if (!me) return;
   const termin = db.select().from(termine).where(eq(termine.id, terminId)).get();
   if (!termin) return;
-  // Festlegen/Ändern darf der Organisator (bzw. jeder, wenn keiner eingetragen is),
-  // der aktuelle Präsident oder der Admin — und nur solange der Abend nicht
-  // läuft/abgeschlossen is (löst Push + Mail an alle aus).
-  const darf = me.role === 'admin' || !termin.planerId || termin.planerId === me.id || me.id === getPraesidentId();
+  // Festlegen/Ändern darf der Organisator, der aktuelle Präsident oder der
+  // Admin, und nur solange der Abend nicht läuft/abgeschlossen is (löst
+  // Push + Mail an alle aus). Ohne Organisator wird zuerst gschnappt.
+  const darf = me.role === 'admin' || termin.planerId === me.id || me.id === getPraesidentId();
   if (!darf) return;
   if (termin.phase === 'heute' || termin.phase === 'abgeschlossen') return;
 
@@ -169,7 +177,7 @@ export async function wirtshausFestlegen(terminId: string, formData: FormData) {
   const wirtshaus = db.select().from(wirtshaeuser).where(eq(wirtshaeuser.id, wid)).get();
   const wann = `${datumLang(termin.datum)}, ${termin.zeit} Uhr`;
   const titel = `📍 Steht fest: ${wirtshaus?.name ?? 'Wirtshaus'}`;
-  const text = `Da gehts hin! ${wirtshaus?.name ?? '—'}${wirtshaus?.bezirk ? ` (${wirtshaus.bezirk})` : ''} am ${wann}. Wer no ned abgstimmt hat — letzte Chance, sag zua oder ab!`;
+  const text = `Da gehts hin! ${wirtshaus?.name ?? '—'}${wirtshaus?.bezirk ? ` (${wirtshaus.bezirk})` : ''} am ${wann}. Wer no ned abgstimmt hat, letzte Chance, sag zua oder ab!`;
   const empfaenger = getAktiveMitglieder().filter((m) => m.id !== me.id).map((m) => m.email);
   await Promise.allSettled([
     pushAnAlle(titel, text, '/termin'),
@@ -178,7 +186,7 @@ export async function wirtshausFestlegen(terminId: string, formData: FormData) {
   revalidateAll();
 }
 
-// Nur echte Push-Dienste als Ziel — sonst könnte ein Abo den Server beliebige
+// Nur echte Push-Dienste als Ziel, sonst könnte ein Abo den Server beliebige
 // (auch interne) URLs anfragen lassen (SSRF).
 function istPushDienst(endpoint: string): boolean {
   try {
@@ -212,7 +220,7 @@ export async function pushAbonnieren(sub: { endpoint: string; keys: { p256dh: st
 }
 
 export async function abstimmen(terminId: string, wert: 'zu' | 'ab') {
-  // „Vielleicht" is abgschafft — alte Stimmen bleiben in der DB, neue gibt's nur no zu/ab
+  // „Vielleicht" is abgschafft, alte Stimmen bleiben in der DB, neue gibt's nur no zu/ab
   if (wert !== 'zu' && wert !== 'ab') return;
   const me = await getCurrentMember();
   if (!me) return;
@@ -223,7 +231,7 @@ export async function abstimmen(terminId: string, wert: 'zu' | 'ab') {
     .all()
     .find((v) => v.memberId === me.id);
   if (vorhanden) {
-    // erstmalsAm bleibt stehen — für den Abstimm-Bonus zählt die erste Stimme
+    // erstmalsAm bleibt stehen, für den Abstimm-Bonus zählt die erste Stimme
     db.update(votes).set({ wert, updatedAt: nowIso() }).where(eq(votes.id, vorhanden.id)).run();
   } else {
     db.insert(votes)
@@ -231,6 +239,39 @@ export async function abstimmen(terminId: string, wert: 'zu' | 'ab') {
       .run();
   }
   revalidateAll();
+}
+
+export type OrgaErgebnis = { ok: true } | { ok: false; meldung: string };
+
+/**
+ * „I regle das!", sobald der Termin steht, derf sich JEDER den Organisator-
+ * Posten schnappen (wer zuerst kommt, reglt's). Einzige Sperre: wer den
+ * letzten Stammtisch organisiert hat, muss aussetzen, koa Doppel-Orga
+ * hintereinander (von Julius am 29.08.2026 so festgelegt).
+ */
+export async function orgaSchnappen(terminId: string): Promise<OrgaErgebnis> {
+  const me = await getCurrentMember();
+  if (!me) return { ok: false, meldung: 'Ned angmeldt, bitte neu einloggen.' };
+  const termin = db.select().from(termine).where(eq(termine.id, terminId)).get();
+  if (!termin) return { ok: false, meldung: 'Der Termin is nimmer da.' };
+  if (termin.phase !== 'planung') return { ok: false, meldung: 'Der Termin is scho in der Reservierung, z’spät.' };
+  if (termin.planerId) return { ok: false, meldung: 'Zu langsam, d’Orga hat sich scho wer gschnappt.' };
+  const letzter = getLetzterAbgeschlossenerTermin();
+  if (letzter?.planerId === me.id) {
+    return { ok: false, meldung: 'Du hast grad erst organisiert, der Nächste is dran. Zwoamoi hintereinander gibt’s ned.' };
+  }
+  db.update(termine).set({ planerId: me.id }).where(eq(termine.id, terminId)).run();
+
+  // 📣 Alle wissen lassen, dass d'Orga vergeben is, sonst rennen zwoa los
+  const titel = '🙋 D’Orga is vergeben!';
+  const text = `${anzeigeName(me)} reglt’s, organisiert den Stammtisch am ${datumLang(termin.datum)} und suacht a Wirtshaus aus.`;
+  const empfaenger = getAktiveMitglieder().filter((m) => m.id !== me.id).map((m) => m.email);
+  await Promise.allSettled([
+    pushAnAlle(titel, text, '/termin'),
+    mailAn(empfaenger, titel, `Servus!\n\n${text}\n\n→ https://wirtschaftln.de/termin\n\nDei Wirtschaftln-App`),
+  ]);
+  revalidateAll();
+  return { ok: true };
 }
 
 export async function phaseSetzen(terminId: string, phase: 'planung' | 'reserviert' | 'heute') {
@@ -251,16 +292,16 @@ export type BierdeckelErgebnis = { ok: true; hoiben: number } | { ok: false; mel
 /**
  * Bierdeckel: eigene Hoiben LIVE am Stammtisch-Abend stricheln (ab der
  * Termin-Uhrzeit bis zum Abschluss). Schreibt den absoluten Stand in den
- * eigenen Besuchs-Eintrag — der Abschluss-Zettel übernimmt die Striche
+ * eigenen Besuchs-Eintrag, der Abschluss-Zettel übernimmt die Striche
  * dann als Vorbelegung. Jeder derf NUR für sich selber stricheln.
  */
 export async function hoibenStricheln(terminId: string, hoiben: number): Promise<BierdeckelErgebnis> {
   const me = await getCurrentMember();
-  if (!me) return { ok: false, meldung: 'Ned angmeldt — bitte neu einloggen.' };
+  if (!me) return { ok: false, meldung: 'Ned angmeldt, bitte neu einloggen.' };
   const termin = db.select().from(termine).where(eq(termine.id, terminId)).get();
   if (!termin) return { ok: false, meldung: 'Der Termin is nimmer da.' };
   if (!bierdeckelOffen(termin, nowIso())) {
-    return { ok: false, meldung: `Da Bierdeckel is zua — gstrichelt wird erst am Stammtisch-Abend ab ${termin.zeit || '19:00'} Uhr.` };
+    return { ok: false, meldung: `Da Bierdeckel is zua, gstrichelt wird erst am Stammtisch-Abend ab ${termin.zeit || '19:00'} Uhr.` };
   }
   const wert = Math.max(0, Math.min(30, Math.round(Number(hoiben) || 0)));
   const werte = { anwesend: true, hoiben: wert };
@@ -276,9 +317,13 @@ export async function hoibenStricheln(terminId: string, hoiben: number): Promise
 const STRAFE_GRUND_PREFIX = 'Zugesagt & nicht erschienen';
 
 /**
- * Besuch abschließen — darf jeder Spezl (der Erste kriegt PTS.abschluss WP, meiste Abschlüsse = Schriftführer).
- * Pro Anwesendem Hoiben/🍖/🚕/⭐(Runde), Kaiserschmarrn wird geteilt (einer für alle),
- * Bewertungen (Wirtshaus/Kaisi/Brodn) mit Kommastelle, Bier + Weißbier am Wirtshaus.
+ * Besuch abschließen, NUR die Logistik des Abends: wer da war, Hoiben/🍖/🚕/
+ * ⭐(Runde) pro Anwesendem, Kaiserschmarrn bestellt (einer für alle, jeder isst
+ * mit), Bier + Weißbier am Wirtshaus. Die BEWERTUNG läuft getrennt, jeder für
+ * sich über meineBewertung(), der Abend-Schnitt entsteht aus allen Einzelnen.
+ * Abschließen darf jeder (der Erste kriegt PTS.abschluss WP, meiste Abschlüsse
+ * = Schriftführer), aber erst, wenn der Abend rum is (abschlussOffen, 2 Std.
+ * nach Beginn), damit koaner mittendrin zuamacht.
  * Wer „abgsagt" markiert ist (zugesagt & nicht erschienen), kriegt automatisch eine
  * offene Forderung: Runde = Teilnehmer × Augustiner-Kellerpreis. Bis 7 Tage nach
  * Abschluss kann jeder nachtragen und ändern.
@@ -290,26 +335,26 @@ export async function besuchAbschliessen(terminId: string, formData: FormData) {
   if (!termin) return;
   if (termin.phase !== 'heute' && termin.phase !== 'abgeschlossen') return;
   if (termin.phase === 'abgeschlossen' && !nachtragsfristOffen(termin.abgeschlossenAm)) return;
+  if (termin.phase === 'heute' && !abschlussOffen(termin, nowIso())) return;
 
   const gelistet = formData.getAll('memberId').map(String);
   const kaisiBestellt = formData.get('kaisiBestellt') === 'on';
   const dabeiIds = gelistet.filter((id) => formData.get(`anwesend_${id}`) === 'on');
   const abgsagtIds = gelistet.filter((id) => formData.get(`abgsagt_${id}`) === 'on');
   const rundenIds: string[] = [];
-  let brodnGegessen = false;
 
   // Für ALLE aktiven Mitglieder einen Besuchs-Eintrag schreiben (wichtig für die Serien):
-  // gelistet-anwesend mit Werten, alle anderen als gefehlt.
+  // gelistet-anwesend mit Werten, alle anderen als gefehlt. Die Bewertungs-Spalten
+  // (sterne/kommentar/…) bleiben unangetastet, die gehören jedem selber.
   for (const m of getAktiveMitglieder()) {
     const anwesend = dabeiIds.includes(m.id);
     const hoiben = anwesend ? Math.max(0, Number(formData.get(`hoiben_${m.id}`) ?? 0) || 0) : 0;
     const brodn = anwesend && formData.get(`brodn_${m.id}`) === 'on';
-    if (brodn) brodnGegessen = true;
     if (anwesend && formData.get(`runde_${m.id}`) === 'on') rundenIds.push(m.id);
     const werte = {
       anwesend,
       hoiben,
-      kaiserschmarrn: anwesend && kaisiBestellt ? 1 : 0, // geteilt — jeder hat mitgegessen
+      kaiserschmarrn: anwesend && kaisiBestellt ? 1 : 0, // geteilt, jeder hat mitgegessen
       schweinsbraten: brodn ? 1 : 0,
       taxi: anwesend && formData.get(`taxi_${m.id}`) === 'on',
     };
@@ -318,23 +363,6 @@ export async function besuchAbschliessen(terminId: string, formData: FormData) {
       .onConflictDoUpdate({ target: [besuche.terminId, besuche.memberId], set: werte })
       .run();
   }
-
-  // Bewertungen (mit Kommastelle) landen am eigenen Besuchs-Eintrag
-  const bewertung = (name: string) => {
-    const v = Number(String(formData.get(name) ?? '').replace(',', '.'));
-    return Number.isFinite(v) && v > 0 ? Math.min(5, Math.round(v * 10) / 10) : null;
-  };
-  db.update(besuche)
-    .set({
-      sterne: bewertung('sterne'),
-      kommentar: String(formData.get('kommentar') ?? '').trim().slice(0, 500) || null,
-      kaiserSterne: kaisiBestellt ? bewertung('kaiserSterne') : null,
-      kaiserNotiz: kaisiBestellt ? String(formData.get('kaiserNotiz') ?? '').trim().slice(0, 500) || null : null,
-      brodnSterne: brodnGegessen ? bewertung('brodnSterne') : null,
-      brodnNotiz: brodnGegessen ? String(formData.get('brodnNotiz') ?? '').trim().slice(0, 500) || null : null,
-    })
-    .where(and(eq(besuche.terminId, terminId), eq(besuche.memberId, me.id)))
-    .run();
 
   // Bier & Weißbier am Wirtshaus festhalten
   if (termin.wirtshausId) {
@@ -381,13 +409,13 @@ export async function besuchAbschliessen(terminId: string, formData: FormData) {
     db.insert(kasse)
       .values({
         id: newId('k'), memberId, terminId,
-        grund: `${STRAFE_GRUND_PREFIX} — Runde für die Spezln (${dabeiIds.length} × ${(HOIBE_KELLERPREIS_CENTS / 100).toFixed(2).replace('.', ',')} €) im ${wirtshausName}`,
+        grund: `${STRAFE_GRUND_PREFIX}: Runde für die Spezln (${dabeiIds.length} × ${(HOIBE_KELLERPREIS_CENTS / 100).toFixed(2).replace('.', ',')} €) im ${wirtshausName}`,
         betragCents: -betrag, kind: 'strafe', status: 'offen', createdAt: nowIso(),
       })
       .run();
   }
 
-  // Der erste Abschließer kriegt den Punkt — Nachträge ändern das nicht mehr.
+  // Der erste Abschließer kriegt den Punkt, Nachträge ändern das nicht mehr.
   const erstAbschluss = !termin.abgeschlossenVon;
   db.update(termine)
     .set({
@@ -418,7 +446,7 @@ export async function besuchAbschliessen(terminId: string, formData: FormData) {
       db.insert(kasse)
         .values({
           id: newId('k'), memberId: s.member.id, terminId,
-          grund: `Strafrunde — 3× unentschuldigt gfehlt (${dabeiIds.length} × ${(HOIBE_KELLERPREIS_CENTS / 100).toFixed(2).replace('.', ',')} €)`,
+          grund: `Strafrunde: 3× unentschuldigt gfehlt (${dabeiIds.length} × ${(HOIBE_KELLERPREIS_CENTS / 100).toFixed(2).replace('.', ',')} €)`,
           betragCents: -betrag, kind: 'strafe', status: 'offen', createdAt: nowIso(),
         })
         .run();
@@ -458,7 +486,7 @@ export async function besuchAbschliessen(terminId: string, formData: FormData) {
 
 /**
  * Wirtshaus-Foto aus der Google-Places-Suche (läuft im Client über die Maps-JS-Library,
- * weil der API-Key referrer-beschränkt ist) in der DB hinterlegen. Nur einmal — wird
+ * weil der API-Key referrer-beschränkt ist) in der DB hinterlegen. Nur einmal, wird
  * nicht überschrieben, wenn schon ein Foto da ist.
  */
 /**
@@ -473,7 +501,7 @@ async function stabileFotoUrl(photoUrl: string): Promise<string | null> {
     const res = await fetch(photoUrl, { redirect: 'follow', signal: AbortSignal.timeout(6000) });
     if (res.ok && erlaubteFotoUrl(res.url)) return res.url;
   } catch {
-    /* Netz/Timeout — dann lieber gar koa Foto als a bald kaputtes */
+    /* Netz/Timeout, dann lieber gar koa Foto als a bald kaputtes */
   }
   return null;
 }
@@ -486,13 +514,14 @@ export async function wirtshausFotoSetzen(wirtshausId: string, photoUrl: string)
   if (!w || w.photoUrl) return;
   const stabil = await stabileFotoUrl(photoUrl);
   if (!stabil) return;
-  db.update(wirtshaeuser).set({ photoUrl: stabil }).where(eq(wirtshaeuser.id, wirtshausId)).run();
+  // Als Data-URL speichern (lädt für immer zuverlässig); Fallback: stabile URL
+  db.update(wirtshaeuser).set({ photoUrl: (await fotoAlsDataUrl(stabil)) ?? stabil }).where(eq(wirtshaeuser.id, wirtshausId)).run();
   revalidatePath('/karte');
 }
 
 /**
  * Orts-Backfill aus der Places-Textsuche im Client (wie das Foto): füllt NUR
- * fehlende Koordinaten/Adresse — v. a. für die Altbestand-Wirtshäuser, die
+ * fehlende Koordinaten/Adresse, v. a. für die Altbestand-Wirtshäuser, die
  * das Seed-Script ohne Ortsdaten anlegt.
  */
 export async function wirtshausOrtSetzen(wirtshausId: string, daten: { lat: number; lng: number; adresse?: string | null }) {
@@ -500,7 +529,7 @@ export async function wirtshausOrtSetzen(wirtshausId: string, daten: { lat: numb
   if (!me) return;
   const lat = Number(daten?.lat);
   const lng = Number(daten?.lng);
-  // München & Umland — alles andere ist ein Fehlgriff der Suche
+  // München & Umland, alles andere ist ein Fehlgriff der Suche
   if (!Number.isFinite(lat) || !Number.isFinite(lng) || lat < 47.5 || lat > 48.8 || lng < 10.5 || lng > 12.5) return;
   const w = db.select().from(wirtshaeuser).where(eq(wirtshaeuser.id, wirtshausId)).get();
   if (!w || w.lat != null) return;
@@ -512,25 +541,119 @@ export async function wirtshausOrtSetzen(wirtshausId: string, daten: { lat: numb
   revalidatePath('/karte');
 }
 
-/** Eigene Bewertung nachtragen (jedes Mitglied für sich). */
-export async function bewerten(terminId: string, formData: FormData) {
+export type BewertungErgebnis =
+  | { ok: true; neuBewertet: boolean; neuerText: boolean }
+  | { ok: false; meldung: string };
+
+/**
+ * „Mei Bewertung", jeder Spezl bewertet den Abend für sich: Sterne + Freitext
+ * zum Wirtshaus, dazu Kaisi/Brodn NUR wenn er selber probiert hat. Der Abend-
+ * Schnitt (und die Orga-WP) entsteht aus allen Einzel-Bewertungen; die Frei-
+ * texte landen alle im Archiv. Offen ab dem Stammtisch-Abend (wie der Bier-
+ * deckel) bis 7 Tage nach dem Abschluss, jederzeit änderbar, die WP
+ * (+PTS.bewertung, +PTS.bewertungsText mit Text) gibt's natürlich nur einmal.
+ */
+export async function meineBewertung(terminId: string, formData: FormData): Promise<BewertungErgebnis> {
   const me = await getCurrentMember();
-  if (!me) return;
-  const sterne = Math.min(5, Math.max(1, Number(formData.get('sterne') ?? 0) || 0));
-  const kommentar = String(formData.get('kommentar') ?? '').trim().slice(0, 500) || null;
-  if (!sterne) return;
+  if (!me) return { ok: false, meldung: 'Ned angmeldt, bitte neu einloggen.' };
+  const termin = db.select().from(termine).where(eq(termine.id, terminId)).get();
+  if (!termin) return { ok: false, meldung: 'Der Termin is nimmer da.' };
+  const offen =
+    bierdeckelOffen(termin, nowIso()) ||
+    (termin.phase === 'abgeschlossen' && nachtragsfristOffen(termin.abgeschlossenAm));
+  if (!offen) {
+    return { ok: false, meldung: 'D’Bewertung is zua, bewertet wird ab dem Stammtisch-Abend bis 7 Tag nach’m Abschluss.' };
+  }
   const eigener = db
     .select()
     .from(besuche)
-    .where(eq(besuche.terminId, terminId))
-    .all()
-    .find((b) => b.memberId === me.id);
-  if (eigener) {
-    db.update(besuche).set({ sterne, kommentar }).where(eq(besuche.id, eigener.id)).run();
+    .where(and(eq(besuche.terminId, terminId), eq(besuche.memberId, me.id)))
+    .get();
+  // Nach dem Abschluss steht fest, wer dabei war, bewerten derfen nur die.
+  if (termin.phase === 'abgeschlossen' && !eigener?.anwesend) {
+    return { ok: false, meldung: 'Du warst ned dabei, bewerten derfen nur d’Spezln vom Abend.' };
+  }
+
+  const zehntel = (name: string) => {
+    const v = Number(String(formData.get(name) ?? '').replace(',', '.'));
+    return Number.isFinite(v) && v > 0 ? Math.min(5, Math.round(v * 10) / 10) : null;
+  };
+  const text = (name: string) => String(formData.get(name) ?? '').trim().slice(0, 500) || null;
+  const sterne = zehntel('sterne');
+  if (sterne == null) return { ok: false, meldung: 'Ohne Sterne koa Bewertung, dreh am Stepper.' };
+  const kaisi = formData.get('kaisiProbiert') === 'on';
+  const brodn = formData.get('brodnGessen') === 'on';
+  const werte = {
+    anwesend: true,
+    sterne,
+    kommentar: text('kommentar'),
+    // Kaisi/Brodn probiert → zählt auch als gegessen (belegt den Abschluss-Zettel vor)
+    kaiserschmarrn: kaisi ? 1 : 0,
+    kaiserSterne: kaisi ? zehntel('kaiserSterne') : null,
+    kaiserNotiz: kaisi ? text('kaiserNotiz') : null,
+    schweinsbraten: brodn ? 1 : 0,
+    brodnSterne: brodn ? zehntel('brodnSterne') : null,
+    brodnNotiz: brodn ? text('brodnNotiz') : null,
+  };
+  db.insert(besuche)
+    .values({ id: newId('b'), terminId, memberId: me.id, ...werte })
+    .onConflictDoUpdate({ target: [besuche.terminId, besuche.memberId], set: werte })
+    .run();
+  revalidateAll();
+  return {
+    ok: true,
+    neuBewertet: eigener?.sterne == null,
+    neuerText: !eigener?.kommentar?.trim() && !!werte.kommentar,
+  };
+}
+
+export type CheckinErgebnis = { ok: true; erster: boolean } | { ok: false; meldung: string };
+
+/**
+ * Einchecken: wer scho im Wirtshaus sitzt, meldet sich, der Erste kriegt
+ * PTS.checkin WP, sagt im Freitext wo ihr hockts („hinten rechts, bei der
+ * Band") und alle Spezln kriegen an Push. Geht am Stammtisch-Tag ab
+ * CHECKIN_VORLAUF_STUNDEN vor Beginn; markiert nebenbei die Anwesenheit
+ * (belegt Bierdeckel & Abschluss-Zettel vor).
+ */
+export async function einchecken(terminId: string, formData: FormData): Promise<CheckinErgebnis> {
+  const me = await getCurrentMember();
+  if (!me) return { ok: false, meldung: 'Ned angmeldt, bitte neu einloggen.' };
+  const termin = db.select().from(termine).where(eq(termine.id, terminId)).get();
+  if (!termin) return { ok: false, meldung: 'Der Termin is nimmer da.' };
+  if (!checkinOffen(termin, nowIso())) {
+    return { ok: false, meldung: `Eingecheckt wird am Stammtisch-Tag ab ${CHECKIN_VORLAUF_STUNDEN} Stund’ vor Beginn.` };
+  }
+  const platz = String(formData.get('platz') ?? '').trim().slice(0, 120) || null;
+  const vorhandene = db.select().from(checkins).where(eq(checkins.terminId, terminId)).all();
+  const meiner = vorhandene.find((c) => c.memberId === me.id);
+  // Der ERSTE muss sagen, wo ihr hockts, Pflichtfeld (von Julius, 29.08.2026);
+  // wer nachkommt, checkt mit oam Tipper ein.
+  if (!meiner && vorhandene.length === 0 && !platz) {
+    return { ok: false, meldung: 'Sag no dazua, wo ihr hockts, „hinten rechts", „bei der Band"… dann finden di d’Spezln.' };
+  }
+  if (meiner) {
+    if (platz) db.update(checkins).set({ platz }).where(eq(checkins.id, meiner.id)).run();
   } else {
-    db.insert(besuche)
-      .values({ id: newId('b'), terminId, memberId: me.id, anwesend: true, hoiben: 0, kaiserschmarrn: 0, sterne, kommentar })
+    db.insert(checkins)
+      .values({ id: newId('c'), terminId, memberId: me.id, platz, createdAt: nowIso() })
       .run();
   }
+  // Wer eingecheckt is, is da, Besuchs-Eintrag anlegen/markieren
+  db.insert(besuche)
+    .values({ id: newId('b'), terminId, memberId: me.id, anwesend: true })
+    .onConflictDoUpdate({ target: [besuche.terminId, besuche.memberId], set: { anwesend: true } })
+    .run();
+
+  const erster = !meiner && vorhandene.length === 0;
+  if (erster) {
+    const wirtshaus = termin.wirtshausId
+      ? db.select().from(wirtshaeuser).where(eq(wirtshaeuser.id, termin.wirtshausId)).get()
+      : null;
+    const titel = `🍺 ${anzeigeName(me)} is scho da!`;
+    const text = `${anzeigeName(me)} sitzt scho im ${wirtshaus?.name ?? 'Wirtshaus'}${platz ? `, „${platz}“` : ''}. Nachkemma!`;
+    await pushAnAlle(titel, text, '/');
+  }
   revalidateAll();
+  return { ok: true, erster };
 }

@@ -47,7 +47,7 @@ export function ladeRanglisteDaten(meId: string): {
   badgeInfos: Record<string, BadgeInfoDaten>;
   mitglieder: MitgliedStats['member'][];
   saison: ReturnType<typeof aktuelleSaison>;
-  /** Aktueller Präsident (Saison-Rang 1) — darf den Kassenwart eintragen. */
+  /** Aktueller Präsident (Saison-Rang 1), darf den Kassenwart eintragen. */
   praesidentId: string | null;
 } {
   const saison = aktuelleSaison();
@@ -132,12 +132,12 @@ export function ladeRanglisteDaten(meId: string): {
         return { titel: amt.titel, icon: amt.icon, slug: info.slug ?? null, patron: info.patron ?? null, mode: info.mode, duties: info.duties, holder: holderVon(amt.memberId) };
       }),
   ];
-  // Kassenwart immer zeigen — vor der ersten Wahl steht er als „unbesetzt" da
+  // Kassenwart immer zeigen, vor der ersten Wahl steht er als „unbesetzt" da
   if (!aemterListe.some((a) => a.titel.startsWith('Kassenwart'))) {
     aemterListe.push({ titel: 'Kassenwart', ...AEMTER_INFO['Kassenwart'], holder: null });
   }
 
-  // Galerie zeigt IMMER alle Badge-Typen (wie die Ämter) — vor'm ersten Abend
+  // Galerie zeigt IMMER alle Badge-Typen (wie die Ämter), vor'm ersten Abend
   // steht koa Träger dran („no ned vergeben"), danach der aktuelle Halter.
   const badgeHolder = new Map(badges.map((b) => [b.key, b.holderId]));
   const galerie: GalerieBadge[] = SAISON_BADGES.map(({ key, icon, name, tag, pflicht }) => ({

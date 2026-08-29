@@ -26,7 +26,7 @@ function Logo({ src }: { src: string }) {
   );
 }
 
-/** Der bayrische Steckbrief eines Spezls — zeigt nur, was ausgefüllt ist. */
+/** Der bayrische Steckbrief eines Spezls, zeigt nur, was ausgefüllt ist. */
 export function Steckbrief({ daten }: { daten: SteckbriefDaten }) {
   if (steckbriefLeer(daten)) return null;
   const zeilen: Array<{ icon: React.ReactNode; label: string; wert: string }> = [];

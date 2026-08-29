@@ -15,12 +15,15 @@ import {
   getUmfragen,
   type MitgliedStats,
   getBekannteWirtshaeuser,
+  getCheckinsFuerTermin,
+  nachtragsfristOffen,
 } from '@/lib/queries';
-import { PTS, WACKELT_AB_UNENTSCHULDIGT, rechtzeitigAbgestimmt } from '@/lib/punkte';
+import { PTS, WACKELT_AB_UNENTSCHULDIGT, rechtzeitigAbgestimmt, checkinOffen } from '@/lib/punkte';
+import { nowIso } from '@/lib/ids';
 import { vergabeWechsel, wechselTexte, AEMTER_INFO } from '@/lib/badges';
 import { datumLang, datumKurz } from '@/lib/format';
 import { euro } from '@/lib/format';
-import { Card, SectionHeader, Avatar, Icon } from '@/components/ds';
+import { Card, SectionHeader, Avatar, Icon, KlappenKopf } from '@/components/ds';
 import { MEDAILLE } from './spezln/rangliste';
 import { AbstimmungsStand } from '@/components/domain/AbstimmungsStand';
 import { StreakChip } from '@/components/domain/StreakChip';
@@ -28,6 +31,10 @@ import { PushAktivieren } from '@/components/domain/PushAktivieren';
 import { WirtshausGfunden } from '@/components/domain/WirtshausGfunden';
 import { RichtungsKnopf } from '@/components/domain/RichtungsKnopf';
 import { BadgeFeier, type FeierBadge } from '@/components/domain/BadgeFeier';
+import { CheckinKarte } from '@/components/domain/CheckinKarte';
+import { MeiBewertung } from '@/components/domain/MeiBewertung';
+import { bewertungsDaten } from '@/lib/bewertungs-daten';
+import { meineBewertung } from './termin/actions';
 import { UmfrageKarte } from '@/components/domain/UmfrageKarte';
 import { UmfrageNeu } from '@/components/domain/UmfrageNeu';
 
@@ -46,7 +53,7 @@ export default async function HomePage() {
   const meineStrafen = getOffeneStrafen().filter((s) => s.eintrag.memberId === me.id);
   const strafSumme = meineStrafen.reduce((sum, s) => sum + Math.abs(s.eintrag.betragCents), 0);
   const wackelt = (meineStats?.unentschuldigtStreak ?? 0) >= WACKELT_AB_UNENTSCHULDIGT;
-  // Eigener Rang je Kennzahl — für die kleinen Kreise in „So stehst du da"
+  // Eigener Rang je Kennzahl, für die kleinen Kreise in „So stehst du da"
   const meinRangIn = (feld: 'punkte' | 'hoiben' | 'wirtshaeuser') =>
     [...stats].sort((a, b) => b[feld] - a[feld]).findIndex((s) => s.member.id === me.id) + 1;
 
@@ -76,7 +83,7 @@ export default async function HomePage() {
             icon: w.icon,
             name: w.label,
             spruch: wechselTexte(w, anzeigeName(me)).anNeuen,
-            infos: amt ? [`⚜️ Dei Patron: ${amt.patron}`, `📜 Deine Pflichten: ${amt.duties}`] : null,
+            infos: amt ? [`Dei Patron: ${amt.patron}`, `Deine Pflichten: ${amt.duties}`] : null,
             vorherName: feierName(w.altId),
           };
         })
@@ -93,6 +100,18 @@ export default async function HomePage() {
       .map((v) => ({ name: anzeigeName(v.member), photoUrl: v.member.photoUrl, verein: v.member.verein }));
     const ab = alleVotes.filter((v) => v.vote.wert === 'ab').length;
     const offen = Math.max(0, getAktiveMitglieder().length - zugesagte.length - ab);
+
+    // Check-in: am Stammtisch-Tag (ab 2 Stund' vor Beginn) direkt in der Termin-Karte
+    const checkin = checkinOffen(termin, nowIso());
+    const eingecheckte = checkin
+      ? getCheckinsFuerTermin(termin.id).map(({ checkin: c, member: m }) => ({
+          name: anzeigeName(m),
+          photoUrl: m.photoUrl,
+          verein: m.verein,
+          platz: c.platz,
+          istIch: m.id === me.id,
+        }))
+      : [];
 
     hero = (
       <Card tone="dark" framed pad={0} style={{ overflow: 'hidden' }}>
@@ -119,7 +138,7 @@ export default async function HomePage() {
           </div>
           <div className="wn-eyebrow" style={{ color: 'var(--gold)' }}>Nächster Stammtisch</div>
           <div style={{ fontFamily: 'var(--font-fraktur)', fontSize: 30, color: 'var(--pergament)', margin: '6px 0 2px', paddingRight: wirtshaus ? 96 : 48 }}>
-            {wirtshaus ? wirtshaus.name : `organisiert von ${(planer ? anzeigeName(planer) : '—')}`}
+            {wirtshaus ? wirtshaus.name : planer ? `organisiert von ${anzeigeName(planer)}` : 'Wer reglt’s? Orga is frei!'}
           </div>
           <div style={{ fontSize: 14, fontWeight: 600, color: 'rgba(246,240,226,0.75)', display: 'flex', alignItems: 'center', gap: 6 }}>
             <Icon name="pin" size={15} />
@@ -134,6 +153,9 @@ export default async function HomePage() {
             abgesagt={ab}
             offen={offen}
           />
+
+          {/* Wer is scho da? Der Erste checkt ein (+1 WP) und sagt, wo ihr hockts */}
+          {checkin && <CheckinKarte terminId={termin.id} eingecheckte={eingecheckte} />}
         </div>
       </Card>
     );
@@ -152,18 +174,18 @@ export default async function HomePage() {
   }
 
   return (
-    <div style={{ padding: '16px 16px 24px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+    <div className="wn-eintritt" style={{ padding: '16px 16px 24px', display: 'flex', flexDirection: 'column', gap: 16 }}>
       {letzterFuerFeier && feiern.length > 0 && <BadgeFeier terminId={letzterFuerFeier.id} feiern={feiern} />}
       {hero}
 
       {wackelt && (
-        <Card tone="white" pad={16} style={{ borderLeft: '4px solid var(--strafe)' }}>
+        <Card tone="white" pad={16} style={{ background: 'var(--strafe-bg)', border: '1px solid rgba(192,57,43,0.28)' }}>
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
             <span style={{ fontSize: 22 }}>⚠️</span>
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--strafe)' }}>Du wackelst!</div>
               <div style={{ fontSize: 13, color: 'var(--ink-700)', fontWeight: 600, marginTop: 2 }}>
-                {meineStats!.unentschuldigtStreak}× unentschuldigt gfehlt — dafür is a Strafrunde fällig. Beim nächsten Stammtisch wieder dabei sein!
+                {meineStats!.unentschuldigtStreak}× unentschuldigt gfehlt, dafür is a Strafrunde fällig. Beim nächsten Stammtisch wieder dabei sein!
               </div>
               {PAYPAL_POOL_URL && (
                 <a
@@ -177,7 +199,7 @@ export default async function HomePage() {
                     fontSize: 14, fontWeight: 800, color: 'var(--navy-900)', textDecoration: 'none',
                   }}
                 >
-                  🍺 Runde per PayPal zahlen
+                  Runde per PayPal zahlen
                 </a>
               )}
               <div style={{ fontSize: 12, color: 'var(--ink-500)', fontWeight: 600, marginTop: 8 }}>
@@ -189,7 +211,7 @@ export default async function HomePage() {
       )}
 
       {strafSumme > 0 && (
-        <Card tone="white" pad={14} style={{ borderLeft: '4px solid var(--strafe)' }}>
+        <Card tone="white" pad={14} style={{ background: 'var(--strafe-bg)', border: '1px solid rgba(192,57,43,0.28)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <span style={{ fontSize: 20 }}>⚠️</span>
             <div style={{ flex: 1 }}>
@@ -200,7 +222,7 @@ export default async function HomePage() {
                 Bitte bis zum nächsten Stammtisch begleichen
                 {PAYPAL_POOL_URL ? (
                   <>
-                    {' — '}
+                    {', '}
                     <a href={PAYPAL_POOL_URL} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--muc-blau)', fontWeight: 800 }}>
                       per PayPal
                     </a>
@@ -229,7 +251,7 @@ export default async function HomePage() {
         </>
       )}
 
-      <SectionHeader eyebrow="Deine Saison" title="So stehst du da" fraktur />
+      <SectionHeader eyebrow="Deine Saison" title="So stehst du da" fraktur style={{ marginTop: 8 }} />
       <Card>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
           <StatBlock value={meineStats?.punkte ?? 0} label="Punkte" icon="🏆" rang={meinRangIn('punkte')} />
@@ -241,9 +263,9 @@ export default async function HomePage() {
             <StreakChip streak={meineStats.streak} bestStreak={meineStats.bestStreak} wackelt={wackelt} />
             <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink-500)' }}>
               {meineStats.streak > 0
-                ? 'Koa Abend verpasst — weiter so.'
+                ? 'Koa Abend verpasst, weiter so.'
                 : wackelt
-                  ? '3× unentschuldigt gfehlt — du wackelst.'
+                  ? '3× unentschuldigt gfehlt, du wackelst.'
                   : 'Beim nächsten Stammtisch wieder dabei sein!'}
             </span>
           </div>
@@ -254,6 +276,7 @@ export default async function HomePage() {
         eyebrow="Rangliste · Wirtschaftln-Punkte"
         title="D’Spezln"
         fraktur
+        style={{ marginTop: 8 }}
         action={
           <Link href="/spezln" style={{ fontSize: 13, fontWeight: 800, color: 'var(--muc-blau)', textDecoration: 'none' }}>
             Alle →
@@ -274,21 +297,37 @@ export default async function HomePage() {
         )}
         {top3.every((s) => s.punkte === 0) && (
           <div style={{ padding: 12, fontSize: 13, fontWeight: 600, color: 'var(--ink-500)', textAlign: 'center' }}>
-            No koane Punkte dokumentiert — des ändert sich beim nächsten Stammtisch. 🍺
+            No koane Punkte dokumentiert, des ändert sich beim nächsten Stammtisch.
           </div>
         )}
       </Card>
 
       <PushAktivieren />
 
-      {/* Wirtshaus gfunden — darf jeder: landet als offener Pin auf der Karte */}
-      <SectionHeader eyebrow="Für’s nächste Mal" title="Wirtshaus gfunden?" fraktur />
-      <Card>
-        <WirtshausGfunden bekannte={getBekannteWirtshaeuser()} />
-      </Card>
+      {/* Wirtshaus gfunden, darf jeder: landet als offener Pin auf der Karte.
+          Als Klappe, damit das Formular d'Startseite ned in d'Länge zieht. */}
+      <details
+        style={{
+          background: 'var(--weiss)', border: '1px solid var(--ink-100)',
+          borderRadius: 'var(--r-lg)', boxShadow: 'var(--sh-sm)', overflow: 'hidden',
+        }}
+      >
+        <KlappenKopf
+          chip={
+            <span className="wn-tnum" style={{ flex: 'none', fontSize: 12, fontWeight: 800, padding: '3px 10px', borderRadius: 999, background: 'var(--pergament)', color: 'var(--gold-700)' }}>
+              +{PTS.vorschlag} WP
+            </span>
+          }
+        >
+          Wirtshaus gfunden?
+        </KlappenKopf>
+        <div style={{ padding: '4px 18px 18px' }}>
+          <WirtshausGfunden bekannte={getBekannteWirtshaeuser()} />
+        </div>
+      </details>
 
       {/* Umfragen: neue starten + scho beantwortete mit Ergebnis */}
-      <SectionHeader eyebrow="Vom Stammtisch" title="Umfragen" fraktur />
+      <SectionHeader eyebrow="Vom Stammtisch" title="Umfragen" fraktur style={{ marginTop: 8 }} />
       <UmfrageNeu />
       {beantworteteUmfragen.map((u) => (
         <UmfrageKarte key={u.umfrage.id} daten={u} meId={me.id} meRole={me.role} />
@@ -311,7 +350,7 @@ function LetzterStammtisch({ meId, stats }: { meId: string; stats: MitgliedStats
   const nach = stats.find((s) => s.member.id === meId);
   if (!vor || !nach) return null;
   // Abstimm-Bonus zählt LIVE beim Voten (Punkteflug + Header-Pill) und gehört
-  // deshalb nicht zur Abend-Ausbeute — hier rausgerechnet.
+  // deshalb nicht zur Abend-Ausbeute, hier rausgerechnet.
   const delta = nach.punkte - vor.punkte - (nach.abstimmBonus - vor.abstimmBonus);
 
   const rangVon = (liste: MitgliedStats[]) =>
@@ -319,24 +358,33 @@ function LetzterStammtisch({ meId, stats }: { meId: string; stats: MitgliedStats
   const rangVor = rangVon(statsVorher);
   const rangNach = rangVon(stats);
 
-  // Punkte-Herkunft aus diesem Abend — Differenz der fest verbuchten Bestandteile
-  const meinBesuch = getBesucheFuerTermin(letzter.id).find((b) => b.memberId === meId);
+  // Punkte-Herkunft aus diesem Abend, Differenz der fest verbuchten Bestandteile
+  const besuche = getBesucheFuerTermin(letzter.id);
+  const meinBesuch = besuche.find((b) => b.memberId === meId);
   const dabei = !!meinBesuch?.anwesend;
+  // Mei Bewertung direkt in der Karte: Knopf solange no ned bewertet,
+  // danach die eigene Wertung samt Team-Schnitt (7-Tage-Fenster)
+  const bewertung = bewertungsDaten(besuche, meId);
+  const bewertungsFenster = nachtragsfristOffen(letzter.abgeschlossenAm);
   const meineRunden = getKasseFuerTermin(letzter.id).filter(
     (k) => k.kind === 'runde' && k.memberId === meId && k.status !== 'aufgehoben',
   ).length;
   const serienDelta = nach.serienBonus - vor.serienBonus;
   const fehlDelta = nach.fehlMalus - vor.fehlMalus;
+  const bewertungDelta = nach.bewertungsBonus - vor.bewertungsBonus;
   const textDelta = nach.textBonus - vor.textBonus;
+  const checkinDelta = nach.checkinBonus - vor.checkinBonus;
   const vorschlagDelta = nach.vorschlagPunkte - vor.vorschlagPunkte;
   const orgaDelta = nach.orgaSumme - vor.orgaSumme;
   const posten: Array<[string, string, number]> = [];
   if (dabei) posten.push(['🎟️', 'Dabei', PTS.teilnahme]);
+  if (checkinDelta !== 0) posten.push(['🪑', 'Als Erster eingecheckt', checkinDelta]);
   if (dabei && meinBesuch!.hoiben > 0) posten.push(['🍺', `${meinBesuch!.hoiben} Hoibe`, meinBesuch!.hoiben * PTS.hoibe]);
   if (dabei && meinBesuch!.taxi) posten.push(['🚕', 'Gfahren', PTS.taxi]);
   if (letzter.planerId === meId) posten.push(['📋', 'Organisiert', orgaDelta]);
   if (letzter.abgeschlossenVon === meId) posten.push(['✅', 'Abgschlossen', PTS.abschluss]);
   if (meineRunden > 0) posten.push(['🍻', meineRunden === 1 ? 'Runde gschmissen' : `${meineRunden} Runden`, meineRunden * PTS.runde]);
+  if (bewertungDelta !== 0) posten.push(['⭐', 'Abend bewertet', bewertungDelta]);
   if (textDelta !== 0) posten.push(['✍️', 'Bewertung gschrieben', textDelta]);
   if (vorschlagDelta !== 0) posten.push(['📍', 'Dei Wirtshaus-Vorschlag', vorschlagDelta]);
   if (serienDelta !== 0) posten.push(['🔥', 'Serien-Bonus', serienDelta]);
@@ -352,16 +400,16 @@ function LetzterStammtisch({ meId, stats }: { meId: string; stats: MitgliedStats
 
   return (
     <>
-      <SectionHeader eyebrow="Letzter Stammtisch" title="So is’ glaufen" fraktur />
+      <SectionHeader eyebrow="Letzter Stammtisch" title="So is’ glaufen" fraktur style={{ marginTop: 8 }} />
       <Card pad={0} style={{ overflow: 'hidden' }}>
-        {/* Wirtshaus-Kopf mit Foto — in der ORIGINAL-Proportion des Bilds
-            (koa Beschnitt/Verzerrung mehr), nur nach oben hin gedeckelt */}
+        {/* Wirtshaus-Kopf mit Foto, kompakt gedeckelt, damit d'Zusammenfassung
+            auf der Startseite ned den halben Schirm frisst */}
         <div style={{ position: 'relative', background: 'var(--grad-navy)' }}>
           {wirtshaus?.photoUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={wirtshaus.photoUrl} alt={wirtshaus.name} style={{ width: '100%', height: 'auto', maxHeight: 280, objectFit: 'cover', display: 'block' }} />
+            <img src={wirtshaus.photoUrl} alt={wirtshaus.name} style={{ width: '100%', height: 'auto', maxHeight: 150, objectFit: 'cover', display: 'block' }} />
           ) : (
-            <div style={{ height: 110 }} />
+            <div style={{ height: 84 }} />
           )}
           <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(7,25,58,0.05) 20%, rgba(7,25,58,0.82) 100%)' }} />
           <div style={{ position: 'absolute', left: 14, right: 14, bottom: 10, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 8 }}>
@@ -379,34 +427,62 @@ function LetzterStammtisch({ meId, stats }: { meId: string; stats: MitgliedStats
           </div>
         </div>
 
-        <div style={{ padding: '14px 16px 16px' }}>
+        <div style={{ padding: '12px 14px 14px' }}>
           {/* Ausbeute & Rang als Kacheln */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-            <div style={{ textAlign: 'center', padding: '10px 8px', background: 'var(--pergament)', borderRadius: 'var(--r-md)' }}>
-              <div className="wn-tnum" style={{ fontSize: 24, fontWeight: 800, lineHeight: 1, color: delta >= 0 ? 'var(--muc-blau)' : 'var(--strafe)' }}>
-                {delta >= 0 ? '+' : ''}{delta} <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--gold-700)' }}>WP</span>
+            <div style={{ textAlign: 'center', padding: '8px 8px', background: 'var(--pergament)', borderRadius: 'var(--r-md)' }}>
+              <div className="wn-tnum" style={{ fontSize: 20, fontWeight: 800, lineHeight: 1, color: delta >= 0 ? 'var(--muc-blau)' : 'var(--strafe)' }}>
+                {delta >= 0 ? '+' : ''}{delta} <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--gold-700)' }}>WP</span>
               </div>
-              <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--ink-500)', marginTop: 5 }}>
+              <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--ink-500)', marginTop: 4 }}>
                 {dabei ? 'Dei Ausbeute' : 'Du warst ned dabei'}
               </div>
             </div>
-            <div style={{ textAlign: 'center', padding: '10px 8px', background: 'var(--pergament)', borderRadius: 'var(--r-md)' }}>
-              <div className="wn-tnum" style={{ fontSize: 24, fontWeight: 800, color: 'var(--navy)', lineHeight: 1 }}>
+            <div style={{ textAlign: 'center', padding: '8px 8px', background: 'var(--pergament)', borderRadius: 'var(--r-md)' }}>
+              <div className="wn-tnum" style={{ fontSize: 20, fontWeight: 800, color: 'var(--navy)', lineHeight: 1 }}>
                 {rangVor} → {rangNach}{' '}
-                <span style={{ fontSize: 14, color: rangNach < rangVor ? 'var(--erfolg)' : rangNach > rangVor ? 'var(--strafe)' : 'var(--ink-300)' }}>
+                <span style={{ fontSize: 13, color: rangNach < rangVor ? 'var(--erfolg)' : rangNach > rangVor ? 'var(--strafe)' : 'var(--ink-300)' }}>
                   {rangNach < rangVor ? `▲${rangVor - rangNach}` : rangNach > rangVor ? `▼${rangNach - rangVor}` : '='}
                 </span>
               </div>
-              <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--ink-500)', marginTop: 5 }}>
+              <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--ink-500)', marginTop: 4 }}>
                 Dei Rang
               </div>
             </div>
           </div>
 
+          {/* Mei Bewertung zum Abend: Knopf, Bestätigung, danach die eigene
+              Wertung in der Karte, solange das 7-Tage-Fenster offen is.
+              Danach bleibt die abgegebene Wertung als stille Zeile stehen. */}
+          {dabei && bewertungsFenster && (
+            <div style={{ marginTop: 10 }}>
+              <MeiBewertung
+                variante="eingebettet"
+                wirtshausName={wirtshaus?.name ?? null}
+                initial={bewertung.initial}
+                team={bewertung.team}
+                action={meineBewertung.bind(null, letzter.id)}
+              />
+            </div>
+          )}
+          {dabei && !bewertungsFenster && bewertung.initial.sterne != null && (
+            <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 10, minHeight: 40, padding: '8px 12px', borderRadius: 'var(--r-md)', background: 'var(--pergament)' }}>
+              <span style={{ flex: 1, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--ink-500)' }}>
+                Dei Wertung
+              </span>
+              <span className="wn-tnum" style={{ fontSize: 15, fontWeight: 800, color: 'var(--navy)' }}>
+                {bewertung.initial.sterne.toFixed(1).replace('.', ',')} <span style={{ color: 'var(--gold)' }}>★</span>
+                {bewertung.team.anzahl > 1 && (
+                  <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink-500)' }}> · Team Ø {bewertung.team.schnitt.toFixed(1).replace('.', ',')}</span>
+                )}
+              </span>
+            </div>
+          )}
+
           {posten.length > 0 && (
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 12 }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginTop: 10 }}>
               {posten.map(([icon, label, wp]) => (
-                <span key={label} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 999, background: 'var(--weiss)', border: '1px solid var(--pergament-edge)', fontSize: 12, fontWeight: 700, color: 'var(--ink-700)' }}>
+                <span key={label} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 8px', borderRadius: 999, background: 'var(--weiss)', border: '1px solid var(--pergament-edge)', fontSize: 11, fontWeight: 700, color: 'var(--ink-700)' }}>
                   {icon} {label}
                   <span className="wn-tnum" style={{ fontWeight: 800, color: wp >= 0 ? 'var(--gold-700)' : 'var(--strafe)' }}>
                     {wp >= 0 ? '+' : ''}{wp}
@@ -416,18 +492,27 @@ function LetzterStammtisch({ meId, stats }: { meId: string; stats: MitgliedStats
             </div>
           )}
 
+          {/* Badge-/Amt-Wechsel: zugeklappt hinter „Mehr anzeigen", damit die
+              Karte kompakt bleibt, wer's wissen will, klappt auf */}
           {wechsel.length > 0 && (
-            <div style={{ marginTop: 14, paddingTop: 12, borderTop: '1px solid var(--ink-100)', display: 'flex', flexDirection: 'column', gap: 6 }}>
-              <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--gold-700)' }}>
-                Badges & Ämter gwandert
+            <details style={{ marginTop: 10, paddingTop: 8, borderTop: '1px solid var(--ink-100)' }}>
+              <summary style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', listStyle: 'none', userSelect: 'none', padding: '4px 0' }}>
+                <span style={{ flex: 1, fontSize: 13, fontWeight: 700, color: 'var(--ink-700)' }}>
+                  {wechsel.length} {wechsel.length === 1 ? 'Badge/Amt is' : 'Badges & Ämter san'} gwandert
+                </span>
+                <span className="wn-klappe-pfeil" style={{ flex: 'none', display: 'inline-flex', color: 'var(--ink-300)' }}>
+                  <Icon name="chevron" size={15} />
+                </span>
+              </summary>
+              <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {wechsel.map((w) => (
+                  <div key={w.key} style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink-900)', lineHeight: 1.45 }}>
+                    {wechselTexte(w, nameVon(w.neuId)).anAlle}
+                    {w.altId && <span style={{ fontWeight: 600, color: 'var(--ink-500)' }}> (vorher {nameVon(w.altId)})</span>}
+                  </div>
+                ))}
               </div>
-              {wechsel.map((w) => (
-                <div key={w.key} style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink-900)', lineHeight: 1.45 }}>
-                  {wechselTexte(w, nameVon(w.neuId)).anAlle}
-                  {w.altId && <span style={{ fontWeight: 600, color: 'var(--ink-500)' }}> (vorher {nameVon(w.altId)})</span>}
-                </div>
-              ))}
-            </div>
+            </details>
           )}
         </div>
       </Card>
@@ -445,7 +530,7 @@ function RankRow({ s, rang, istIch, letzte }: { s: MitgliedStats; rang: number; 
         gap: 12,
         padding: istIch ? '9px 10px' : '9px 8px',
         borderBottom: !istIch && !letzte ? '1px solid var(--ink-100)' : 'none',
-        // Die eigene Zeile im B-Stil: Navy-Gold statt Badge — unübersehbar
+        // Die eigene Zeile im B-Stil: Navy-Gold statt Badge, unübersehbar
         border: istIch ? '1.5px solid var(--gold)' : undefined,
         borderRadius: istIch ? 'var(--r-md)' : undefined,
         background: istIch ? 'var(--grad-navy)' : 'transparent',
@@ -478,7 +563,7 @@ function RankRow({ s, rang, istIch, letzte }: { s: MitgliedStats; rang: number; 
 
 function StatBlock({ value, label, icon, rang }: { value: number; label: string; icon: string; rang?: number }) {
   const medal = rang ? MEDAILLE[rang] : undefined;
-  // Pergament-Kachel wie im Spezl-Detail — oben rechts der eigene Rang in der Kennzahl
+  // Pergament-Kachel wie im Spezl-Detail, oben rechts der eigene Rang in der Kennzahl
   // (unten rechts hat er das Kennzahl-Label verdeckt)
   return (
     <div style={{ position: 'relative', textAlign: 'center', padding: '12px 4px', background: 'var(--pergament)', borderRadius: 'var(--r-md)' }}>

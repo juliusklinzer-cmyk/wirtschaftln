@@ -1,5 +1,5 @@
 /**
- * Wirtschaftln — SectionHeader
+ * Wirtschaftln, SectionHeader
  * Eyebrow + Titelzeile, optional in Fraktur, mit optionaler Aktion rechts.
  */
 export function SectionHeader({
@@ -16,7 +16,7 @@ export function SectionHeader({
   style?: React.CSSProperties;
 }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 12, ...style }}>
+    <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 12, marginTop: 8, ...style }}>
       <div>
         {eyebrow && (
           <div

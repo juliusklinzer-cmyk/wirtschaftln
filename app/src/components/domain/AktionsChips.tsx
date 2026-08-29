@@ -18,7 +18,7 @@ export type AktionsChip = {
 
 /**
  * Kompakte Aktions-Leiste nach Julius' UI-Prinzip (Nachfolger der ErfolgsKlappe):
- * kleine Chips statt vollbreiter Klappen — nur die angetippte Aktion klappt
+ * kleine Chips statt vollbreiter Klappen, nur die angetippte Aktion klappt
  * drunter auf, nach dem Speichern schließt sie sich und eine Erfolgsmeldung
  * erscheint.
  */

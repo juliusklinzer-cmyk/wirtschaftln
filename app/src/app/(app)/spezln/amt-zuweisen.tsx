@@ -1,11 +1,11 @@
 'use client';
 
 import { useState } from 'react';
-import { Button } from '@/components/ds';
+import { Button, KlappenKopf } from '@/components/ds';
 
 /**
  * Kassenwart-Wahlergebnis eintragen (nur Admin & Präsident): kein Amts-Dropdown
- * mehr — es gibt nur das eine wählbare Amt. Schließt sich nach dem Speichern
+ * mehr, es gibt nur das eine wählbare Amt. Schließt sich nach dem Speichern
  * und meldet Erfolg; alle Spezln kriegen Push + Mail.
  */
 export function AmtZuweisen({
@@ -37,9 +37,7 @@ export function AmtZuweisen({
           borderRadius: 'var(--r-lg)', boxShadow: 'var(--sh-sm)', overflow: 'hidden',
         }}
       >
-        <summary style={{ padding: '14px 18px', fontSize: 15, fontWeight: 800, color: 'var(--ink-900)', cursor: 'pointer', listStyle: 'none', userSelect: 'none' }}>
-          💰 Kassenwart eintragen (Wahl-Ergebnis)
-        </summary>
+        <KlappenKopf>Kassenwart eintragen (Wahl-Ergebnis)</KlappenKopf>
         <div style={{ padding: '4px 18px 18px' }}>
           <form action={speichern} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             <div>
@@ -78,7 +76,7 @@ export function AmtZuweisen({
             fontSize: 13, fontWeight: 800, color: 'var(--erfolg)',
           }}
         >
-          ✓ Kassenwart eingetragen — alle Spezln kriegen Bescheid! 📣
+          ✓ Kassenwart eingetragen, alle Spezln kriegen Bescheid!
         </div>
       )}
     </div>

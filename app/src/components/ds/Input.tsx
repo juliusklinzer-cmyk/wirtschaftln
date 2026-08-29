@@ -3,7 +3,7 @@
 import { useState } from 'react';
 
 /**
- * Wirtschaftln — Input
+ * Wirtschaftln, Input
  * Textfeld mit Label, optionalem Icon, Hint/Error. Apple-clean,
  * Rahmen wird bei Fokus Münchner Blau.
  */

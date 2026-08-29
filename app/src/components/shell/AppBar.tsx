@@ -26,7 +26,7 @@ export function AppBar({
   photoUrl: string | null;
   isAdmin: boolean;
   saison: string;
-  /** Eigene Saison-WP — steht als Pill neben dem Profilbild. */
+  /** Eigene Saison-WP, steht als Pill neben dem Profilbild. */
   wp: number;
   onLogout: () => Promise<void>;
 }) {
@@ -36,16 +36,21 @@ export function AppBar({
   const pathname = usePathname();
   const title = Object.entries(TITLES).find(([p]) => pathname.startsWith(p) && p !== '/')?.[1];
 
-  // Menü schließen bei Tap außerhalb ODER beim Scrollen — OHNE ein Vollbild-Overlay,
+  // Menü schließen bei Tap außerhalb ODER beim Scrollen, OHNE ein Vollbild-Overlay,
   // das sonst die Scroll-Geste vom Seiteninhalt abfängt (nerviger Handy-Bug).
   useEffect(() => {
     if (!menu) return;
+    const geoeffnetAm = Date.now();
     const ausserhalb = (e: Event) => {
       const t = e.target as Node;
       if (menuRef.current?.contains(t) || buttonRef.current?.contains(t)) return;
       setMenu(false);
     };
-    const beiScroll = () => setMenu(false);
+    // Nachlaufendes Scroll-Momentum direkt nach dem Öffnen ignorieren,
+    // sonst klappt's Menü sofort wieder zua
+    const beiScroll = () => {
+      if (Date.now() - geoeffnetAm > 350) setMenu(false);
+    };
     document.addEventListener('pointerdown', ausserhalb);
     window.addEventListener('scroll', beiScroll, true);
     return () => {
@@ -149,6 +154,7 @@ export function AppBar({
         <>
           <div
             ref={menuRef}
+            className="wn-menu-auf"
             style={{
               position: 'absolute',
               top: 54,
@@ -187,7 +193,7 @@ export function AppBar({
                 borderBottom: '1px solid var(--ink-100)',
               }}
             >
-              🍺 Mei Profil
+              Mei Profil
             </Link>
             <button
               onClick={() => onLogout()}

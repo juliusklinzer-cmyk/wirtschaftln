@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * Wirtschaftln — Card
+ * Wirtschaftln, Card
  * Basis-Fläche. `tone`: white | parchment | brand | dark.
  * Optionaler Gold-Haarlinienrahmen für zeremonielle Inhalte.
  */

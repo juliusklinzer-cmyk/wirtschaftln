@@ -11,7 +11,7 @@ import { anzeigeName } from '@/lib/namen';
 import { pushAn } from '@/lib/push';
 import { mailAn } from '@/lib/mail';
 
-/** Anzahl Hoibe aus dem Formular (1–99) — gezahlt wird beim Wirtschaftln in Hoibe, ned in Euro. */
+/** Anzahl Hoibe aus dem Formular (1–99), gezahlt wird beim Wirtschaftln in Hoibe, ned in Euro. */
 function hoibeAnzahl(formData: FormData): number {
   const n = Math.round(Number(formData.get('hoibe')));
   return Number.isFinite(n) && n >= 1 && n <= 99 ? n : 0;
@@ -23,7 +23,7 @@ function revalidate() {
 }
 
 /**
- * Wirtschaftler melden: „Na, also des kost a Runde!" — Grund frei formuliert,
+ * Wirtschaftler melden: „Na, also des kost a Runde!", Grund frei formuliert,
  * gezahlt wird in Hoibe (n × Bräustüberl-Preis). Eher Gaudi als Bußgeld.
  */
 export async function melden(formData: FormData) {
@@ -39,7 +39,7 @@ export async function melden(formData: FormData) {
     .values({
       id: newId('k'),
       memberId,
-      grund: `${grund} — des kost ${hoibe === 1 ? 'a Hoibe' : `${hoibe} Hoibe`} 🍺`,
+      grund: `${grund}, des kost ${hoibe === 1 ? 'a Hoibe' : `${hoibe} Hoibe`} 🍺`,
       betragCents: -(hoibe * HOIBE_KELLERPREIS_CENTS),
       kind: 'strafe',
       status: 'offen',
@@ -50,7 +50,7 @@ export async function melden(formData: FormData) {
 
   // ⚖️ Der Gmeldte kriagt Bescheid (Push + Mail)
   const titel = '⚖️ Du wurdst gmeldt!';
-  const text = `${anzeigeName(me)} hat di gmeldt: „${grund}" — des kost ${hoibe === 1 ? 'a Hoibe' : `${hoibe} Hoibe`}. Zohl beim Kassenwart oder per PayPal. 🍺`;
+  const text = `${anzeigeName(me)} hat di gmeldt: „${grund}", des kost ${hoibe === 1 ? 'a Hoibe' : `${hoibe} Hoibe`}. Zohl beim Kassenwart oder per PayPal. 🍺`;
   await Promise.allSettled([
     pushAn([memberId], titel, text, '/kasse'),
     mailAn([opfer.email], titel, `Servus ${anzeigeName(opfer)}!\n\n${text}\n\n→ https://wirtschaftln.de/kasse\n\nDei Wirtschaftln-App`),
@@ -59,14 +59,14 @@ export async function melden(formData: FormData) {
 }
 
 /**
- * Status einer Forderung ändern — Rollen wie am Stammtisch:
+ * Status einer Forderung ändern, Rollen wie am Stammtisch:
  * beglichen/offen setzt der Kassenwart (er treibt ein), erlassen (aufgehoben)
  * darf nur der Präsident. Der Admin kann beides.
  */
 export async function forderungStatus(id: string, status: 'offen' | 'beglichen' | 'aufgehoben') {
   const me = await getCurrentMember();
   if (!me) return;
-  // Server Actions sind direkt per POST aufrufbar — Status zur Laufzeit prüfen
+  // Server Actions sind direkt per POST aufrufbar, Status zur Laufzeit prüfen
   if (!['offen', 'beglichen', 'aufgehoben'].includes(status)) return;
   const istAdmin = me.role === 'admin';
   if (status === 'aufgehoben') {
@@ -84,7 +84,7 @@ export async function forderungStatus(id: string, status: 'offen' | 'beglichen' 
 export async function einzahlung(formData: FormData) {
   const me = await getCurrentMember();
   if (!me) return;
-  // Bares nimmt der Kassenwart entgegen und digitalisiert's — nur er (und der Admin) bucht ein
+  // Bares nimmt der Kassenwart entgegen und digitalisiert's, nur er (und der Admin) bucht ein
   if (me.role !== 'admin' && me.id !== getKassenwartId()) return;
   const memberId = String(formData.get('memberId') ?? me.id);
   const grund = String(formData.get('grund') ?? '').trim() || 'Einzahlung';
@@ -106,7 +106,7 @@ export async function einzahlung(formData: FormData) {
   revalidate();
 }
 
-/** 🍺 Hoibe eini schmeißen: freiwillige Spende in Hoibe — darf jeder, zählt für einen selbst. */
+/** 🍺 Hoibe eini schmeißen: freiwillige Spende in Hoibe, darf jeder, zählt für einen selbst. */
 export async function spenden(formData: FormData) {
   const me = await getCurrentMember();
   if (!me) return;
@@ -118,7 +118,7 @@ export async function spenden(formData: FormData) {
     .values({
       id: newId('k'),
       memberId: me.id,
-      grund: anlass ? `💝 ${hoibeText} gspendt — ${anlass}` : `💝 ${hoibeText} gspendt`,
+      grund: anlass ? `💝 ${hoibeText} gspendt, ${anlass}` : `💝 ${hoibeText} gspendt`,
       betragCents: hoibe * HOIBE_KELLERPREIS_CENTS,
       kind: 'einzahlung',
       status: 'beglichen',
@@ -131,7 +131,7 @@ export async function spenden(formData: FormData) {
 
 /**
  * 💶 Auslage für'n Verein: wer privat was zahlt hat (Hosting, Domain, …),
- * trägt's hier ein — darf jeder, steht als Minus mit seinem Namen im Buch.
+ * trägt's hier ein, darf jeder, steht als Minus mit seinem Namen im Buch.
  */
 export async function auslage(formData: FormData) {
   const me = await getCurrentMember();
@@ -143,7 +143,7 @@ export async function auslage(formData: FormData) {
     .values({
       id: newId('k'),
       memberId: me.id,
-      grund: `Auslage — ${grund}`,
+      grund: `Auslage, ${grund}`,
       betragCents: -Math.round(betrag * 100),
       kind: 'ausgabe',
       status: 'beglichen',
@@ -154,7 +154,7 @@ export async function auslage(formData: FormData) {
   revalidate();
 }
 
-/** Club-Ausgabe (negativ, senkt den Saldo sofort) — bucht nur der Kassenwart oder der Admin. */
+/** Club-Ausgabe (negativ, senkt den Saldo sofort), bucht nur der Kassenwart oder der Admin. */
 export async function ausgabe(formData: FormData) {
   const me = await getCurrentMember();
   if (!me) return;

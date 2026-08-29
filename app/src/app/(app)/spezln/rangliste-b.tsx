@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Avatar, SegmentedTabs, SectionHeader } from '@/components/ds';
+import { Avatar, SegmentedTabs, SectionHeader, Icon } from '@/components/ds';
 import { StreakChip } from '@/components/domain/StreakChip';
 import { SchrumpfKopf, MiniKopfLeiste } from '@/components/domain/SchrumpfKopf';
 import { SerienLeiste } from '@/components/domain/BadgeBild';
@@ -23,7 +23,7 @@ import {
 } from './rangliste';
 
 /**
- * D’Rangliste (Variante B — von Julius am 19.07.2026 gewählt):
+ * D’Rangliste (Variante B, von Julius am 19.07.2026 gewählt):
  * ruhige Karten ohne Geister-Rangzahl, ohne Farbkanten und Medaillen-Rahmen;
  * die eigene Karte ist eine Navy-Gold-Karte (statt „Du"-Badge); kompakter
  * Sticky-Filter: Wertungs-Tabs + ⇄-Switch in EINER Zeile.
@@ -178,7 +178,7 @@ export function Rangliste({
         );
       })}
 
-      {/* Die Ämter — identisch zu Stil A */}
+      {/* Die Ämter, identisch zu Stil A */}
       <div style={{ marginTop: 6 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '0 2px 10px' }}>
           <span style={{ fontFamily: 'var(--font-fraktur)', fontSize: 22, color: 'var(--navy)', lineHeight: 1 }}>Die Ämter</span>
@@ -197,13 +197,10 @@ export function Rangliste({
                   {a.icon}
                 </div>
               )}
+              {/* Nur des Nötigste (Julius 29.08.): Name, Patron, wer's grad is.
+                  Pflichten & Historie zeigt erst d'Badge-Bühne beim Antippen. */}
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                  <span style={{ fontFamily: 'var(--font-fraktur)', fontSize: 21, color: 'var(--navy)', lineHeight: 1 }}>{a.titel}</span>
-                  <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--gold-700)', background: 'var(--pergament)', border: '1px solid var(--pergament-edge)', borderRadius: 'var(--r-pill)', padding: '3px 8px' }}>
-                    {a.mode}
-                  </span>
-                </div>
+                <div style={{ fontFamily: 'var(--font-fraktur)', fontSize: 21, color: 'var(--navy)', lineHeight: 1 }}>{a.titel}</div>
                 {a.patron && (
                   <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--gold-700)', marginTop: 4 }}>
                     Patron · {a.patron}
@@ -217,26 +214,28 @@ export function Rangliste({
                     </>
                   ) : (
                     <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink-500)', fontStyle: 'italic' }}>
-                      No unbesetzt — wird nach’m ersten Stammtisch vergeben 🍺
+                      No unbesetzt, wird nach’m ersten Stammtisch vergeben
                     </span>
                   )}
                 </div>
-                {a.duties && (
-                  <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--ink-500)', marginTop: 8, lineHeight: 1.45 }}>{a.duties}</div>
-                )}
               </div>
+              {amtKey(a.titel) && (
+                <span className="wn-klappe-pfeil" style={{ flex: 'none', alignSelf: 'center', display: 'inline-flex', color: 'var(--ink-300)' }}>
+                  <Icon name="chevron" size={16} />
+                </span>
+              )}
             </div>
           ))}
         </div>
       </div>
 
-      {/* Saison-Badges — identisch zu Stil A */}
+      {/* Saison-Badges, identisch zu Stil A */}
       <div style={{ marginTop: 6 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '0 2px 10px' }}>
           <span style={{ fontFamily: 'var(--font-fraktur)', fontSize: 22, color: 'var(--navy)', lineHeight: 1 }}>Saison-Badges</span>
           <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink-500)' }}>· wandern automatisch weiter</span>
         </div>
-        {/* Variante B: nur das Badge groß + wofür's vergeben wird — wer's grad
+        {/* Variante B: nur das Badge groß + wofür's vergeben wird, wer's grad
             trägt und alles Weitere zeigt der Klick (Info + Hall of Fame) */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
           {galerie.map((b) => (
@@ -251,14 +250,20 @@ export function Rangliste({
                 boxShadow: b.holder ? 'var(--sh-md)' : 'none',
               }}
             >
+              {/* Nur's Badge + wer's grad tragt (Julius 29.08.), alles Weitere
+                  zeigt d'Badge-Bühne beim Antippen */}
               <div style={{ filter: b.holder ? 'none' : 'grayscale(1)', opacity: b.holder ? 1 : 0.45 }}>
                 <BadgeBild slug={b.key} icon={b.icon} name={b.name} size={116} />
               </div>
-              <div style={{ fontSize: 11, fontWeight: 700, color: b.holder ? 'var(--pergament)' : 'var(--ink-500)', opacity: 0.85, marginTop: 10, lineHeight: 1.35 }}>
-                {b.tag}
-              </div>
-              {!b.holder && (
-                <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--ink-500)', marginTop: 4 }}>
+              {b.holder ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 10, maxWidth: '100%' }}>
+                  <Avatar src={b.holder.photoUrl} name={b.holder.name} size={22} ring />
+                  <span style={{ fontSize: 12, fontWeight: 800, color: 'var(--pergament)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {b.holder.name}
+                  </span>
+                </div>
+              ) : (
+                <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--ink-500)', marginTop: 10 }}>
                   no ned vergeben
                 </div>
               )}
@@ -282,7 +287,7 @@ export function Rangliste({
   );
 }
 
-/* ── Spezl-Detail VARIANTE B: „Urkunden"-Sheet — Rauten-Band, großer Avatar mit
+/* ── Spezl-Detail VARIANTE B: „Urkunden"-Sheet, Rauten-Band, großer Avatar mit
       Rang-Medaille, Fraktur-Name, WP mit Feder-Pop, große Badge-Grafiken ── */
 function SpezlDetailB({
   e,
@@ -317,7 +322,7 @@ function SpezlDetailB({
       `}</style>
       <div onClick={onClose} style={{ position: 'absolute', inset: 0, background: 'rgba(7,25,58,0.6)', backdropFilter: 'blur(2px)' }} />
       <div style={{ position: 'relative', width: '100%', maxWidth: 360, maxHeight: '88dvh', overflowY: 'auto', background: 'var(--weiss)', borderRadius: 'var(--r-xl)', boxShadow: 'var(--sh-lg)', animation: 'wnSheetRein 320ms cubic-bezier(0.32, 0.72, 0, 1) both' }}>
-        {/* ── Kopf: Navy-Zeremonie mit Rauten-Band. Scrollt weg — dafür kommt die
+        {/* ── Kopf: Navy-Zeremonie mit Rauten-Band. Scrollt weg, dafür kommt die
             Mini-Leiste (SchrumpfKopf), damit auf kleinen Handys gnua Platz bleibt. ── */}
         <SchrumpfKopf
           kompakt={
@@ -395,7 +400,7 @@ function SpezlDetailB({
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12, padding: '10px 12px', background: 'var(--strafe-bg)', border: '1px solid var(--strafe)', borderRadius: 'var(--r-md)', animation: 'wnZeileRein 320ms 100ms ease-out both' }}>
               <span style={{ fontSize: 20 }}>⚠️</span>
               <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--strafe)', lineHeight: 1.4 }}>
-                {s.unentschuldigtStreak}× unentschuldigt gfehlt — der Spezl wackelt.
+                {s.unentschuldigtStreak}× unentschuldigt gfehlt, der Spezl wackelt.
               </span>
             </div>
           )}

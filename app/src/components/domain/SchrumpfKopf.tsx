@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Avatar } from '@/components/ds';
 
 /**
- * Schrumpf-Kopf: die große Urkunden-/Namenskarte scrollt normal weg — sobald
+ * Schrumpf-Kopf: die große Urkunden-/Namenskarte scrollt normal weg, sobald
  * sie aus dem Sichtbereich ist, blendet sich stattdessen eine schmale
  * Sticky-Leiste ein. Ersetzt das alte „ganze Karte bleibt sticky", das auf
  * kleinen Handys den halben Schirm gfressen hat.
@@ -16,9 +16,9 @@ export function SchrumpfKopf({
 }: {
   /** Die schmale Leiste, die beim Scrollen erscheint (z. B. <MiniKopfLeiste />). */
   kompakt: React.ReactNode;
-  /** Die große Karte — scrollt ganz normal mit. */
+  /** Die große Karte, scrollt ganz normal mit. */
   children: React.ReactNode;
-  /** Flex-gap des Eltern-Containers (px) — gleicht den zusätzlichen Sticky-Anker aus. */
+  /** Flex-gap des Eltern-Containers (px), gleicht den zusätzlichen Sticky-Anker aus. */
   gapAusgleich?: number;
 }) {
   const gross = useRef<HTMLDivElement>(null);
@@ -57,7 +57,7 @@ export function SchrumpfKopf({
   );
 }
 
-/** Schmale Navy-Leiste: kleiner Avatar, Fraktur-Name, WP rechts — plus optionaler Knopf (z. B. ×). */
+/** Schmale Navy-Leiste: kleiner Avatar, Fraktur-Name, WP rechts, plus optionaler Knopf (z. B. ×). */
 export function MiniKopfLeiste({
   photoUrl,
   name,

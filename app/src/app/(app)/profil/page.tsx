@@ -42,7 +42,7 @@ export default async function ProfilPage() {
   const rang = [...statsSaison].sort((a, b) => b.punkte - a.punkte).findIndex((s) => s.member.id === me.id) + 1;
 
   return (
-    <div style={{ padding: '16px 16px 24px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+    <div className="wn-eintritt" style={{ padding: '16px 16px 24px', display: 'flex', flexDirection: 'column', gap: 16 }}>
       {me.erstanmeldung && (
         <Card tone="dark" framed pad={0} style={{ overflow: 'hidden' }}>
           <div className="wn-raute wn-raute--sm" style={{ height: 7 }} />
@@ -51,7 +51,7 @@ export default async function ProfilPage() {
               Servus beim Wirtschaftln!
             </div>
             <div style={{ fontSize: 14, fontWeight: 600, color: 'rgba(246,240,226,0.85)', marginTop: 8, lineHeight: 1.5 }}>
-              Bevor’s losgeht: Setz dir dei eigenes Passwort und stell di kurz vor — damit d’Spezln wissen, wen’s vor sich ham. 🍺
+              Bevor’s losgeht: Setz dir dei eigenes Passwort und stell di kurz vor, damit d’Spezln wissen, wen’s vor sich ham.
             </div>
           </div>
         </Card>
@@ -135,7 +135,7 @@ export default async function ProfilPage() {
       </Card>
       </SchrumpfKopf>
 
-      {/* ── D'Auszeichnungen: große Grafiken, koa Text — Details stehen im Badge ── */}
+      {/* ── D'Auszeichnungen: große Grafiken, koa Text, Details stehen im Badge ── */}
       {(badges.length > 0 || serien.length > 0) && (
         <Card pad={14}>
           <div style={{ fontFamily: 'var(--font-fraktur)', fontSize: 21, color: 'var(--navy)', marginBottom: 10 }}>D’Auszeichnungen</div>
@@ -143,7 +143,7 @@ export default async function ProfilPage() {
             <div style={{ display: 'flex', gap: 10, overflowX: 'auto', paddingBottom: 4 }}>
               {badges.map((b) => (
                 <span key={b.key} style={{ flex: 'none' }}>
-                  <BadgeBild slug={b.key} icon={b.icon} name={`${b.name} — ${b.tag}`} size={92} />
+                  <BadgeBild slug={b.key} icon={b.icon} name={`${b.name} · ${b.tag}`} size={92} />
                 </span>
               ))}
             </div>

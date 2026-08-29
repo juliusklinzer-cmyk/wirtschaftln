@@ -174,7 +174,7 @@
           <Card tone="dark" pad={20}>
             <div style={{ fontSize:11, fontWeight:700, letterSpacing:'0.14em', textTransform:'uppercase', color:'var(--gold)' }}>Abend dokumentiert</div>
             <div style={{ display:'flex', justifyContent:'space-between', marginTop:14 }}>
-              <div style={{ textAlign:'center' }}><div style={{ fontSize:34, fontWeight:800, color:'var(--gold-bright)', lineHeight:1 }}>{termin.visit.totalHoiben}</div><div style={{ fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.08em', color:'var(--pergament)', opacity:0.7, marginTop:4 }}>Hoiben</div></div>
+              <div style={{ textAlign:'center' }}><div style={{ fontSize:34, fontWeight:800, color:'var(--gold-bright)', lineHeight:1 }}>{termin.visit.totalHoiben}</div><div style={{ fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.08em', color:'var(--pergament)', opacity:0.7, marginTop:4 }}>Hoibe</div></div>
               <div style={{ textAlign:'center' }}><div style={{ fontSize:34, fontWeight:800, color:'var(--gold-bright)', lineHeight:1 }}>{termin.visit.stars||'–'}<span style={{ fontSize:18 }}>★</span></div><div style={{ fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.08em', color:'var(--pergament)', opacity:0.7, marginTop:4 }}>Bewertung</div></div>
               <div style={{ textAlign:'center' }}><div style={{ fontSize:34, fontWeight:800, color:'var(--gold-bright)', lineHeight:1 }}>{present.length}</div><div style={{ fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.08em', color:'var(--pergament)', opacity:0.7, marginTop:4 }}>Dabei</div></div>
             </div>

@@ -3,7 +3,7 @@
 import { useState } from 'react';
 
 /**
- * Wirtschaftln — IconButton
+ * Wirtschaftln, IconButton
  * Quadratisches Icon-Control für Toolbar- und Nav-Aktionen.
  */
 export function IconButton({

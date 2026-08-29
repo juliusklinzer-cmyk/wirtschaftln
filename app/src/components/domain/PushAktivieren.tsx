@@ -41,7 +41,7 @@ export function PushAktivieren() {
       await pushAbonnieren({ endpoint: sub.endpoint, keys: { p256dh: json.keys!.p256dh, auth: json.keys!.auth } });
       setZeigen(false);
     } catch {
-      // Nutzer hat abgelehnt oder Browser mag nicht — Hinweis einfach stehen lassen
+      // Nutzer hat abgelehnt oder Browser mag nicht, Hinweis einfach stehen lassen
     } finally {
       setLaeuft(false);
     }

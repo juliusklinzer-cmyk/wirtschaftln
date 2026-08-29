@@ -46,7 +46,7 @@ export function BierWahl({
 
   const umschalten = () => {
     if (offen) { setOffen(false); return; }
-    // Richtung + Höhe nach'm verfügbaren Platz — damit's ned hinter da TabBar verschwindt
+    // Richtung + Höhe nach'm verfügbaren Platz, damit's ned hinter da TabBar verschwindt
     const r = btnRef.current?.getBoundingClientRect();
     if (r) {
       const platzUnten = window.innerHeight - r.bottom - 96; // ~TabBar + Rand

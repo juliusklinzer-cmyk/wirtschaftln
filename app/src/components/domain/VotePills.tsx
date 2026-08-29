@@ -4,7 +4,7 @@ import { useState, useTransition } from 'react';
 import { abstimmen } from '@/app/(app)/termin/actions';
 import { PTS, rechtzeitigAbgestimmt } from '@/lib/punkte';
 
-// „Vielleicht" is raus (Altlast) — es gibt nur no Zusagen oder Absagen,
+// „Vielleicht" is raus (Altlast), es gibt nur no Zusagen oder Absagen,
 // die Stimme lässt sich bis zum Termin jederzeit ändern.
 const OPTIONS = [
   { wert: 'zu', label: 'Zusagen', color: 'var(--erfolg)', bg: 'var(--erfolg-bg)' },
@@ -20,9 +20,9 @@ export function VotePills({
 }: {
   terminId: string;
   current: 'zu' | 'vielleicht' | 'ab' | null;
-  /** Termindatum (YYYY-MM-DD) — für die „+1 WP"-Anzeige bei rechtzeitiger Erst-Stimme. */
+  /** Termindatum (YYYY-MM-DD), für die „+1 WP"-Anzeige bei rechtzeitiger Erst-Stimme. */
   terminDatum?: string;
-  /** Zähler-Zeile („✅ 3 zugesagt · ❌ 1 abgesagt") — steht links, der Bonus rechts daneben. */
+  /** Zähler-Zeile („✅ 3 zugesagt · ❌ 1 abgesagt"), steht links, der Bonus rechts daneben. */
   links?: React.ReactNode;
   onDark?: boolean;
 }) {
@@ -32,7 +32,7 @@ export function VotePills({
 
   const klick = (wert: 'zu' | 'ab') => {
     setGeklickt(wert);
-    // Bonus zählt nur für die ERSTE Stimme — und nur, wenn sie rechtzeitig is
+    // Bonus zählt nur für die ERSTE Stimme, und nur, wenn sie rechtzeitig is
     if (current === null && terminDatum && rechtzeitigAbgestimmt(new Date().toISOString(), terminDatum)) {
       setFrischVerdient(true);
     }
@@ -40,7 +40,7 @@ export function VotePills({
   };
 
   // Frist läuft noch und keine Stimme da → beide Buttons zeigen, dass's an Punkt gibt.
-  // Nach der Stimme verschwindet der Zusatz — der Punkt is dann oben in der Pill gezählt.
+  // Nach der Stimme verschwindet der Zusatz, der Punkt is dann oben in der Pill gezählt.
   const fristOffen = current === null && !frischVerdient && !!terminDatum && rechtzeitigAbgestimmt(new Date().toISOString(), terminDatum);
 
   return (
@@ -51,7 +51,7 @@ export function VotePills({
         )}
         {OPTIONS.map((o) => {
           const active = current === o.wert;
-          // „+1 WP" nur als Anreiz VOR der Stimme — danach zählt der Punkt oben in der Pill
+          // „+1 WP" nur als Anreiz VOR der Stimme, danach zählt der Punkt oben in der Pill
           const mitBonus = fristOffen;
           return (
             <div key={o.wert} style={{ position: 'relative', flex: 1 }}>

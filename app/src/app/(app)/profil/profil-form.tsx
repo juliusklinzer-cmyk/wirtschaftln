@@ -52,11 +52,11 @@ export function ProfilForm({ werte, onGespeichert }: { werte: ProfilWerte; onGes
       {/* Profilbild: auswählen, im Kreis zurechtschieben, zoomen */}
       <FotoZuschnitt name="fotoData" aktuellesFoto={werte.photoUrl} />
 
-      {/* Nachname zuerst — wie auf der Urkunde („Da Klinzer Julius"), volle Breite statt Grid */}
+      {/* Nachname zuerst, wie auf der Urkunde („Da Klinzer Julius"), volle Breite statt Grid */}
       <Input label="Nachname" name="nachname" defaultValue={werte.nachname ?? ''} placeholder="Klinzer" required />
       <Input label="Vorname" name="vorname" defaultValue={werte.vorname ?? ''} placeholder="Julius" required />
-      <Input label="Spitzname (optional) — so steht’s auf der Rangliste, sonst dein Name" name="spitzname" defaultValue={werte.spitzname ?? ''} placeholder="da Sepp" />
-      <Input label="Herkunft — Viertel oder woher’s di gspuit hat" name="herkunft" defaultValue={werte.herkunft ?? ''} placeholder="z. B. Giesing" />
+      <Input label="Spitzname (optional): so steht’s auf der Rangliste, sonst dein Name" name="spitzname" defaultValue={werte.spitzname ?? ''} placeholder="da Sepp" />
+      <Input label="Herkunft: Viertel oder woher’s di gspuit hat" name="herkunft" defaultValue={werte.herkunft ?? ''} placeholder="z. B. Giesing" />
 
       <BierWahl label="Lieblingsbier (Helles)" biere={HELLE_WAHL} value={bier} onChange={setBier} leerLabel="No ned festglegt" />
       <input type="hidden" name="lieblingsbier" value={bier} />
@@ -118,13 +118,13 @@ export function ProfilForm({ werte, onGespeichert }: { werte: ProfilWerte; onGes
 
       <div>
         <label style={{ display: 'block', fontSize: 13, fontWeight: 700, color: 'var(--ink-700)', marginBottom: 6 }}>
-          Beschreibung — wer bist’n du?
+          Beschreibung, wer bist’n du?
         </label>
         <textarea
           name="beschreibung"
           defaultValue={werte.beschreibung ?? ''}
           rows={3}
-          placeholder="A paar Worte über di — je bayrischer, desto besser…"
+          placeholder="A paar Worte über di, je bayrischer, desto besser…"
           style={{
             width: '100%', boxSizing: 'border-box', border: '1.5px solid var(--ink-200)', borderRadius: 'var(--r-md)',
             padding: 12, fontFamily: 'var(--font-ui)', fontSize: 15, color: 'var(--ink-900)', resize: 'none', outline: 'none',
@@ -132,10 +132,10 @@ export function ProfilForm({ werte, onGespeichert }: { werte: ProfilWerte; onGes
         />
       </div>
 
-      {/* Passwort — Pflicht bei der Erstanmeldung, sonst optional */}
+      {/* Passwort, Pflicht bei der Erstanmeldung, sonst optional */}
       <div style={{ borderTop: '1px solid var(--ink-100)', paddingTop: 14, display: 'flex', flexDirection: 'column', gap: 12 }}>
         <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--ink-900)' }}>
-          {werte.erstanmeldung ? '🔑 Neues Passwort setzen (Pflicht)' : '🔑 Passwort ändern (optional)'}
+          {werte.erstanmeldung ? 'Neues Passwort setzen (Pflicht)' : 'Passwort ändern (optional)'}
         </div>
         {!werte.erstanmeldung && (
           <Input label="Aktuelles Passwort" name="passwortAktuell" type="password" autoComplete="current-password" hint="Zur Bestätigung, dass du’s wirklich selber bist" />
@@ -151,12 +151,12 @@ export function ProfilForm({ werte, onGespeichert }: { werte: ProfilWerte; onGes
       )}
       {state.ok && !state.error && (
         <div style={{ padding: '14px 12px', background: 'var(--erfolg-bg)', borderRadius: 'var(--r-md)', fontSize: 16, fontWeight: 800, color: 'var(--erfolg)', textAlign: 'center' }}>
-          Merci! 🍺
+          Merci!
         </div>
       )}
 
       <Button type="submit" fullWidth variant="gold" size="lg" disabled={pending}>
-        {pending ? 'Moment…' : werte.erstanmeldung ? 'Fertig — eini geht’s! 🍺' : 'Profil speichern'}
+        {pending ? 'Moment…' : werte.erstanmeldung ? 'Fertig, eini geht’s!' : 'Profil speichern'}
       </Button>
     </form>
   );

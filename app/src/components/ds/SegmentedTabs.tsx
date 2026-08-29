@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * Wirtschaftln — SegmentedTabs
+ * Wirtschaftln, SegmentedTabs
  * Apple-Style Segmented Control für Filter und Ansichts-Wechsel.
  */
 export function SegmentedTabs({
@@ -17,7 +17,7 @@ export function SegmentedTabs({
   onChange?: (value: string) => void;
   /** Nimmt die volle Breite ein, Tabs teilen sich den Platz gleichmäßig. */
   fullWidth?: boolean;
-  /** Weniger Innenabstand — für 5+ Tabs auf schmalen Handys. */
+  /** Weniger Innenabstand, für 5+ Tabs auf schmalen Handys. */
   compact?: boolean;
   style?: React.CSSProperties;
 }) {

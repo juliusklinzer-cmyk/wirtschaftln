@@ -1,5 +1,5 @@
 /**
- * Biersorten fürs Wirtshaus — beim Club quasi gesetzt: Augustiner.
+ * Biersorten fürs Wirtshaus, beim Club quasi gesetzt: Augustiner.
  * Beim Besuch-Abschluss per Dropdown (mit Logo) änderbar.
  * Logos liegen unter public/brand/biersorten/ (Quelle: Wikipedia/Favicons —
  * bessere Dateien einfach unter gleichem Namen drüberlegen).
@@ -10,7 +10,7 @@ export type BierOption = Bier | { divider: string };
 
 const logo = (slug: string) => `/brand/biersorten/${slug}.png`;
 
-/** Helle — Julius' 30er-Karte (19.07.), Reihenfolge = seine Rangfolge. */
+/** Helle, Julius' 30er-Karte (19.07.), Reihenfolge = seine Rangfolge. */
 export const HELLE: Bier[] = [
   { name: 'Augustiner – Lagerbier Hell', logo: logo('augustiner') },
   { name: 'Tegernseer – Hell', logo: logo('tegernseer') },
@@ -44,7 +44,7 @@ export const HELLE: Bier[] = [
   { name: 'Giesinger – Erhellung', logo: logo('giesinger') },
 ];
 
-/** Weißbiere — Julius' 30er-Karte (19.07.), Reihenfolge = seine Rangfolge. */
+/** Weißbiere, Julius' 30er-Karte (19.07.), Reihenfolge = seine Rangfolge. */
 export const WEISSBIERE: Bier[] = [
   { name: 'Schneider Weisse – TAP 7 Unser Original', logo: logo('schneider-weisse') },
   { name: 'Weihenstephan – Hefeweissbier', logo: logo('weihenstephan') },
@@ -78,7 +78,7 @@ export const WEISSBIERE: Bier[] = [
   { name: 'Paulaner – Weißbier Kristall', logo: logo('paulaner') },
 ];
 
-/** Alkoholfreie Helle — Julius' Karte (19.07.), stehen unterm Trennstrich. */
+/** Alkoholfreie Helle, Julius' Karte (19.07.), stehen unterm Trennstrich. */
 export const ALKOHOLFREIE_HELLE: Bier[] = [
   { name: 'Augustiner – Hell Alkoholfrei', logo: logo('augustiner') },
   { name: 'Weihenstephan – Original Helles Alkoholfrei', logo: logo('weihenstephan') },

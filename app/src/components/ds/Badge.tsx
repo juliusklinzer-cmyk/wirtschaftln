@@ -1,5 +1,5 @@
 /**
- * Wirtschaftln — Badge
+ * Wirtschaftln, Badge
  * Kleiner Status-/Label-Pill. Töne folgen den semantischen Farben;
  * `gold` & `blau` sind Brand-Töne. `solid` füllt, Standard ist soft.
  */

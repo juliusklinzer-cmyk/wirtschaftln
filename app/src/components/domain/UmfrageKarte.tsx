@@ -8,7 +8,7 @@ type UmfrageDaten = ReturnType<typeof getUmfragen>[number];
 
 /**
  * Eine Umfrage auf Hoam: vor der eigenen Stimme nur die Antworten (damit
- * niemand beeinflusst wird), danach die Balken mit Ergebnis — die eigene
+ * niemand beeinflusst wird), danach die Balken mit Ergebnis, die eigene
  * Antwort lässt sich durch Antippen einer anderen jederzeit ändern.
  */
 export function UmfrageKarte({ daten, meId, meRole }: { daten: UmfrageDaten; meId: string; meRole: string }) {
@@ -69,9 +69,11 @@ export function UmfrageKarte({ daten, meId, meRole }: { daten: UmfrageDaten; meI
                 <span
                   aria-hidden
                   style={{
-                    position: 'absolute', inset: 0, width: `${pct}%`,
+                    // scaleX statt width: läuft auf der GPU, koa Layout-Arbeit
+                    position: 'absolute', inset: 0, transformOrigin: 'left',
+                    transform: `scaleX(${pct / 100})`,
                     background: meine ? 'rgba(208,173,102,0.28)' : 'var(--pergament)',
-                    transition: 'width 500ms cubic-bezier(0.22, 1, 0.36, 1)',
+                    transition: 'transform 500ms cubic-bezier(0.22, 1, 0.36, 1)',
                   }}
                 />
               )}
@@ -92,8 +94,8 @@ export function UmfrageKarte({ daten, meId, meRole }: { daten: UmfrageDaten; meI
         {abgestimmt
           ? `${total} ${total === 1 ? 'Stimme' : 'Stimmen'} · zum Ändern andere Antwort antippen`
           : total > 0
-            ? `${total} ${total === 1 ? 'Spezl hat' : 'Spezln haben'} scho abgstimmt — Ergebnis siehst nach deiner Stimme`
-            : 'No koa Stimme — sei der Erste!'}
+            ? `${total} ${total === 1 ? 'Spezl hat' : 'Spezln haben'} scho abgstimmt, Ergebnis siehst nach deiner Stimme`
+            : 'No koa Stimme, sei der Erste!'}
       </div>
     </Card>
   );

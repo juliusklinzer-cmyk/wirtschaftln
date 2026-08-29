@@ -282,3 +282,52 @@ button {
 .wn-toast-in {
   animation: wn-toast-in var(--dur-base) var(--ease-spring);
 }
+
+/* Druck-Feedback für rohe Buttons (DS-Button hat's eingebaut) */
+.wn-press {
+  transition: transform 160ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+.wn-press:active {
+  transform: scale(0.97);
+}
+
+/* Klappen-Pfeil: dreht sich beim Aufklappen mit */
+.wn-klappe-pfeil {
+  transition: transform 200ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+details[open] > summary .wn-klappe-pfeil {
+  transform: rotate(90deg);
+}
+
+/* Seiten-Eintritt: Sektionen gleiten beim Öffnen kurz nach oben (einmal pro Navigation) */
+@keyframes wnEintritt {
+  from { opacity: 0; transform: translateY(10px); }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .wn-eintritt > * { animation: wnEintritt 340ms cubic-bezier(0.23, 1, 0.32, 1) backwards; }
+  .wn-eintritt > *:nth-child(2) { animation-delay: 40ms; }
+  .wn-eintritt > *:nth-child(3) { animation-delay: 80ms; }
+  .wn-eintritt > *:nth-child(4) { animation-delay: 120ms; }
+  .wn-eintritt > *:nth-child(5) { animation-delay: 160ms; }
+  .wn-eintritt > *:nth-child(6) { animation-delay: 200ms; }
+  .wn-eintritt > *:nth-child(n+7) { animation-delay: 240ms; }
+}
+
+/* Profil-Menü: skaliert vom Auslöser oben rechts rein (origin-aware Popover) */
+@keyframes wnMenuAuf {
+  from { opacity: 0; transform: scale(0.95) translateY(-4px); }
+}
+.wn-menu-auf {
+  transform-origin: top right;
+  animation: wnMenuAuf 180ms cubic-bezier(0.23, 1, 0.32, 1) backwards;
+}
+
+/* Tab-Wechsel: das frisch aktive Icon hüpft kurz */
+@keyframes wnTabPop {
+  0% { transform: scale(0.85); }
+  60% { transform: scale(1.12); }
+  100% { transform: scale(1); }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .wn-tab-pop { animation: wnTabPop 300ms cubic-bezier(0.34, 1.56, 0.64, 1); }
+}

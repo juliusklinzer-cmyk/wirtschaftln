@@ -1,6 +1,6 @@
 /**
  * Anzeigename überall in der App: Spitzname gewinnt, sonst der eingegebene
- * Name („Julius Klinzer"). Vor-/Nachname sind getrennt gespeichert — aber nur
+ * Name („Julius Klinzer"). Vor-/Nachname sind getrennt gespeichert, aber nur
  * zur Identifikation, nicht für die Anzeige (Julius' Entscheid vom 18.07.2026).
  */
 export function anzeigeName(m: {
@@ -14,7 +14,7 @@ export function anzeigeName(m: {
 
 /**
  * Zeremonielle volle Form für Urkunden-Köpfe (Profil, Spezl-Detail):
- * „Da <Nachname> <Vorname>" — steht als Zeile unterm Anzeigenamen.
+ * „Da <Nachname> <Vorname>", steht als Zeile unterm Anzeigenamen.
  */
 export function urkundenName(m: { vorname?: string | null; nachname?: string | null }): string | null {
   if (!m.nachname?.trim()) return null;

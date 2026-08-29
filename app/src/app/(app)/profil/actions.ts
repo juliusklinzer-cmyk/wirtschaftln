@@ -10,7 +10,7 @@ import { hashPassword, verifyPassword } from '@/lib/password';
 export type ProfilState = { error?: string; ok?: boolean };
 
 /**
- * Eigenes Profil speichern — inkl. Profilbild (wird auf 256px verkleinert und
+ * Eigenes Profil speichern, inkl. Profilbild (wird auf 256px verkleinert und
  * als Data-URL in der DB abgelegt) und optionalem Passwort-Wechsel.
  * Bei der Erstanmeldung ist das neue Passwort Pflicht; danach ist das Profil frei.
  */
@@ -42,13 +42,13 @@ export async function profilSpeichern(_prev: ProfilState, formData: FormData): P
   let photoUrl: string | undefined;
   const fotoData = String(formData.get('fotoData') ?? '');
   if (fotoData.startsWith('data:image/')) {
-    if (fotoData.length > 4 * 1024 * 1024) return { error: 'Foto is z’groß — probier’s nomoi.' };
+    if (fotoData.length > 4 * 1024 * 1024) return { error: 'Foto is z’groß, probier’s nomoi.' };
     try {
       const buf = Buffer.from(fotoData.slice(fotoData.indexOf(',') + 1), 'base64');
       const klein = await sharp(buf).resize(256, 256, { fit: 'cover' }).jpeg({ quality: 80 }).toBuffer();
       photoUrl = `data:image/jpeg;base64,${klein.toString('base64')}`;
     } catch {
-      return { error: 'Des Foto kann i ned lesen — probier a anders.' };
+      return { error: 'Des Foto kann i ned lesen, probier a anders.' };
     }
   }
 

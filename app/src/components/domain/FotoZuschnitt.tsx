@@ -7,7 +7,7 @@ const EXPORT = 512; // Kantenlänge des exportierten Quadrats
 
 /**
  * Profilbild-Zuschnitt: Handy-Foto auswählen (Größe wurscht), im Kreis
- * zurechtschieben und zoomen — exportiert wird ein kleines Quadrat als
+ * zurechtschieben und zoomen, exportiert wird ein kleines Quadrat als
  * Data-URL im Hidden-Field `name`, der Server verkleinert final auf 256px.
  */
 export function FotoZuschnitt({ name, aktuellesFoto }: { name: string; aktuellesFoto: string | null }) {
@@ -62,7 +62,7 @@ export function FotoZuschnitt({ name, aktuellesFoto }: { name: string; aktuelles
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-      <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink-700)' }}>Profilbild — zeig dei Gsicht</span>
+      <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink-700)' }}>Profilbild, zeig dei Gsicht</span>
       <input type="hidden" name={name} value={ergebnis} />
 
       {!bild && (
@@ -83,7 +83,7 @@ export function FotoZuschnitt({ name, aktuellesFoto }: { name: string; aktuelles
           <span>
             <span style={{ display: 'block', fontSize: 14, fontWeight: 800, color: 'var(--muc-blau)' }}>Foto auswählen…</span>
             <span style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink-500)' }}>
-              Handy-Foto passt — wird automatisch klein gerechnet.
+              Handy-Foto passt, wird automatisch klein gerechnet.
             </span>
           </span>
           <input type="file" accept="image/*" onChange={(e) => dateiWaehlen(e.target.files?.[0])} style={{ display: 'none' }} />

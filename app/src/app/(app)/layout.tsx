@@ -30,15 +30,19 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     >
       {/* 🤳 Dani-Modus: der weiße Streifen liegt über der ganzen App */}
       <DaniStreifen />
-      <AppBar
-        name={anzeigeName(me)}
-        photoUrl={me.photoUrl}
-        isAdmin={me.role === 'admin'}
-        saison={saison.label}
-        wp={meineWp}
-        onLogout={logout}
-      />
-      <main style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', position: 'relative', overscrollBehavior: 'contain' }}>{children}</main>
+      {/* Header scrollt MIT dem Inhalt weg (bewusst ned sticky, Julius 29.08.) —
+          nur d'Tab-Leiste unten bleibt stehen */}
+      <main style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', position: 'relative', overscrollBehavior: 'contain' }}>
+        <AppBar
+          name={anzeigeName(me)}
+          photoUrl={me.photoUrl}
+          isAdmin={me.role === 'admin'}
+          saison={saison.label}
+          wp={meineWp}
+          onLogout={logout}
+        />
+        {children}
+      </main>
       <TabBar />
     </div>
   );

@@ -31,19 +31,34 @@ export function TabBar() {
           <Link
             key={t.href}
             href={t.href}
+            className="wn-press"
             style={{
               flex: 1,
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
-              gap: 4,
-              padding: '4px 0',
+              gap: 3,
+              padding: '2px 0',
               textDecoration: 'none',
               color: active ? 'var(--muc-blau)' : 'var(--ink-300)',
               transition: 'color var(--dur-base)',
+              WebkitTapHighlightColor: 'transparent',
             }}
           >
-            <Icon name={t.icon} size={23} stroke={active ? 2.4 : 2} />
+            {/* Aktiver Tab kriegt a Pill hinterm Icon; beim Wechsel hüpft's kurz
+                (key remountet beim Aktiv-Werden → Pop spielt genau einmal) */}
+            <span
+              key={active ? `${t.href}-an` : t.href}
+              className={active ? 'wn-tab-pop' : undefined}
+              style={{
+                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                width: 46, height: 27, borderRadius: 999,
+                background: active ? 'var(--info-bg)' : 'transparent',
+                transition: 'background 200ms var(--ease-standard)',
+              }}
+            >
+              <Icon name={t.icon} size={23} stroke={active ? 2.4 : 2} />
+            </span>
             <span style={{ fontSize: 10, fontWeight: active ? 800 : 600, letterSpacing: '0.02em' }}>{t.label}</span>
           </Link>
         );

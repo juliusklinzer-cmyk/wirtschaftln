@@ -1,5 +1,5 @@
 /**
- * Wirtschaftln — Stat
+ * Wirtschaftln, Stat
  * Große Tabellenziffer mit Label + optionaler Einheit/Icon.
  * Das gamifizierte Arbeitstier: Hoibe, Abende, Wirtshäuser.
  */

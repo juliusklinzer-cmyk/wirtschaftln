@@ -40,11 +40,39 @@ Das Punktesystem soll regelmäßige Teilnahme, Verlässlichkeit und Beiträge zu
 | Rechtzeitig abgestimmt | +1 WP |
 | Wirtshaus vorgeschlagen | +1 WP |
 | Vorgeschlagenes Wirtshaus tatsächlich besucht | weitere +1 WP |
+| Als Erster im Wirtshaus eingecheckt | +1 WP |
 | Erster Abschluss des Abends | +3 WP |
-| Eigene Bewertung mit Text ausgeschmückt | +1 WP |
+| Eigene Bewertung zum Abend abgegeben | +1 WP |
+| Eigene Bewertung mit Text ausgeschmückt | weitere +1 WP |
 | Organisiert | endgültige Durchschnittsbewertung, gerundet auf 0–5 WP |
 
 Schweinsbraten, alkoholfreie Getränke und sonstige Speisen erzeugen keine WP.
+
+### Individuelle Bewertung statt Abschluss-Bewertung (27.08.2026)
+
+Hintergrund: Der Abend wurde teils mittendrin abgeschlossen („punktegeile" Schnellabschlüsse), bevor alle Informationen des Tages vorlagen — mit Streit über die dann einseitige Bewertung.
+
+- Jedes anwesende Mitglied gibt seine **eigene** Bewertung ab („Mei Bewertung"): Wirtshaus-Sterne (1,0–5,0, eine Kommastelle) + Freitext, dazu optional Kaiserschmarrn- und Schweinsbraten-Sterne/-Notiz — **nur wer selber probiert hat**, bewertet die Speise.
+- Das Bewertungsfenster läuft ab dem Stammtisch-Abend (wie der Bierdeckel) bis zum Ende der siebentägigen Nachtragsfrist; die Bewertung ist im Fenster jederzeit änderbar. Nach dem Abschluss dürfen nur die als anwesend Verbuchten bewerten.
+- Die **Tagesbewertung ist der Durchschnitt aller abgegebenen Einzelbewertungen** (nur von Anwesenden). Je Kategorie zählen nur die abgegebenen Werte: Haben nur zwei Spezln den Schweinsbraten bewertet, geht genau deren Schnitt in die Brodn-Wertung ein.
+- Alle Freitexte werden im Archiv mit Autor angezeigt — jede Meinung bleibt sichtbar.
+- WP: +1 für die abgegebene Bewertung, weitere +1, wenn ein Freitext dabei ist. Beides höchstens einmal je Mitglied und Termin (Ändern erzeugt keine weiteren WP).
+- Der **Abschluss enthält keine Bewertung mehr** — er verbucht nur noch die Logistik des Abends (Anwesenheit, Hoibn, Brodn/Taxi/Runden, Kaiserschmarrn bestellt, Biersorten).
+- Der Abschluss ist frühestens **zwei Stunden nach Termin-Beginn** möglich (19:00 → ab 21:00 Uhr; von Julius am 27.08.2026 festgelegt), oder ab dem Folgetag (`abschlussOffen` in `app/src/lib/punkte.ts`).
+
+### Organisator-Vergabe („I regle das!", 29.08.2026)
+
+- Ein neuer Termin wird **ohne Organisator** angelegt (typisch vom Abschließer des letzten Abends, direkt am Tisch). Beim Anlegen geht wie bisher Push + Mail zur Abstimmung an alle.
+- Solange der Termin in der Planung ist und keinen Organisator hat, kann sich **jedes Mitglied den Posten schnappen** („I regle das!") — wer zuerst kommt, organisiert. Beim Schnappen gehen Push + Mail an alle, damit nicht zwei parallel loslegen.
+- **Sperre:** Wer den letzten abgeschlossenen Stammtisch organisiert hat, darf den direkt nächsten **nicht** auch organisieren (kein Doppel-Organisieren hintereinander; von Julius am 29.08.2026 festgelegt). Server- und UI-seitig erzwungen.
+- Wirtshaus festlegen/ändern darf erst der Organisator (bzw. Präsident/Admin), sobald der Posten vergeben ist.
+
+### Check-in (27.08.2026)
+
+- Am Stammtisch-Tag ab **zwei Stunden vor Termin-Beginn** kann jedes Mitglied direkt auf der Startseite (Termin-Karte) einchecken — bis der Besuch abgeschlossen ist.
+- Der **erste** Check-in bringt +1 WP (zählt wie der Abstimmungs-Bonus sofort, ohne Abschluss), muss in einem **Pflicht-Freitext** (max. 120 Zeichen) beschreiben, wo die Gruppe sitzt („hinten rechts, bei der Band"; Pflichtfeld seit 29.08.2026), und löst einen Push an alle Mitglieder aus. Nachfolgende Check-ins brauchen keinen Freitext.
+- Weitere Check-ins bringen keine WP, werden aber auf der Startseite angezeigt („san scho da").
+- Ein Check-in markiert die Anwesenheit des Mitglieds (Vorbelegung für Bierdeckel und Abschluss-Zettel).
 
 ### Rechtzeitige Abstimmung
 
@@ -161,5 +189,7 @@ Beim Umstieg auf das Ereignis-Journal wird die bestehende Chronik einmalig **nac
 ## Open Questions
 
 Am 17.07.2026 von Julius bestätigt: Frist bis Ende des 3. Tages vorher; „vielleicht" abgeschafft; unentschuldigt-Staffel zählt eigenständig; „Zugesagt & nicht erschienen" behält die Strafrunde, Präsident darf erlassen; Maßeinheit Bräustüberl-Hoibe 3,70 €.
+
+Am 27.08.2026 von Julius festgelegt: individuelle Bewertungen statt Abschluss-Bewertung (Tagesbewertung = Schnitt der Einzelbewertungen, Speisen-Schnitt nur aus tatsächlichen Essern, alle Freitexte sichtbar, Extrapunkte für die Bewertung) und Check-in mit +1 WP für den Ersten samt Platz-Freitext und Info an alle. Die konkreten Werte (+1 WP Bewertung, +1 WP erster Check-in, Check-in-Vorlauf 2 Std.) sind Claudes Umsetzungsvorschlag; die Abschluss-Sperre hat Julius auf **2 Stunden nach Beginn** festgelegt (27.08.2026, „geschlossen werden kann ab 21 Uhr").
 
 Noch offen: die **Neubewertung der Historie nach V2** (Abschnitt „Migration der Historie") ist Claudes Empfehlung und von Julius noch nicht bestätigt.

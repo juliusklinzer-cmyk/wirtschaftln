@@ -29,8 +29,8 @@ export default async function KassePage() {
   const hoibePreis = (HOIBE_KELLERPREIS_CENTS / 100).toFixed(2).replace('.', ',');
 
   return (
-    <div style={{ padding: '16px 16px 24px', display: 'flex', flexDirection: 'column', gap: 16 }}>
-      {/* Kassenstand — Zeremonie-Karte mit Rauten-Band */}
+    <div className="wn-eintritt" style={{ padding: '16px 16px 24px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+      {/* Kassenstand, Zeremonie-Karte mit Rauten-Band */}
       <Card tone="dark" framed pad={0} style={{ overflow: 'hidden' }}>
         <div className="wn-raute wn-raute--sm" style={{ height: 7 }} />
         <div style={{ padding: '18px 20px' }}>
@@ -47,7 +47,7 @@ export default async function KassePage() {
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 10 }}>
               <Avatar src={kassenwart.photoUrl} name={kassenwart.name} size={24} ring />
               <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--pergament)', opacity: 0.85 }}>
-                💰 {anzeigeName(kassenwart)} wahrt d’Kasse
+                {anzeigeName(kassenwart)} wahrt d’Kasse
               </span>
             </div>
           )}
@@ -55,7 +55,7 @@ export default async function KassePage() {
         <div style={{ height: 1.5, background: 'linear-gradient(90deg, transparent, var(--gold), transparent)' }} />
       </Card>
 
-      {/* D'Maßeinheit: alles wird in Hoibe zahlt — Preis vom Bräustüberl */}
+      {/* D'Maßeinheit: alles wird in Hoibe zahlt, Preis vom Bräustüberl */}
       <Card pad={14}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <span style={{ fontSize: 26, flex: 'none' }}>🍺</span>
@@ -77,14 +77,14 @@ export default async function KassePage() {
         </div>
       </Card>
 
-      {/* Aktionen — kompakte Chips, nur die angetippte klappt auf */}
+      {/* Aktionen, kompakte Chips, nur die angetippte klappt auf */}
       <AktionsChips
         aktionen={[
           {
             key: 'melden',
             chip: '⚖️ Melden',
-            titel: '⚖️ Na, des kost a Hoibe!',
-            erfolgText: '✓ Gmeldt — des zahlt er in Hoibe! 🍺',
+            titel: 'Na, des kost a Hoibe!',
+            erfolgText: '✓ Gmeldt, des zahlt er in Hoibe!',
             submitLabel: 'Melden',
             submitVariant: 'danger',
             action: melden,
@@ -101,7 +101,7 @@ export default async function KassePage() {
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: 13, fontWeight: 700, color: 'var(--ink-700)', marginBottom: 6 }}>
-                    Was hat er o’gstellt? — frei formulieren
+                    Was hat er o’gstellt?, frei formulieren
                   </label>
                   <input
                     name="grund"
@@ -136,8 +136,8 @@ export default async function KassePage() {
           {
             key: 'spenden',
             chip: '💝 Spenden',
-            titel: '🍺 Hoibe eini schmeißen (Spende)',
-            erfolgText: '💝 Vergelt’s Gott — auf d’Hüttn gspart! 🏔️',
+            titel: 'Hoibe eini schmeißen (Spende)',
+            erfolgText: '✓ Vergelt’s Gott, auf d’Hüttn gspart!',
             submitLabel: 'Hoibe spenden',
             submitVariant: 'gold',
             action: spenden,
@@ -151,7 +151,7 @@ export default async function KassePage() {
                   min="1"
                   max="99"
                   defaultValue="1"
-                  hint={`1 Hoibe = ${hoibePreis} € — jede Hoibe bringt uns der Hüttn näher`}
+                  hint={`1 Hoibe = ${hoibePreis} €, jede Hoibe bringt uns der Hüttn näher`}
                   required
                 />
                 <Input label="Anlass (optional)" name="grund" placeholder="z. B. Geburtstag, guade Laune, Aufstiegsfeier…" />
@@ -161,8 +161,8 @@ export default async function KassePage() {
           {
             key: 'auslage',
             chip: '💶 Auslage',
-            titel: '💶 Auslage für’n Verein eintragen',
-            erfolgText: '✓ Eingetragen — der Verein dankt dir! 🙏',
+            titel: 'Auslage für’n Verein eintragen',
+            erfolgText: '✓ Eingetragen, der Verein dankt dir!',
             submitLabel: 'Eintragen',
             submitVariant: 'secondary',
             action: auslage,
@@ -171,7 +171,7 @@ export default async function KassePage() {
                 <Input label="Wofür" name="grund" placeholder="z. B. Hosting-Server, Domain wirtschaftln.de…" required />
                 <Input label="Betrag (€)" name="betrag" type="number" step="0.01" min="0.01" required />
                 <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink-500)' }}>
-                  Wennst privat was für’n Verein zahlt hast — steht dann mit deim Namen als Minus im Kassenbuch.
+                  Wennst privat was für’n Verein zahlt hast, steht dann mit deim Namen als Minus im Kassenbuch.
                 </div>
               </>
             ),
@@ -181,8 +181,8 @@ export default async function KassePage() {
                 {
                   key: 'einzahlung',
                   chip: '🍻 Einzahlung',
-                  titel: '🍻 Einzahlung eintragen (Kassenwart)',
-                  erfolgText: '✓ Eingetragen — vergelt’s Gott!',
+                  titel: 'Einzahlung eintragen (Kassenwart)',
+                  erfolgText: '✓ Eingetragen, vergelt’s Gott!',
                   submitLabel: 'Eintragen',
                   action: einzahlung,
                   felder: (
@@ -198,7 +198,7 @@ export default async function KassePage() {
                       <Input label="Grund" name="grund" placeholder="z. B. Hüttn-Sparbeitrag, Wiesn-Topf…" />
                       <Input label="Betrag (€)" name="betrag" type="number" step="0.50" min="0.50" required />
                       <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink-500)' }}>
-                        Bar zahlte Strafe? Ned extra buchen — im Kassenbuch einfach auf ✓ beglichen setzen (steht scho im Saldo).
+                        Bar zahlte Strafe? Ned extra buchen, im Kassenbuch einfach auf ✓ beglichen setzen (steht scho im Saldo).
                       </div>
                     </>
                   ),
@@ -206,7 +206,7 @@ export default async function KassePage() {
                 {
                   key: 'ausgabe',
                   chip: '🧾 Ausgabe',
-                  titel: '🧾 Ausgabe buchen (Kassenwart)',
+                  titel: 'Ausgabe buchen (Kassenwart)',
                   erfolgText: '✓ Ausgabe bucht.',
                   submitLabel: 'Buchen',
                   submitVariant: 'secondary',
@@ -223,21 +223,21 @@ export default async function KassePage() {
         ]}
       />
 
-      {/* Bewegungen — alles aus Kassen-Perspektive: Plus kimmt eini, Minus geht außi */}
+      {/* Bewegungen, alles aus Kassen-Perspektive: Plus kimmt eini, Minus geht außi */}
       <SectionHeader eyebrow="Kassenbuch" title="D’Bewegungen" fraktur />
       <div style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--ink-500)', margin: '-8px 0 0', lineHeight: 1.5 }}>
         Ois aus Sicht vo da Kasse: <b style={{ color: 'var(--erfolg)' }}>Plus</b> kimmt eini, <b style={{ color: 'var(--strafe)' }}>Minus</b> geht außi.
-        Offene Forderungen stehn scho als Plus im Kassenstand — da Kassenwart treibt’s nur no ei.
+        Offene Forderungen stehn scho als Plus im Kassenstand, da Kassenwart treibt’s nur no ei.
       </div>
       <Card pad={12}>
         {eintraege.length === 0 && (
           <div style={{ padding: 12, fontSize: 13, fontWeight: 600, color: 'var(--ink-500)', textAlign: 'center' }}>
-            No koane Bewegungen — brav seid’s. 😇
+            No koane Bewegungen, brav seid’s.
           </div>
         )}
         {eintraege.map(({ eintrag, member, melder, termin, wirtshaus }, i) => {
           const istForderung = eintrag.kind === 'strafe';
-          // Kassen-Perspektive: a Forderung is a Plus für d'Kasse — „offen" heißt nur, da Kassenwart hat's no ned kassiert
+          // Kassen-Perspektive: a Forderung is a Plus für d'Kasse, „offen" heißt nur, da Kassenwart hat's no ned kassiert
           const anzeigeCents = istForderung ? Math.abs(eintrag.betragCents) : eintrag.betragCents;
           const betragFarbe =
             eintrag.status === 'aufgehoben' ? 'var(--ink-300)'
@@ -247,7 +247,7 @@ export default async function KassePage() {
           const details = [
             datumKurz((termin?.datum ?? eintrag.createdAt).slice(0, 10)),
             wirtshaus ? `📍 ${wirtshaus.name}` : null,
-            istForderung ? (melder ? `⚖️ gmeldt vom ${anzeigeName(melder)}` : '🤖 von der App erfasst') : melder && melder.id !== eintrag.memberId ? `bucht vom ${anzeigeName(melder)}` : null,
+            istForderung ? (melder ? `gmeldt vom ${anzeigeName(melder)}` : 'von der App erfasst') : melder && melder.id !== eintrag.memberId ? `bucht vom ${anzeigeName(melder)}` : null,
           ].filter(Boolean);
           return (
             <div
@@ -277,7 +277,7 @@ export default async function KassePage() {
                 </div>
                 {istForderung && eintrag.status === 'aufgehoben' && (
                   <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--gold-700)', marginTop: 2 }}>
-                    👑 vom Präsidenten erlassen — kimmt nix eini
+                    👑 vom Präsidenten erlassen, kimmt nix eini
                   </div>
                 )}
                 {istForderung && (darfKasse || darfErlassen) && (

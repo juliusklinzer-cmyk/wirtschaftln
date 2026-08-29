@@ -1,13 +1,13 @@
 'use client';
 
 import { useState } from 'react';
-import { PTS } from '@/lib/punkte';
+import { KlappenKopf } from '@/components/ds';
 import { AbschlussForm, type AbschlussWerte, type AbschlussMitglied } from './abschluss-form';
 
 /**
- * Klappe fürs Bewerten/Verfeinern des letzten Besuchs: schließt sich nach dem
- * Speichern von selbst und bedankt sich — mit „+1 WP", wenn grad frisch a
- * Bewertungs-Text dazukommen is.
+ * Klappe fürs Nachtragen der Abend-Logistik (wer da war, Hoibe, Runden …):
+ * schließt sich nach dem Speichern von selbst und bedankt sich. D'Bewertung
+ * läuft getrennt über „Mei Bewertung".
  */
 export function NachtragKlappe({
   titel,
@@ -25,13 +25,7 @@ export function NachtragKlappe({
 
   const speichern = async (formData: FormData) => {
     await action(formData);
-    const textJetzt = String(formData.get('kommentar') ?? '').trim();
-    const textVorher = initial?.kommentar?.trim() ?? '';
-    setDanke(
-      textJetzt && !textVorher
-        ? `✍️ +${PTS.bewertungsText} WP für dei Bewertung — vergelt’s Gott!`
-        : '✓ Gspeichert — vergelt’s Gott!',
-    );
+    setDanke('✓ Gspeichert, vergelt’s Gott!');
     setOffen(false);
   };
 
@@ -48,12 +42,10 @@ export function NachtragKlappe({
           borderRadius: 'var(--r-lg)', boxShadow: 'var(--sh-sm)', overflow: 'hidden',
         }}
       >
-        <summary style={{ padding: '14px 18px', fontSize: 15, fontWeight: 800, color: 'var(--ink-900)', cursor: 'pointer', listStyle: 'none', userSelect: 'none' }}>
-          {titel}
-        </summary>
+        <KlappenKopf>{titel}</KlappenKopf>
         <div style={{ padding: '4px 18px 18px' }}>
           <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink-500)', marginBottom: 12 }}>
-            Dei Bewertung mit am Text ausgschmückt gibt <b>+{PTS.bewertungsText} WP</b>.
+            Hoibe, Runden, wer da war, wenn was fehlt, trag’s nach. Bewertet wird oben bei „Mei Bewertung“.
           </div>
           <AbschlussForm mitglieder={mitglieder} action={speichern} initial={initial} submitLabel="Änderungen speichern" />
         </div>

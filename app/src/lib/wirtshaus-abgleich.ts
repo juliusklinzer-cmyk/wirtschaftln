@@ -1,5 +1,5 @@
 /**
- * Unscharfer Wirtshaus-Namensabgleich — EINE Logik für die Warnung in der
+ * Unscharfer Wirtshaus-Namensabgleich, EINE Logik für die Warnung in der
  * Suche (Client) und die harte Regel beim Vorschlagen (Server):
  * „Max Emanuel Brauerei Wirtshaus und Biergarten" trifft auch „Max Emanuel".
  */

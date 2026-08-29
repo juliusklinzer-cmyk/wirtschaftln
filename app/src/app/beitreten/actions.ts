@@ -27,7 +27,7 @@ let gesperrtBis = 0;
 
 /**
  * Gründungsmitglied werden: Code aus der WhatsApp-Gruppe + Name + E-Mail.
- * Der Account startet als Erstanmeldung — Passwort setzen + Profil ausfüllen
+ * Der Account startet als Erstanmeldung, Passwort setzen + Profil ausfüllen
  * passiert direkt danach auf /profil, dann geht’s eini in d’App.
  */
 export async function beitreten(_prev: BeitrittState, formData: FormData): Promise<BeitrittState> {
@@ -36,22 +36,22 @@ export async function beitreten(_prev: BeitrittState, formData: FormData): Promi
   const vorname = String(formData.get('vorname') ?? '').trim();
   const email = String(formData.get('email') ?? '').trim().toLowerCase();
 
-  if (!gruendungscode()) return { error: 'D’Aufnahme is grad zua — meld di beim Julius.' };
-  if (Date.now() < gesperrtBis) return { error: 'Z’viele Fehlversuche — probier’s in a Viertelstund nomoi.' };
+  if (!gruendungscode()) return { error: 'D’Aufnahme is grad zua, meld di beim Julius.' };
+  if (Date.now() < gesperrtBis) return { error: 'Z’viele Fehlversuche, probier’s in a Viertelstund nomoi.' };
   if (code !== gruendungscode()) {
     fehlversuche += 1;
     if (fehlversuche >= MAX_FEHLVERSUCHE) {
       gesperrtBis = Date.now() + SPERRE_MS;
       fehlversuche = 0;
     }
-    return { error: 'Der Gründungscode stimmt ned — schau nomoi in d’Gruppe.' };
+    return { error: 'Der Gründungscode stimmt ned, schau nomoi in d’Gruppe.' };
   }
   fehlversuche = 0;
 
   if (!vorname || !nachname) return { error: 'Bitte Vor- und Nachname eintragen.' };
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return { error: 'Des schaut ned nach einer E-Mail aus.' };
   if (db.select().from(members).where(eq(members.email, email)).get()) {
-    return { error: 'Mit der E-Mail gibt’s scho an Account — probier di einfach anzumelden.' };
+    return { error: 'Mit der E-Mail gibt’s scho an Account, probier di einfach anzumelden.' };
   }
 
   const id = newId('m');
@@ -62,7 +62,7 @@ export async function beitreten(_prev: BeitrittState, formData: FormData): Promi
       vorname,
       nachname,
       email,
-      // Zufalls-Hash als Platzhalter — das echte Passwort setzt der Spezl
+      // Zufalls-Hash als Platzhalter, das echte Passwort setzt der Spezl
       // gleich selbst (Erstanmeldung erzwingt es auf /profil)
       passwordHash: hashPassword(randomBytes(24).toString('hex')),
       role: 'mitglied',

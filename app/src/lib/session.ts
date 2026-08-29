@@ -24,7 +24,7 @@ export async function createSession(memberId: string) {
 
 /**
  * Erstanmeldung erzwingen: solange Passwort/Profil nicht gesetzt sind, führt
- * jede Seite auf /profil (dort selbst nicht aufrufen — sonst Redirect-Schleife).
+ * jede Seite auf /profil (dort selbst nicht aufrufen, sonst Redirect-Schleife).
  */
 export function erzwingeProfil(me: { erstanmeldung: boolean } | null) {
   // Ohne Session rendert die Seite parallel zum Login-Redirect des Layouts —

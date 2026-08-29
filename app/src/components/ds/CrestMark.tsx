@@ -1,5 +1,5 @@
 /**
- * Wirtschaftln — CrestMark
+ * Wirtschaftln, CrestMark
  * Typografisches Lockup: Wortmarke in Fraktur + Motto.
  * `crest` (img src) stellt das Wappen voran. `tone`:
  * 'gold' (auf dunkel) | 'navy' (auf hell) | 'mono'.

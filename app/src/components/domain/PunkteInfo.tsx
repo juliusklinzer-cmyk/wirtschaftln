@@ -1,10 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import { PTS, WACKELT_AB_UNENTSCHULDIGT, anwesenheitsBonus, entschuldigtMalus, unentschuldigtMalus } from '@/lib/punkte';
+import { PTS, WACKELT_AB_UNENTSCHULDIGT, ABSCHLUSS_SPERRE_STUNDEN, anwesenheitsBonus, entschuldigtMalus, unentschuldigtMalus } from '@/lib/punkte';
 
 /**
- * „Punktesystem" — Aufklärung im Urkunden-Stil (Rauten-Band, Fraktur, Gold).
+ * „Punktesystem", Aufklärung im Urkunden-Stil (Rauten-Band, Fraktur, Gold).
  * Werte und Staffeln kommen aus lib/punkte.ts, damit die Erklärung nie von
  * den echten Regeln abweicht.
  */
@@ -26,23 +26,22 @@ export function PunkteInfo() {
       </button>
 
       {offen && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 70, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+        <div style={{ position: 'fixed', inset: 0, zIndex: 70, overflowY: 'auto', overscrollBehavior: 'contain', background: 'var(--weiss)', animation: 'wnPunkteRein 240ms ease-out both' }}>
           <style>{`
-            @keyframes wnPunkteRein { from { transform: translateY(26px) scale(0.97); opacity: 0; } to { transform: translateY(0) scale(1); opacity: 1; } }
+            @keyframes wnPunkteRein { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
             @keyframes wnPunkteZeile { from { transform: translateY(8px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
           `}</style>
-          <div onClick={() => setOffen(false)} style={{ position: 'absolute', inset: 0, background: 'rgba(7,25,58,0.6)', backdropFilter: 'blur(2px)' }} />
-          <div style={{ position: 'relative', width: '100%', maxWidth: 360, maxHeight: '86dvh', overflowY: 'auto', background: 'var(--weiss)', borderRadius: 'var(--r-xl)', boxShadow: 'var(--sh-lg)', animation: 'wnPunkteRein 320ms cubic-bezier(0.32, 0.72, 0, 1) both' }}>
+          <div style={{ minHeight: '100%', display: 'flex', flexDirection: 'column' }}>
             {/* Kopf: Navy-Zeremonie mit Rauten-Band */}
-            <div style={{ position: 'relative', background: 'var(--grad-navy)', borderRadius: 'var(--r-xl) var(--r-xl) 0 0', overflow: 'hidden' }}>
+            <div style={{ position: 'relative', background: 'var(--grad-navy)', overflow: 'hidden' }}>
               <div className="wn-raute wn-raute--sm" style={{ height: 7 }} />
-              <button onClick={() => setOffen(false)} aria-label="Schließen" style={{ position: 'absolute', top: 15, right: 12, width: 30, height: 30, borderRadius: '50%', border: 'none', background: 'rgba(255,255,255,0.16)', color: '#fff', fontSize: 16, fontWeight: 800, cursor: 'pointer' }}>
+              <button onClick={() => setOffen(false)} aria-label="Schließen" className="wn-press" style={{ position: 'absolute', top: 'calc(12px + env(safe-area-inset-top))', right: 12, width: 34, height: 34, borderRadius: '50%', border: '1px solid rgba(255,255,255,0.28)', background: 'rgba(255,255,255,0.14)', color: '#fff', fontSize: 17, fontWeight: 800, cursor: 'pointer', zIndex: 2 }}>
                 ×
               </button>
-              <div style={{ padding: '16px 20px 16px', textAlign: 'center' }}>
-                <div style={{ fontFamily: 'var(--font-fraktur)', fontSize: 28, color: 'var(--gold-bright)', lineHeight: 1.1 }}>D’Wirtschaftln-Punkte</div>
+              <div style={{ padding: 'calc(22px + env(safe-area-inset-top)) 20px 18px', textAlign: 'center' }}>
+                <div style={{ fontFamily: 'var(--font-fraktur)', fontSize: 32, color: 'var(--gold-bright)', lineHeight: 1.1 }}>D’Wirtschaftln-Punkte</div>
                 <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--pergament)', opacity: 0.85, marginTop: 5 }}>
-                  Wer wann WP kriagt — und wann’s weniger werden.
+                  Wer wann WP kriagt, und wann’s weniger werden.
                   <br />
                   Einmal verdient bleibt verdient.
                 </div>
@@ -50,7 +49,7 @@ export function PunkteInfo() {
             </div>
             <div style={{ height: 1.5, background: 'linear-gradient(90deg, transparent, var(--gold), transparent)' }} />
 
-            <div style={{ padding: '16px 18px 0' }}>
+            <div style={{ flex: 1, width: '100%', maxWidth: 420, margin: '0 auto', padding: '16px 18px 0' }}>
               <div style={{ animation: 'wnPunkteZeile 320ms 80ms ease-out both' }}>
                 <Ueberschrift text="So gibt’s Punkte" />
                 <Zeile icon="🎟️" text="Beim Stammtisch dabei" wp={`+${PTS.teilnahme}`} />
@@ -58,16 +57,18 @@ export function PunkteInfo() {
                 <Zeile icon="🚕" text="Gfahren & Spezln mitgnommen" wp={`+${PTS.taxi}`} />
                 <Zeile icon="🍻" text="A Runde gschmissen" wp={`+${PTS.runde}`} />
                 <Zeile icon="🗳️" text="Rechtzeitig zu- oder abgsagt (bis 3 Tag vorher)" wp={`+${PTS.abstimmen}`} />
+                <Zeile icon="🪑" text="Als Erster im Wirtshaus eingecheckt" wp={`+${PTS.checkin}`} />
                 <Zeile icon="📍" text="Wirtshaus vorgschlagen (+1 extra, wenn’s besucht wird)" wp={`+${PTS.vorschlag}`} />
-                <Zeile icon="✍️" text="Bewertung mit Text gschrieben" wp={`+${PTS.bewertungsText}`} />
-                <Zeile icon="✅" text="Als Erster den Abend abgschlossen" wp={`+${PTS.abschluss}`} />
-                <Zeile icon="📋" text="Organisiert — je nach Sterne-Schnitt vom Abend" wp={`0–${PTS.orgaMax}`} letzte />
+                <Zeile icon="⭐" text="Eigene Bewertung zum Abend abgeben" wp={`+${PTS.bewertung}`} />
+                <Zeile icon="✍️" text="… mit am Text ausgschmückt" wp={`+${PTS.bewertungsText}`} />
+                <Zeile icon="✅" text={`Als Erster den Abend abgschlossen (ab ${ABSCHLUSS_SPERRE_STUNDEN} Std. nach Beginn)`} wp={`+${PTS.abschluss}`} />
+                <Zeile icon="📋" text="Organisiert, je nach Sterne-Schnitt vom Abend" wp={`0–${PTS.orgaMax}`} letzte />
               </div>
 
               <div style={{ animation: 'wnPunkteZeile 320ms 160ms ease-out both' }}>
-                <Ueberschrift text="🔥 D’Serie — dei Bonus" abstand />
+                <Ueberschrift text="🔥 D’Serie, dei Bonus" abstand />
                 <div style={erklaerText}>
-                  Ab dem zweiten Abend in Folge gibt’s je Abend an Extra-Bonus — ohne Deckel, und er bleibt dir <b>für immer</b>. A Riss beendet nur die Serie, nimmt dir aber nix weg.
+                  Ab dem zweiten Abend in Folge gibt’s je Abend an Extra-Bonus, ohne Deckel, und er bleibt dir <b>für immer</b>. A Riss beendet nur die Serie, nimmt dir aber nix weg.
                 </div>
                 <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
                   {[2, 3, 5, 10].map((s) => (
@@ -77,7 +78,7 @@ export function PunkteInfo() {
               </div>
 
               <div style={{ animation: 'wnPunkteZeile 320ms 240ms ease-out both' }}>
-                <Ueberschrift text="📅 Absagen — sauber glöst" abstand />
+                <Ueberschrift text="📅 Absagen, sauber glöst" abstand />
                 <div style={erklaerText}>
                   Wer <b>absagt</b>, is entschuldigt. Die erste Absage kost’ nix, dann wird’s in Folge teurer:
                 </div>
@@ -94,7 +95,7 @@ export function PunkteInfo() {
               </div>
 
               <div style={{ animation: 'wnPunkteZeile 320ms 320ms ease-out both' }}>
-                <Ueberschrift text="🥶 Unentschuldigt — des werd teuer" abstand />
+                <Ueberschrift text="🥶 Unentschuldigt, des werd teuer" abstand />
                 <div style={erklaerText}>
                   <b>Koa Stimme und ned da</b> (oder zugsagt und ned kemma) = unentschuldigt:
                 </div>
@@ -104,26 +105,39 @@ export function PunkteInfo() {
                   ))}
                 </div>
                 <div style={{ ...erklaerText, marginTop: 8 }}>
-                  ⚠️ Beim {WACKELT_AB_UNENTSCHULDIGT}. unentschuldigten Fehlen in Folge <b>wackelst</b> — und a <b>Strafrunde</b> is fällig (Teilnehmer × Bräustüberl-Hoibe). Wieder dabei sein setzt alles zurück.
+                  ⚠️ Beim {WACKELT_AB_UNENTSCHULDIGT}. unentschuldigten Fehlen in Folge <b>wackelst</b>, und a <b>Strafrunde</b> is fällig (Teilnehmer × Bräustüberl-Hoibe). Wieder dabei sein setzt alles zurück.
                 </div>
               </div>
 
-              <div style={{ animation: 'wnPunkteZeile 320ms 400ms ease-out both', paddingBottom: 16 }}>
+              <div style={{ animation: 'wnPunkteZeile 320ms 380ms ease-out both' }}>
+                <Ueberschrift text="So läuft a Abend" abstand />
+                <div style={erklaerText}>
+                  🙋 <b>D’Orga schnappt sich, wer mag</b> („I regle das!“). Nur wer den letzten Stammtisch organisiert hat, setzt aus.
+                  <br />
+                  ⭐ <b>Bewertet wird einzeln:</b> Jeder gibt sei eigene Wertung ab (bis 7 Tag nach’m Abschluss), aus allen zusammen wird d’Tages-Wertung. Kaisi & Brodn bewertet nur, wer selber probiert hat.
+                  <br />
+                  ✅ <b>Abgschlossen</b> wird frühestens {ABSCHLUSS_SPERRE_STUNDEN} Stunden nach Beginn, und nur no d’Logistik (wer da war, Hoibe, Runden).
+                  <br />
+                  🪑 <b>Einchecken:</b> ab 2 Stund’ vor Beginn auf der Startseite, der Erste sagt, wo ihr hockts.
+                </div>
+              </div>
+
+              <div style={{ animation: 'wnPunkteZeile 320ms 440ms ease-out both', paddingBottom: 16 }}>
                 <Ueberschrift text="Guat zum Wissen" abstand />
                 <div style={erklaerText}>
-                  💶 Geldstrafen (Strafrunde, zugsagt & ned kemma) laufen über d’Kasse — die kosten <b>Geld, koane WP</b>, und WP kann ma ned zum Zahlen hernehmen.
+                  💶 Geldstrafen (Strafrunde, zugsagt & ned kemma) laufen über d’Kasse, die kosten <b>Geld, koane WP</b>, und WP kann ma ned zum Zahlen hernehmen.
                   <br />
-                  🍺🏠 Hoibe- und Wirtshäuser-Ranglisten sind eigene Wertungen ohne Punkte — zählen tut die <b>Gesamt-Wertung (WP)</b>.
+                  🍺🏠 Hoibe- und Wirtshäuser-Ranglisten sind eigene Wertungen ohne Punkte, zählen tut die <b>Gesamt-Wertung (WP)</b>.
                   <br />
-                  📅 <b>Saison</b> zählt ab 1.7. bzw. 1.1. — d’Serie läuft immer über die ganze Chronik weiter.
+                  📅 <b>Saison</b> zählt ab 1.7. bzw. 1.1., d’Serie läuft immer über die ganze Chronik weiter.
                   <br />
-                  📜 Nachbewertungen von alte Wirtshäuser bringen <b>koane</b> Punkte — nur Ruhm in der Sterne-Wertung.
+                  📜 Nachbewertungen von alte Wirtshäuser bringen <b>koane</b> Punkte, nur Ruhm in der Sterne-Wertung.
                 </div>
               </div>
             </div>
 
             {/* Rauten-Band als Abschluss der Urkunde */}
-            <div className="wn-raute wn-raute--sm" style={{ height: 7 }} />
+            <div className="wn-raute wn-raute--sm" style={{ height: 7, marginBottom: 'env(safe-area-inset-bottom)' }} />
           </div>
         </div>
       )}

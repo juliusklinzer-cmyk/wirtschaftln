@@ -112,7 +112,7 @@ export default async function LoginPage() {
                 textDecoration: 'none',
               }}
             >
-              🍻 Gründungsmitglied werden
+              Gründungsmitglied werden
             </a>
             <div style={{ fontSize: 11, fontWeight: 500, color: 'var(--ink-300)', marginTop: 10 }}>
               Aufnahme nur mitm Code aus der Wirtshaus-Gruppe.

@@ -32,7 +32,7 @@ async function senden(subs: Array<typeof pushSubscriptions.$inferSelect>, titel:
 
 export async function pushAnAlle(titel: string, text: string, url = '/'): Promise<void> {
   if (!konfiguriert()) {
-    console.log(`[push übersprungen — keine VAPID-Keys] ${titel}`);
+    console.log(`[push übersprungen, keine VAPID-Keys] ${titel}`);
     return;
   }
   await senden(db.select().from(pushSubscriptions).all(), titel, text, url);

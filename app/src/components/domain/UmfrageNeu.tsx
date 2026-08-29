@@ -1,22 +1,20 @@
 'use client';
 
 import { useRef, useState } from 'react';
-import { Button, Input } from '@/components/ds';
+import { Button, Input, KlappenKopf } from '@/components/ds';
 import { umfrageStarten } from '@/app/(app)/umfragen/actions';
 
 const MAX_ANTWORTEN = 6;
 const BUCHSTABEN = ['A', 'B', 'C', 'D', 'E', 'F'];
 
-/** Umfrage starten — darf jeder: Frage, Antwort A/B und bei Bedarf mehr. */
+/** Umfrage starten, darf jeder: Frage, Antwort A/B und bei Bedarf mehr. */
 export function UmfrageNeu() {
   const formRef = useRef<HTMLFormElement>(null);
   const [anzahl, setAnzahl] = useState(2);
 
   return (
     <details style={{ background: 'var(--weiss)', border: '1px solid var(--ink-100)', borderRadius: 'var(--r-lg)', boxShadow: 'var(--sh-sm)', overflow: 'hidden' }}>
-      <summary style={{ padding: '14px 18px', fontSize: 15, fontWeight: 800, color: 'var(--ink-900)', cursor: 'pointer', listStyle: 'none', userSelect: 'none' }}>
-        🗳️ Umfrage starten
-      </summary>
+      <KlappenKopf>Umfrage starten</KlappenKopf>
       <div style={{ padding: '4px 18px 18px' }}>
         <form
           ref={formRef}
@@ -44,7 +42,7 @@ export function UmfrageNeu() {
             Umfrage starten
           </Button>
           <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink-500)' }}>
-            Steht dann für alle auf der Startseite — jeder Spezl hat a Stimme.
+            Steht dann für alle auf der Startseite, jeder Spezl hat a Stimme.
           </div>
         </form>
       </div>

@@ -11,7 +11,7 @@ import type { BekanntesWirtshaus } from '@/lib/wirtshaus-abgleich';
 
 /**
  * „Wirtshaus gfunden?"-Formular: nach dem Eintragen gibt's die Erfolgsmeldung
- * mit +1-WP-Animation, das Suchfeld wird geleert — und oben in der Header-Pill
+ * mit +1-WP-Animation, das Suchfeld wird geleert, und oben in der Header-Pill
  * zählt der Punkt direkt mit hoch (die Seite lädt die Stats frisch).
  * Lehnt der Server ab (scho bsucht / scho vorgschlagen), bleibt die Eingabe
  * stehen und es kommt a rote Meldung statt der +WP-Animation.
@@ -40,17 +40,17 @@ export function WirtshausGfunden({ bekannte }: { bekannte: BekanntesWirtshaus[] 
   return (
     <form action={eintragen} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
       <WirtshausSuche key={suchKey} bekannte={bekannte} />
-      {/* Welches Helle schenken s' aus? Optional — steht dann am offenen Pin dabei */}
+      {/* Welches Helle schenken s' aus? Optional, steht dann am offenen Pin dabei */}
       <input type="hidden" name="w_biersorte" value={biersorte} />
       <BierWahl
         label="Welches Helle gibt's dort? (wenn'st es woaßt)"
         biere={HELLE_WAHL}
         value={biersorte}
         onChange={setBiersorte}
-        leerLabel="Woaß i ned — samma gspannt"
+        leerLabel="Woaß i ned, samma gspannt"
       />
       <Button type="submit" fullWidth variant="secondary" disabled={pending}>
-        📍 Auf d’Karte damit
+        Auf d’Karte damit
       </Button>
       {fehler && (
         <div
@@ -77,7 +77,7 @@ export function WirtshausGfunden({ bekannte }: { bekannte: BekanntesWirtshaus[] 
               animation: 'wnDankeRein 400ms cubic-bezier(0.22, 1, 0.36, 1) both',
             }}
           >
-            ✓ Steht auf da Kartn — vergelt’s Gott! 🍺
+            ✓ Steht auf da Kartn, vergelt’s Gott! 🍺
           </div>
           <span
             className="wn-tnum"
@@ -92,7 +92,7 @@ export function WirtshausGfunden({ bekannte }: { bekannte: BekanntesWirtshaus[] 
         </div>
       ) : !fehler ? (
         <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink-500)' }}>
-          Steht dann als „Offen“ auf der Karte — gibt <b>+{PTS.vorschlag} WP</b>, und no oan, wenn’s wirklich bsucht wird.
+          Steht dann als „Offen“ auf der Karte, gibt <b>+{PTS.vorschlag} WP</b>, und no oan, wenn’s wirklich bsucht wird.
         </div>
       ) : null}
     </form>

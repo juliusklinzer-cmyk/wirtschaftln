@@ -3,7 +3,7 @@ import nodemailer from 'nodemailer';
 /**
  * Mail-Versand über das Hetzner-Postfach (servus@wirtschaftln.de).
  * Ohne konfiguriertes SMTP_PASSWORD wird der Versand still übersprungen
- * (lokal loggen wir stattdessen) — die App funktioniert auch ohne Mail.
+ * (lokal loggen wir stattdessen), die App funktioniert auch ohne Mail.
  */
 function transporter() {
   const password = process.env.SMTP_PASSWORD;
@@ -20,7 +20,7 @@ export async function mailAn(empfaenger: string[], betreff: string, text: string
   if (empfaenger.length === 0) return;
   const t = transporter();
   if (!t) {
-    console.log(`[mail übersprungen — kein SMTP_PASSWORD] an ${empfaenger.length} Empfänger: ${betreff}`);
+    console.log(`[mail übersprungen, kein SMTP_PASSWORD] an ${empfaenger.length} Empfänger: ${betreff}`);
     return;
   }
   try {

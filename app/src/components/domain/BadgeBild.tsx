@@ -39,7 +39,7 @@ export function BadgeBild({ slug, icon, name, size = 30 }: { slug: string; icon:
 
 /**
  * Serien-Abzeichen in einer Reihe: stehen getrennt von den Saison-Badges,
- * ohne Rahmen und ohne Beschriftung — die Zahl steckt schon im Icon.
+ * ohne Rahmen und ohne Beschriftung, die Zahl steckt schon im Icon.
  */
 export function SerienLeiste({
   serien,
@@ -59,7 +59,7 @@ export function SerienLeiste({
       }}
     >
       {serien.map((a) => (
-        <BadgeBild key={a.ab} slug={`serie-${a.ab}`} icon={a.icon} name={`${a.name} — ${a.ab} Stammtische in Folge`} size={size} />
+        <BadgeBild key={a.ab} slug={`serie-${a.ab}`} icon={a.icon} name={`${a.name}, ${a.ab} Stammtische in Folge`} size={size} />
       ))}
     </span>
   );

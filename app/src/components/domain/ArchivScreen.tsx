@@ -31,7 +31,7 @@ export type ArchivEintrag = {
   organisator: { name: string; photoUrl: string | null } | null;
   /** Spezl, der das Wirtshaus über „Wirtshaus gfunden" vorgeschlagen hat. */
   gfundenVon?: string | null;
-  /** Member-ID des Finders — für den Entfernen-Button im „Offen"-Tab. */
+  /** Member-ID des Finders, für den Entfernen-Button im „Offen"-Tab. */
   gfundenVonId?: string | null;
   rating: number;
   kaiser: number;
@@ -40,7 +40,7 @@ export type ArchivEintrag = {
   teilnehmer: ArchivTeilnehmer[];
   hinweise: ArchivHinweis[];
   naechstes?: boolean;
-  /** Bsucht vor da App-Zeit (Chronik seit 2019) — ohne Termin-/Besuchsdaten. */
+  /** Bsucht vor da App-Zeit (Chronik seit 2019), ohne Termin-/Besuchsdaten. */
   altbestand?: boolean;
   /** Wie viele freiwillige Nachbewertungen im rating mitstecken. */
   nachAnzahl?: number;
@@ -58,7 +58,7 @@ export type ArchivEintrag = {
 /** Bewertung immer mit Kommastelle: 4,6 */
 const dez = (n: number) => n.toLocaleString('de-DE', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 
-// Bewertungen bewusst ohne Emojis — nur der ★ als Sterne-Symbol bleibt
+// Bewertungen bewusst ohne Emojis, nur der ★ als Sterne-Symbol bleibt
 const METRIKEN = {
   rang: { field: 'rating', icon: '★', label: 'STERNE', champ: 'Wirtshaus Nr. 1', heading: 'Alle Wirtshäuser', empty: 'Noch keine Bewertung.' },
   kaiser: { field: 'kaiser', icon: '', label: 'SCHMARRN', champ: 'Schmarrn-König', heading: 'Beste Kaiserschmarrn', empty: 'Noch kein Kaiserschmarrn bewertet.' },
@@ -72,7 +72,7 @@ const MEDAILLE: Record<number, { bg: string; fg: string }> = {
   3: { bg: 'linear-gradient(135deg,#E0A267,#C9853F)', fg: '#fff' },
 };
 
-/** Brauerei-Logo auf weißem Rund statt Text-Chip — antippen/hovern zeigt den vollen Namen. */
+/** Brauerei-Logo auf weißem Rund statt Text-Chip, antippen/hovern zeigt den vollen Namen. */
 function BiersorteChip({ sorte, hell = false }: { sorte: string; hell?: boolean }) {
   const logo = bierLogo(sorte);
   if (logo) {
@@ -111,14 +111,14 @@ export function ArchivScreen({
   ich,
 }: {
   eintraege: ArchivEintrag[];
-  /** Eingeloggter Spezl — darfModerieren = Admin oder aktueller Präsident. */
+  /** Eingeloggter Spezl, darfModerieren = Admin oder aktueller Präsident. */
   ich: { id: string; darfModerieren: boolean };
 }) {
   const [view, setView] = useState<'karte' | 'offen' | MetrikKey>('karte');
   const [idx, setIdx] = useState(0);
   const [detail, setDetail] = useState<{ e: ArchivEintrag; rank: number | null } | null>(null);
 
-  // Altbestand zählt als besucht (Chronik) — rankt aber nur mit Nachbewertungen (> 0 Sterne)
+  // Altbestand zählt als besucht (Chronik), rankt aber nur mit Nachbewertungen (> 0 Sterne)
   const besucht = eintraege.filter((e) => e.besuchtAm || e.altbestand);
   // Offene Vorschläge: no ned besucht, koa nächster Termin, koa Altbestand
   const offene = eintraege.filter((e) => !e.besuchtAm && !e.naechstes && !e.altbestand);
@@ -187,14 +187,14 @@ export function ArchivScreen({
         {detail && <DetailModal e={detail.e} rank={detail.rank} onClose={() => setDetail(null)} />}
         {eintraege.length === 0 && (
           <div style={{ position: 'absolute', left: 16, right: 16, bottom: 20, zIndex: 5, background: 'var(--weiss)', borderRadius: 'var(--r-lg)', padding: 16, boxShadow: 'var(--sh-lg)', textAlign: 'center', fontSize: 13, fontWeight: 600, color: 'var(--ink-500)' }}>
-            Sobald a Wirtshaus abgeschlossen is’, erscheint’s hier auf der Karte. 🗺️
+            Sobald a Wirtshaus abgeschlossen is’, erscheint’s hier auf der Karte.
           </div>
         )}
       </div>
     );
   }
 
-  /* ── OFFEN: alle vorgeschlagenen Wirtshäuser — mit Entfernen für Admin/Präsi/Finder ── */
+  /* ── OFFEN: alle vorgeschlagenen Wirtshäuser, mit Entfernen für Admin/Präsi/Finder ── */
   if (view === 'offen') {
     return (
       <div style={{ padding: '12px 16px 24px', display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -213,7 +213,7 @@ export function ArchivScreen({
           <span className="wn-tnum" style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink-500)' }}>({offene.length})</span>
         </div>
         <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink-500)', margin: '-8px 2px 0' }}>
-          Entfernen dürfen Admin, Präsident und der Finder selbst — der Vorschlags-WP geht dann wieder weg.
+          Entfernen dürfen Admin, Präsident und der Finder selbst, der Vorschlags-WP geht dann wieder weg.
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -222,7 +222,7 @@ export function ArchivScreen({
           ))}
           {offene.length === 0 && (
             <div style={{ textAlign: 'center', padding: '30px 16px', color: 'var(--ink-500)', fontSize: 14, fontWeight: 600 }}>
-              Koane offenen Vorschläge — wer a Wirtshaus gfunden hat, trägt’s auf der Heim-Seite ein. 📍
+              Koane offenen Vorschläge, wer a Wirtshaus gfunden hat, trägt’s auf der Heim-Seite ein.
             </div>
           )}
         </div>
@@ -239,7 +239,7 @@ export function ArchivScreen({
 
   return (
     <div style={{ padding: '12px 16px 24px', display: 'flex', flexDirection: 'column', gap: 14 }}>
-      {/* Sticky-Ansichts-Wechsel — wie der Filter auf der Rangliste */}
+      {/* Sticky-Ansichts-Wechsel, wie der Filter auf der Rangliste */}
       <div
         style={{
           position: 'sticky', top: 0, zIndex: 15,
@@ -396,7 +396,7 @@ function OffenerVorschlag({ e, ich }: { e: ArchivEintrag; ich: { id: string; dar
       setNachfrage(false);
       setMeldung(
         ergebnis.ok
-          ? { ok: true, text: `✓ „${e.name}“ is von der Karte — der Vorschlags-WP is wieder weg.` }
+          ? { ok: true, text: `✓ „${e.name}“ is von der Karte, der Vorschlags-WP is wieder weg.` }
           : { ok: false, text: ergebnis.meldung ?? 'Hat ned klappt.' },
       );
     });
@@ -551,7 +551,7 @@ function RankedCard({
   );
 }
 
-/* ── Detail-Dialog: Stats, wer dabei war, Hinweise — auch von der Chronik (Termin-Seite) genutzt ── */
+/* ── Detail-Dialog: Stats, wer dabei war, Hinweise, auch von der Chronik (Termin-Seite) genutzt ── */
 export function DetailModal({ e, rank, onClose }: { e: ArchivEintrag; rank: number | null; onClose: () => void }) {
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 60, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
@@ -586,7 +586,7 @@ export function DetailModal({ e, rank, onClose }: { e: ArchivEintrag; rank: numb
             <BiersorteChip sorte={e.biersorte} hell />
           </div>
         </div>
-        {/* Gold-Haarlinie als Zeremonie-Trenner — wie im Spezl-Detail */}
+        {/* Gold-Haarlinie als Zeremonie-Trenner, wie im Spezl-Detail */}
         <div style={{ height: 1.5, background: 'linear-gradient(90deg, transparent, var(--gold), transparent)' }} />
 
         <div style={{ padding: '16px 18px 20px' }}>
@@ -607,7 +607,7 @@ export function DetailModal({ e, rank, onClose }: { e: ArchivEintrag; rank: numb
             </div>
           )}
 
-          {/* Freiwillige Nachbewertung — NUR für Vor-der-App-Wirtshäuser (Chronik).
+          {/* Freiwillige Nachbewertung, NUR für Vor-der-App-Wirtshäuser (Chronik).
               Echte Besuche werden beim Abschluss + in der Nachtragsfrist bewertet, danach is fix. */}
           {e.altbestand && <Nachbewertung wirtshausId={e.id} meine={e.meineBewertung} altbestand />}
 
@@ -634,7 +634,7 @@ export function DetailModal({ e, rank, onClose }: { e: ArchivEintrag; rank: numb
                     <Avatar src={t.photoUrl} name={t.name} size={28} verein={t.verein} />
                     <span style={{ flex: 1, fontSize: 13, fontWeight: 700, color: 'var(--ink-900)', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.name}</span>
                     <span className="wn-tnum" style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink-500)', whiteSpace: 'nowrap' }}>
-                      {t.hoiben} {t.hoiben === 1 ? 'Hoibe' : 'Hoiben'}{t.kaiserschmarrn > 0 && <> · Schmarrn</>}{t.schweinsbraten > 0 && <> · Brodn</>}
+                      {t.hoiben} Hoibe{t.kaiserschmarrn > 0 && <> · Schmarrn</>}{t.schweinsbraten > 0 && <> · Brodn</>}
                     </span>
                   </div>
                 ))}
@@ -659,7 +659,7 @@ export function DetailModal({ e, rank, onClose }: { e: ArchivEintrag; rank: numb
                       )}
                       {h.text}
                     </div>
-                    <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--gold-700)', marginTop: 4 }}>— {h.von}</div>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--gold-700)', marginTop: 4 }}>von {h.von}</div>
                   </div>
                 ))}
               </div>
@@ -673,11 +673,11 @@ export function DetailModal({ e, rank, onClose }: { e: ArchivEintrag; rank: numb
             <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink-500)', marginTop: 14, textAlign: 'center' }}>
               📜 Bsucht vor da App-Zeit · Chronik seit 2019
               <br />
-              <span style={{ fontSize: 11 }}>Sterne zählen in der Wertung — Punkte gibt’s dafür koane.</span>
+              <span style={{ fontSize: 11 }}>Sterne zählen in der Wertung, Punkte gibt’s dafür koane.</span>
             </div>
           )}
         </div>
-        {/* Rauten-Band als Abschluss — wie auf der Spezl-Urkunde */}
+        {/* Rauten-Band als Abschluss, wie auf der Spezl-Urkunde */}
         <div className="wn-raute wn-raute--sm" style={{ height: 7 }} />
       </div>
     </div>
@@ -686,7 +686,7 @@ export function DetailModal({ e, rank, onClose }: { e: ArchivEintrag; rank: numb
 
 /**
  * Freiwillige Nachbewertung (Altbestand oder Wiederbesuch ohne Stammtisch):
- * eigene Sterne + optionaler Kommentar, jederzeit änderbar — bewusst OHNE WP,
+ * eigene Sterne + optionaler Kommentar, jederzeit änderbar, bewusst OHNE WP,
  * damit koaner mit Schmarrn-Bewertungen Punkte sammelt.
  */
 /** ± Stepper für eine Bewertung mit einer Kommastelle, 1,0–5,0 (wie beim Besuch-Abschluss). */
@@ -802,7 +802,7 @@ function Nachbewertung({
       </div>
       {altbestand && !meine && (
         <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink-500)', marginTop: 4 }}>
-          Du warst da scho? Bewert den Klassiker aus der Erinnerung — a Schmarrn und Brodn, wenn’st di erinnerst.
+          Du warst da scho? Bewert den Klassiker aus der Erinnerung, a Schmarrn und Brodn, wenn’st di erinnerst.
         </div>
       )}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginTop: 10 }}>
@@ -812,7 +812,7 @@ function Nachbewertung({
       <input
         value={kommentar}
         onChange={(ev) => { setKommentar(ev.target.value); frisch(); }}
-        placeholder={'Wia is’s gwesen? (optional) — z. B. „Bedienung zach, Bier gscheit kalt“'}
+        placeholder={'Wia is’s gwesen? (optional), z. B. „Bedienung zach, Bier gscheit kalt“'}
         maxLength={500}
         style={notizStyle}
       />
@@ -829,7 +829,7 @@ function Nachbewertung({
           cursor: 'pointer', opacity: pending ? 0.6 : 1,
         }}
       >
-        {gespeichert ? '✓ Gspeichert — vergelt’s Gott!' : meine ? 'Bewertung ändern' : 'Bewertung speichern'}
+        {gespeichert ? '✓ Gspeichert, vergelt’s Gott!' : meine ? 'Bewertung ändern' : 'Bewertung speichern'}
       </button>
     </div>
   );

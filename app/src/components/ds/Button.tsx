@@ -3,7 +3,7 @@
 import { useState } from 'react';
 
 /**
- * Wirtschaftln — Button
+ * Wirtschaftln, Button
  * Varianten: primary (Münchner Blau), gold (zeremonieller CTA),
  * secondary (Outline), ghost, danger (Kasse).
  */

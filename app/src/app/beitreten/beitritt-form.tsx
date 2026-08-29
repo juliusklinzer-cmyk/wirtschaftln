@@ -28,10 +28,10 @@ export function BeitrittForm() {
       )}
 
       <Button type="submit" fullWidth variant="gold" size="lg" disabled={pending}>
-        {pending ? 'Moment…' : '🍻 Gründungsmitglied werden'}
+        {pending ? 'Moment…' : 'Gründungsmitglied werden'}
       </Button>
       <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink-500)', textAlign: 'center' }}>
-        Danach setzt’d dei Passwort und stellst di kurz vor — dann geht’s eini.
+        Danach setzt’d dei Passwort und stellst di kurz vor, dann geht’s eini.
       </div>
     </form>
   );

@@ -15,13 +15,16 @@ import {
   getBekannteWirtshaeuser,
 } from '@/lib/queries';
 import { datumLang, datumKurz } from '@/lib/format';
-import { PTS, rechtzeitigAbgestimmt, berlinTag, bierdeckelOffen } from '@/lib/punkte';
+import { PTS, rechtzeitigAbgestimmt, berlinTag, bierdeckelOffen, abschlussOffen, abschlussAb } from '@/lib/punkte';
 import { nowIso } from '@/lib/ids';
 import { Card, SectionHeader, Avatar, Badge, Button, Input, Icon } from '@/components/ds';
 import { VotePills } from '@/components/domain/VotePills';
-import { neuerTermin, wirtshausFestlegen, phaseSetzen, besuchAbschliessen } from './actions';
+import { neuerTermin, wirtshausFestlegen, phaseSetzen, besuchAbschliessen, meineBewertung, orgaSchnappen } from './actions';
+import { OrgaSchnappen } from './orga-schnappen';
 import { AbschlussForm, type AbschlussWerte } from './abschluss-form';
 import { NachtragKlappe } from './nachtrag-klappe';
+import { MeiBewertung } from '@/components/domain/MeiBewertung';
+import { bewertungsDaten } from '@/lib/bewertungs-daten';
 import { ReservierungAendern } from './reservierung-aendern';
 import { ChronikListe } from '@/components/domain/ChronikListe';
 import { ladeArchivEintraege } from '@/lib/archiv-eintraege';
@@ -46,16 +49,14 @@ function abschlussVorbelegung(
   }
   return {
     rows,
-    sterne: null, kommentar: '',
-    kaisiBestellt: false, kaiserSterne: null, kaiserNotiz: '',
-    brodnSterne: null, brodnNotiz: '',
+    kaisiBestellt: besucheLive.some((b) => b.kaiserschmarrn > 0),
     biersorte: wirtshaus?.biersorte ?? 'Augustiner',
     weissbier: wirtshaus?.weissbier ?? '',
   };
 }
 
 /** Gespeicherten Stand des Abschlusses fürs Nachtragen wieder ins Formular laden. */
-function nachtragInitial(terminId: string, meId: string): AbschlussWerte {
+function nachtragInitial(terminId: string): AbschlussWerte {
   const alleBesuche = getBesucheFuerTermin(terminId);
   const kasseEintraege = getKasseFuerTermin(terminId);
   const { wirtshaus } = getTerminMitWirtshaus(getLetzterAbgeschlossenerTermin()!);
@@ -73,16 +74,9 @@ function nachtragInitial(terminId: string, meId: string): AbschlussWerte {
       rows[b.memberId] = { hoiben: 0, brodn: false, taxi: false, runde: false, abgsagt: true };
     }
   }
-  const mein = alleBesuche.find((b) => b.memberId === meId);
   return {
     rows,
-    sterne: mein?.sterne ?? null,
-    kommentar: mein?.kommentar ?? '',
     kaisiBestellt: alleBesuche.some((b) => b.kaiserschmarrn > 0),
-    kaiserSterne: mein?.kaiserSterne ?? null,
-    kaiserNotiz: mein?.kaiserNotiz ?? '',
-    brodnSterne: mein?.brodnSterne ?? null,
-    brodnNotiz: mein?.brodnNotiz ?? '',
     biersorte: wirtshaus?.biersorte ?? 'Augustiner',
     weissbier: wirtshaus?.weissbier ?? '',
   };
@@ -109,18 +103,32 @@ export default async function TerminPage() {
     : 7;
 
   return (
-    <div style={{ padding: '16px 16px 24px', display: 'flex', flexDirection: 'column', gap: 16 }}>
-      {!termin && <NeuerTerminForm mitglieder={mitglieder} meId={me.id} />}
+    <div className="wn-eintritt" style={{ padding: '16px 16px 24px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+      {!termin && <NeuerTerminForm />}
       {termin && <AktiverTermin terminId={termin.id} meId={me.id} isAdmin={me.role === 'admin'} />}
 
-      {nachtrag && (
-        <NachtragKlappe
-          titel={`✏️ Letzten Besuch${nachtragWirtshaus ? ` im ${nachtragWirtshaus.name}` : ''} bewerten bzw. verfeinern (${datumKurz(nachtrag.datum)}) — no ${nachtragRestTage} ${nachtragRestTage === 1 ? 'Tag' : 'Tag’'} offen`}
-          mitglieder={mitglieder.map((m) => ({ id: m.id, name: anzeigeName(m), photoUrl: m.photoUrl, verein: m.verein, zugesagt: false }))}
-          action={besuchAbschliessen.bind(null, nachtrag.id)}
-          initial={nachtragInitial(nachtrag.id, me.id)}
-        />
-      )}
+      {nachtrag && (() => {
+        const daten = bewertungsDaten(getBesucheFuerTermin(nachtrag.id), me.id);
+        return (
+          <>
+            {/* Mei Bewertung zum letzten Besuch, nur wer dabei war, derf werten */}
+            {daten.mein?.anwesend && (
+              <MeiBewertung
+                wirtshausName={nachtragWirtshaus?.name ?? null}
+                initial={daten.initial}
+                team={daten.team}
+                action={meineBewertung.bind(null, nachtrag.id)}
+              />
+            )}
+            <NachtragKlappe
+              titel={`Letzten Besuch${nachtragWirtshaus ? ` im ${nachtragWirtshaus.name}` : ''} nachtragen (${datumKurz(nachtrag.datum)}), no ${nachtragRestTage} ${nachtragRestTage === 1 ? 'Tag' : 'Tag’'} offen`}
+              mitglieder={mitglieder.map((m) => ({ id: m.id, name: anzeigeName(m), photoUrl: m.photoUrl, verein: m.verein, zugesagt: false }))}
+              action={besuchAbschliessen.bind(null, nachtrag.id)}
+              initial={nachtragInitial(nachtrag.id)}
+            />
+          </>
+        );
+      })()}
 
       {chronik.length > 0 && (
         <>
@@ -132,14 +140,8 @@ export default async function TerminPage() {
   );
 }
 
-/* ---------- Kein aktiver Termin: neuen anlegen ---------- */
-function NeuerTerminForm({
-  mitglieder,
-  meId,
-}: {
-  mitglieder: Array<{ id: string; name: string; spitzname: string | null }>;
-  meId: string;
-}) {
+/* ---------- Kein aktiver Termin: neuen anlegen (typisch: der Abschließer) ---------- */
+function NeuerTerminForm() {
   return (
     <>
       <SectionHeader eyebrow="Auf geht’s" title="Neuer Termin" />
@@ -147,29 +149,13 @@ function NeuerTerminForm({
         <form action={neuerTermin} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           <Input label="Datum" name="datum" type="date" required />
           <Input label="Uhrzeit" name="zeit" type="time" defaultValue="19:00" />
-          <div>
-            <label style={{ display: 'block', fontSize: 13, fontWeight: 700, color: 'var(--ink-700)', marginBottom: 6 }}>
-              Organisiert von
-            </label>
-            <select
-              name="planerId"
-              defaultValue={meId}
-              style={{
-                width: '100%', padding: '12px 14px', border: '1.5px solid var(--ink-200)',
-                borderRadius: 'var(--r-md)', fontFamily: 'var(--font-ui)', fontSize: 15,
-                fontWeight: 500, color: 'var(--ink-900)', background: 'var(--weiss)',
-              }}
-            >
-              {mitglieder.map((m) => (
-                <option key={m.id} value={m.id}>
-                  {anzeigeName(m)}
-                </option>
-              ))}
-            </select>
-          </div>
           <Button type="submit" fullWidth>
             Termin anlegen
           </Button>
+          <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink-500)' }}>
+            An Organisator brauchts ned eintragen, den Posten schnappt sich danach wer mag („I regle das!“).
+            Nur wer grad organisiert hat, setzt aus. Beim Anlegen kriegen alle Spezln Push + Mail zur Abstimmung.
+          </div>
         </form>
       </Card>
     </>
@@ -191,7 +177,7 @@ async function AktiverTermin({ terminId, meId, isAdmin }: { terminId: string; me
   const darfVerwalten = isAdmin || termin.planerId === meId || meId === getPraesidentId();
 
   // Bierdeckel: am Stammtisch-Abend (ab Termin-Uhrzeit bis zum Abschluss)
-  // strichelt jeder seine eigenen Hoiben live — Stand aus den Besuchs-Einträgen.
+  // strichelt jeder seine eigenen Hoiben live, Stand aus den Besuchs-Einträgen.
   const deckelOffen = bierdeckelOffen(termin, nowIso());
   const besucheLive = deckelOffen || termin.phase === 'heute' ? getBesucheFuerTermin(termin.id) : [];
   const deckelSpezln: BierdeckelSpezl[] = besucheLive
@@ -220,7 +206,7 @@ async function AktiverTermin({ terminId, meId, isAdmin }: { terminId: string; me
             </Badge>
           </div>
           <div style={{ fontFamily: 'var(--font-fraktur)', fontSize: 28, color: 'var(--pergament)', margin: '8px 0 2px' }}>
-            {wirtshaus ? wirtshaus.name : `organisiert von ${(planer ? anzeigeName(planer) : '—')}`}
+            {wirtshaus ? wirtshaus.name : planer ? `organisiert von ${anzeigeName(planer)}` : 'Wer reglt’s? Orga is frei!'}
           </div>
           {wirtshaus?.adresse && (
             <div style={{ fontSize: 13, fontWeight: 600, color: 'rgba(246,240,226,0.75)', display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -241,7 +227,7 @@ async function AktiverTermin({ terminId, meId, isAdmin }: { terminId: string; me
         </div>
       </Card>
 
-      {/* Bierdeckel — am Stammtisch-Abend strichelt jeder seine eigenen Hoiben */}
+      {/* Bierdeckel, am Stammtisch-Abend strichelt jeder seine eigenen Hoiben */}
       {deckelOffen && (
         <>
           <SectionHeader eyebrow="Heit am Tisch" title="Dei Bierdeckel" fraktur />
@@ -251,10 +237,22 @@ async function AktiverTermin({ terminId, meId, isAdmin }: { terminId: string; me
             initialHoiben={besucheLive.find((b) => b.memberId === meId)?.hoiben ?? 0}
             spezln={deckelSpezln}
           />
+          {/* Mei Bewertung, jeder für sich, scho am Abend (bis 7 Tag nach’m Abschluss) */}
+          {(() => {
+            const daten = bewertungsDaten(besucheLive, meId);
+            return (
+              <MeiBewertung
+                wirtshausName={wirtshaus?.name ?? null}
+                initial={daten.initial}
+                team={daten.team}
+                action={meineBewertung.bind(null, termin.id)}
+              />
+            );
+          })()}
         </>
       )}
 
-      {/* Reservierung ändern — direkt unter der Termin-Karte, vor der Abstimmung.
+      {/* Reservierung ändern, direkt unter der Termin-Karte, vor der Abstimmung.
           Organisator, Präsident oder Admin; schließt sich nach dem Speichern und meldet Erfolg. */}
       {termin.phase === 'reserviert' && darfVerwalten && (
         <ReservierungAendern
@@ -263,8 +261,16 @@ async function AktiverTermin({ terminId, meId, isAdmin }: { terminId: string; me
         />
       )}
 
-      {/* Phase: Planung — Wirtshaus festlegen */}
-      {termin.phase === 'planung' &&
+      {/* Phase: Planung, zuerst schnappt sich wer d'Orga („I regle das!"),
+          dann legt der Organisator's Wirtshaus fest. Sperre: wer den letzten
+          Stammtisch organisiert hat, muss aussetzen. */}
+      {termin.phase === 'planung' && !termin.planerId && (
+        <OrgaSchnappen
+          action={orgaSchnappen.bind(null, termin.id)}
+          gesperrt={getLetzterAbgeschlossenerTermin()?.planerId === meId}
+        />
+      )}
+      {termin.phase === 'planung' && termin.planerId &&
         (darfVerwalten ? (
           <>
             <SectionHeader eyebrow="Dei Aufgabe" title="Wirtshaus festlegen" />
@@ -285,7 +291,7 @@ async function AktiverTermin({ terminId, meId, isAdmin }: { terminId: string; me
                           fontWeight: 500, color: 'var(--ink-900)', background: 'var(--weiss)',
                         }}
                       >
-                        <option value="">— Neues Wirtshaus suchen —</option>
+                        <option value="">Neues Wirtshaus suchen…</option>
                         {offene.map(({ wirtshaus, finder }) => (
                           <option key={wirtshaus.id} value={wirtshaus.id}>
                             {wirtshaus.name}
@@ -361,7 +367,7 @@ async function AktiverTermin({ terminId, meId, isAdmin }: { terminId: string; me
             termin.datum === berlinTag(new Date().toISOString()) ? (
               <form action={phaseSetzen.bind(null, termin.id, 'heute')}>
                 <Button type="submit" fullWidth variant="secondary">
-                  Heut’ is’ so weit — Anmeldung schließen
+                  Heut’ is’ so weit, Anmeldung schließen
                 </Button>
               </form>
             ) : (
@@ -374,7 +380,9 @@ async function AktiverTermin({ terminId, meId, isAdmin }: { terminId: string; me
         </>
       )}
 
-      {/* Phase: Heute — Besuch abschließen (darf jeder; der Erste kriegt +3 WP) */}
+      {/* Phase: Heute, Besuch abschließen (nur Logistik, darf jeder; der Erste
+          kriegt +3 WP). Frühestens 2 Stunden nach Beginn, damit koaner den
+          Abend mittendrin zuamacht, bewertet wird eh jeder für sich. */}
       {termin.phase === 'heute' && (
         <>
           <Card tone="parchment" pad={14}>
@@ -382,28 +390,36 @@ async function AktiverTermin({ terminId, meId, isAdmin }: { terminId: string; me
               Anmeldung geschlossen
             </div>
             <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink-700)', marginTop: 4 }}>
-              Nach’m Abend schließt irgendwer vo eich den Besuch ab — der Erste kriegt <b>+{PTS.abschluss} WP</b> (und wer am meisten abschließt, is’ Schriftführer ✒️). Wer sei Bewertung mit am Text ausschmückt, kriegt no <b>+{PTS.bewertungsText} WP</b> dazu.
+              Jeder gibt bei <b>„Mei Bewertung“</b> sei eigene Wertung ab (<b>+{PTS.bewertung} WP</b>, mit Text no <b>+{PTS.bewertungsText} WP</b>), aus allen zusammen wird d’Tages-Wertung. Nach’m Abend schließt irgendwer vo eich no d’Logistik ab (wer da war, Hoibe, Runden), der Erste kriegt <b>+{PTS.abschluss} WP</b> (und wer am meisten abschließt, is’ Schriftführer).
             </div>
           </Card>
 
-          <SectionHeader eyebrow="Zapfenstreich" title="Besuch abschließen" fraktur />
-          <Card>
-            <AbschlussForm
-              mitglieder={mitglieder.map((m) => ({
-                id: m.id,
-                name: anzeigeName(m),
-                photoUrl: m.photoUrl,
-                verein: m.verein,
-                zugesagt: alleVotes.some((v) => v.vote.memberId === m.id && v.vote.wert === 'zu'),
-              }))}
-              action={besuchAbschliessen.bind(null, termin.id)}
-              initial={abschlussVorbelegung(
-                besucheLive,
-                mitglieder.filter((m) => alleVotes.some((v) => v.vote.memberId === m.id && v.vote.wert === 'zu')).map((m) => m.id),
-                wirtshaus,
-              )}
-            />
-          </Card>
+          {abschlussOffen(termin, nowIso()) ? (
+            <>
+              <SectionHeader eyebrow="Zapfenstreich" title="Besuch abschließen" fraktur />
+              <Card>
+                <AbschlussForm
+                  mitglieder={mitglieder.map((m) => ({
+                    id: m.id,
+                    name: anzeigeName(m),
+                    photoUrl: m.photoUrl,
+                    verein: m.verein,
+                    zugesagt: alleVotes.some((v) => v.vote.memberId === m.id && v.vote.wert === 'zu'),
+                  }))}
+                  action={besuchAbschliessen.bind(null, termin.id)}
+                  initial={abschlussVorbelegung(
+                    besucheLive,
+                    mitglieder.filter((m) => alleVotes.some((v) => v.vote.memberId === m.id && v.vote.wert === 'zu')).map((m) => m.id),
+                    wirtshaus,
+                  )}
+                />
+              </Card>
+            </>
+          ) : (
+            <div style={{ textAlign: 'center', fontSize: 12, fontWeight: 600, color: 'var(--ink-500)', padding: '4px 0' }}>
+              🔒 Abgschlossen wird erst, wenn der Abend rum is: ab {abschlussAb(termin)} Uhr. Bis dahin wird gstrichelt und bewertet.
+            </div>
+          )}
         </>
       )}
     </>

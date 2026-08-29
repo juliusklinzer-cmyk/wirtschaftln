@@ -41,7 +41,7 @@ export function ladeArchivEintraege(meId: string): ArchivEintrag[] {
     const gesamt = anzahl + werte.length;
     return gesamt > 0 ? summe / gesamt : 0;
   };
-  // Notizen aus Nachbewertungen als Hinweise — je Wertung mit passendem Icon (💬/🥞/🍖)
+  // Notizen aus Nachbewertungen als Hinweise, je Wertung mit passendem Icon (💬/🥞/🍖)
   const nachKommentare = (wirtshausId: string) =>
     nachVon(wirtshausId).flatMap(({ bewertung, member }) => {
       const von = `${anzeigeName(member)} (nachbewertet)`;
@@ -78,7 +78,7 @@ export function ladeArchivEintraege(meId: string): ArchivEintrag[] {
     }
   }
 
-  // „Gfundene" Wirtshäuser — offen, noch von koan Termin belegt
+  // „Gfundene" Wirtshäuser, offen, noch von koan Termin belegt
   for (const { wirtshaus, finder } of getOffeneWirtshaeuser()) {
     eintraege.push({
       id: wirtshaus.id,
@@ -125,7 +125,7 @@ export function ladeArchivEintraege(meId: string): ArchivEintrag[] {
     });
   }
 
-  // Altbestand: bsucht vor da App-Zeit (Chronik seit 2019) — ohne Termin-Daten,
+  // Altbestand: bsucht vor da App-Zeit (Chronik seit 2019), ohne Termin-Daten,
   // Bewertung nur aus freiwilligen Nachbewertungen. Wiederbesuchte (echter
   // Termin existiert) sind oben schon drin und werden übersprungen.
   const schonDrin = new Set(eintraege.map((e) => e.id));

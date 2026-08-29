@@ -1,6 +1,6 @@
 'use client';
 
-// Gemeinsame Typen und Bausteine der Rangliste — der Renderer (Variante B,
+// Gemeinsame Typen und Bausteine der Rangliste, der Renderer (Variante B,
 // von Julius am 19.07.2026 gewählt) wohnt in rangliste-b.tsx.
 import { useState } from 'react';
 import { type SteckbriefDaten } from '@/components/domain/Steckbrief';
@@ -16,7 +16,7 @@ export type StatsBlock = {
   taxi: number;
   streak: number;
   bestStreak: number;
-  /** Unentschuldigte Fehltermine in Folge — ab 3 „wackelt" der Spezl. */
+  /** Unentschuldigte Fehltermine in Folge, ab 3 „wackelt" der Spezl. */
   unentschuldigtStreak: number;
   /** Veränderung seit dem letzten Stammtisch */
   deltaPunkte: number;
@@ -30,7 +30,7 @@ export type SerienAbzeichen = { icon: string; name: string; ab: number };
 export type SpezlEintrag = {
   id: string;
   name: string;
-  /** Zeremonielle volle Form „Da <Nachname> <Vorname>" — für den Urkunden-Kopf im Detail. */
+  /** Zeremonielle volle Form „Da <Nachname> <Vorname>", für den Urkunden-Kopf im Detail. */
   vollerName: string | null;
   photoUrl: string | null;
   istIch: boolean;
@@ -80,7 +80,7 @@ export function Siegel({ badge, size = 48, mitLabel = true }: { badge: SpezlBadg
   const [pngFehlt, setPngFehlt] = useState(false);
   const initial = badge.name.replace(/^Die /, '')[0];
   return (
-    <div title={`${badge.name} — ${badge.tag}`} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, width: mitLabel ? size + 16 : size }}>
+    <div title={`${badge.name} · ${badge.tag}`} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, width: mitLabel ? size + 16 : size }}>
       {!pngFehlt ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img

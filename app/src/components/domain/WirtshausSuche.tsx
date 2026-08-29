@@ -26,7 +26,7 @@ export function WirtshausSuche({
   bekannte = [],
 }: {
   namePrefix?: string;
-  /** Alle bekannten Wirtshäuser (besucht/eingeplant/vorgeschlagen) — Regel: koa Wirtshaus zweimal. */
+  /** Alle bekannten Wirtshäuser (besucht/eingeplant/vorgeschlagen), Regel: koa Wirtshaus zweimal. */
   bekannte?: BekanntesWirtshaus[];
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -79,7 +79,7 @@ export function WirtshausSuche({
       <label style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink-700)' }}>Wirtshaus</label>
       <input
         ref={inputRef}
-        placeholder={status === 'fehler' ? 'Name eintippen (Google-Suche nicht verfügbar)' : 'Wirtshaus suchen — Google füllt den Rest aus…'}
+        placeholder={status === 'fehler' ? 'Name eintippen (Google-Suche nicht verfügbar)' : 'Wirtshaus suchen, Google füllt den Rest aus…'}
         onChange={(e) => {
           setEingabe(e.target.value);
           // Freitext bleibt gültig, falls Google nix findet
@@ -112,9 +112,9 @@ export function WirtshausSuche({
         >
           <span style={{ fontSize: 18, lineHeight: 1.2 }}>{bekanntes.art === 'vorgeschlagen' ? '📍' : '⚠️'}</span>
           <div style={{ fontSize: 13, fontWeight: 700, color: bekanntes.art === 'vorgeschlagen' ? 'var(--gold-700)' : 'var(--strafe)', lineHeight: 1.5 }}>
-            {bekanntes.art === 'besucht' && <>Do warts’s scho! „{bekanntes.name}“ steht in eurer Chronik — und a Wirtshaus wird nie zweimal bsucht.</>}
+            {bekanntes.art === 'besucht' && <>Do warts’s scho! „{bekanntes.name}“ steht in eurer Chronik, und a Wirtshaus wird nie zweimal bsucht.</>}
             {bekanntes.art === 'eingeplant' && <>„{bekanntes.name}“ steht scho als nächster Stammtisch fest.</>}
-            {bekanntes.art === 'vorgeschlagen' && <>„{bekanntes.name}“ {bekanntes.von ? `hat ${bekanntes.von} scho gfunden` : 'is scho vorgschlagen'} — steht als „Offen“ auf da Kartn.</>}
+            {bekanntes.art === 'vorgeschlagen' && <>„{bekanntes.name}“ {bekanntes.von ? `hat ${bekanntes.von} scho gfunden` : 'is scho vorgschlagen'}, steht als „Offen“ auf da Kartn.</>}
           </div>
         </div>
       )}

@@ -8,16 +8,16 @@ export const metadata = {
   title: 'Gründungsmitglied werden · Wirtschaftln',
   // WhatsApp-Vorschau für den Einladungs-Link
   openGraph: {
-    title: 'A persönliche Einladung zum Wirtschaftln 🍺',
+    title: 'A persönliche Einladung zum Wirtschaftln',
     description:
-      'Du bist eingeladen, Gründungsmitglied vom Wirtschaftln zu werden — dem Münchner Stammtisch seit 2019. Treu im Brauch, offen für Neis.',
+      'Du bist eingeladen, Gründungsmitglied vom Wirtschaftln zu werden, dem Münchner Stammtisch seit 2019. Treu im Brauch, offen für Neis.',
     images: [{ url: '/brand/og.jpg', width: 1200, height: 630, alt: 'Wirtschaftln-Wappen' }],
   },
 };
 
 /**
  * Beitritt für die Runde: Link aus der WhatsApp-Gruppe + Gründungscode.
- * Danach: Passwort setzen + Profil ausfüllen (Erstanmeldung) — und los geht’s.
+ * Danach: Passwort setzen + Profil ausfüllen (Erstanmeldung), und los geht’s.
  */
 export default async function BeitretenPage() {
   const me = await getCurrentMember();
@@ -46,7 +46,7 @@ export default async function BeitretenPage() {
           textAlign: 'center',
         }}
       >
-        {/* Wappen mit Konturrahmen — wie am Login */}
+        {/* Wappen mit Konturrahmen, wie am Login */}
         <Image
           src="/brand/logo-verziert.png"
           alt="Wirtschaftln Wappen"
@@ -90,7 +90,7 @@ export default async function BeitretenPage() {
       >
         <div style={{ maxWidth: 400, margin: '0 auto' }}>
           <div style={{ fontSize: 19, fontWeight: 800, color: 'var(--ink-900)', marginBottom: 2 }}>
-            Servus — du gehörst dazua!
+            Servus, du gehörst dazua!
           </div>
           <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--ink-500)', marginBottom: 16 }}>
             Mit dem Gründungscode aus der Runde wirst’d Gründungsmitglied.

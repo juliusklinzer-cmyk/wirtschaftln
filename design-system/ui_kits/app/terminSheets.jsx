@@ -138,7 +138,7 @@
     return (
       <Sheet title="Besuch abschließen" sub={(wirtshaus && wirtshaus.name) + ' · trag ein, was war'} onClose={onClose}
         footer={<Button variant="gold" size="lg" fullWidth iconLeft="🍺" onClick={()=>onSave({ rows, stars, text, totalHoiben, kaiserschmarrn:{ stars:kaiserStars, text:kaiserText }, schweinsbraten:{ stars:brodnStars, text:brodnText } })}>Abschließen & ins Archiv</Button>}>
-        <div style={{ fontSize:11, fontWeight:700, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--ink-500)', marginBottom:8 }}>Pro Mitglied · {totalHoiben} Hoiben gesamt</div>
+        <div style={{ fontSize:11, fontWeight:700, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--ink-500)', marginBottom:8 }}>Pro Mitglied · {totalHoiben} Hoibe gesamt</div>
         <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
           {rows.map(r => (
             <div key={r.id} style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 12px', border:'1px solid var(--ink-100)', borderRadius:'var(--r-md)' }}>

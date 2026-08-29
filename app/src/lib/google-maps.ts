@@ -8,7 +8,7 @@ let mapsPromise: Promise<any> | null = null;
 
 /**
  * Universeller Google-Maps-Navigationslink (öffnet am Handy direkt die
- * Maps-App im Routen-Modus). Adresse schlägt Koordinaten — dann steht in
+ * Maps-App im Routen-Modus). Adresse schlägt Koordinaten, dann steht in
  * Google Maps das Wirtshaus mit Namen statt einem nackten Punkt.
  */
 export function navigationsUrl(ziel: {
@@ -26,7 +26,7 @@ export function navigationsUrl(ziel: {
 }
 
 /**
- * Google-Maps-Ortsansicht (Fotos, Bewertungen, Öffnungszeiten) — für
+ * Google-Maps-Ortsansicht (Fotos, Bewertungen, Öffnungszeiten), für
  * „gfundene" Wirtshäuser, die man si erst amoi anschauen mog.
  */
 export function ortsUrl(ziel: { name: string; adresse?: string | null }): string {

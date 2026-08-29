@@ -1,7 +1,7 @@
 /**
  * Serien-Anzeige wie im Design-Prototyp (RanglisteScreen.jsx):
  * 🔥 positive Serie · 🥶 negative Serie (ab 2 Fehltagen in Folge) ·
- * ⚠️ „wackelt" — entscheidet der Aufrufer (V2: ab 3 unentschuldigten
+ * ⚠️ „wackelt", entscheidet der Aufrufer (V2: ab 3 unentschuldigten
  * Fehlterminen in Folge, siehe WACKELT_AB_UNENTSCHULDIGT).
  */
 export function StreakChip({

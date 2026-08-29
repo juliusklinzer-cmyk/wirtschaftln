@@ -10,3 +10,4 @@ export { SectionHeader } from './SectionHeader';
 export { SegmentedTabs } from './SegmentedTabs';
 export { Stat } from './Stat';
 export { Switch } from './Switch';
+export { KlappenKopf } from './KlappenKopf';

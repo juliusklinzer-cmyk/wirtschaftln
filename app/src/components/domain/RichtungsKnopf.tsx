@@ -4,7 +4,7 @@ import { Icon } from '@/components/ds';
 import { navigationsUrl, ortsUrl } from '@/lib/google-maps';
 
 /**
- * Runder Gold-Knopf mit dem Wegbeschreibungs-Symbol — öffnet Google Maps
+ * Runder Gold-Knopf mit dem Wegbeschreibungs-Symbol, öffnet Google Maps
  * (am Handy direkt die Maps-App): Modus „route" navigiert hin, Modus „ort"
  * zeigt das Wirtshaus mit Fotos, Bewertungen und Öffnungszeiten.
  */

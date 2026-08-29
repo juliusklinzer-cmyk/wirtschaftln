@@ -1,7 +1,7 @@
 import { desc, eq, ne, and, asc } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/sqlite-core';
 import { anzeigeName } from '@/lib/namen';
-import { db, members, termine, votes, besuche, wirtshaeuser, kasse, aemter, umfragen, umfrageStimmen, wirtshausBewertungen } from '@/lib/db';
+import { db, members, termine, votes, besuche, wirtshaeuser, kasse, aemter, umfragen, umfrageStimmen, wirtshausBewertungen, checkins } from '@/lib/db';
 import {
   PTS,
   wirtschaftlnPunkte,
@@ -70,7 +70,7 @@ export function getOffeneWirtshaeuser() {
     .from(wirtshaeuser)
     .leftJoin(members, eq(wirtshaeuser.vorgeschlagenVon, members.id))
     .all()
-    // Altbestand is NICHT offen — der gilt als besucht (und wird eh nie zweimal besucht)
+    // Altbestand is NICHT offen, der gilt als besucht (und wird eh nie zweimal besucht)
     .filter(({ wirtshaus }) => !belegt.has(wirtshaus.id) && !wirtshaus.altbestand);
 }
 
@@ -80,6 +80,17 @@ export function getBesucheFuerTermin(terminId: string) {
 
 export function getKasseFuerTermin(terminId: string) {
   return db.select().from(kasse).where(eq(kasse.terminId, terminId)).all();
+}
+
+/** Check-ins eines Termins samt Spezl, in Ankunfts-Reihenfolge (der Erste vorn). */
+export function getCheckinsFuerTermin(terminId: string) {
+  return db
+    .select({ checkin: checkins, member: members })
+    .from(checkins)
+    .innerJoin(members, eq(checkins.memberId, members.id))
+    .where(eq(checkins.terminId, terminId))
+    .orderBy(asc(checkins.createdAt))
+    .all();
 }
 
 export function getVotesFuerTermin(terminId: string) {
@@ -96,7 +107,7 @@ export function getAktiveMitglieder() {
 }
 
 /**
- * ALLE bekannten Wirtshäuser mit Kategorie — für die Warnung in der Suche und
+ * ALLE bekannten Wirtshäuser mit Kategorie, für die Warnung in der Suche und
  * die harte Vorschlags-Regel: besucht (Chronik/Altbestand), eingeplant
  * (laufender Termin) oder vorgeschlagen (offener Pin, samt Finder-Name).
  */
@@ -119,7 +130,7 @@ export function getBekannteWirtshaeuser(): BekanntesWirtshaus[] {
     }));
 }
 
-/** Aktueller Kassenwart (gewähltes Amt der laufenden Saison) — darf Ausgaben buchen. */
+/** Aktueller Kassenwart (gewähltes Amt der laufenden Saison), darf Ausgaben buchen. */
 export function getKassenwartId(): string | null {
   return (
     getAemter(String(aktuelleSaison().jahr)).find(({ amt }) => amt.titel.startsWith('Kassenwart'))?.amt.memberId ?? null
@@ -127,8 +138,8 @@ export function getKassenwartId(): string | null {
 }
 
 /**
- * Aktueller Präsident = Saison-Rang 1 nach WP — EINE Quelle für Rangliste, Ämter und Rechte.
- * Bei 0 Punkten (Saisonstart/Launch) gibt's KOAN Präsidenten — sonst kriegt der
+ * Aktueller Präsident = Saison-Rang 1 nach WP, EINE Quelle für Rangliste, Ämter und Rechte.
+ * Bei 0 Punkten (Saisonstart/Launch) gibt's KOAN Präsidenten, sonst kriegt der
  * alphabetisch Erste still die Rechte (Strafen erlassen, Wirtshaus festlegen).
  */
 export function getPraesidentId(): string | null {
@@ -167,7 +178,7 @@ export type MitgliedStats = {
   /** >0 = Abende in Folge dabei, <0 = Abende in Folge gefehlt (jüngster Abend zuerst). */
   streak: number;
   bestStreak: number;
-  /** Unentschuldigte Fehltermine in Folge (seit der letzten Anwesenheit) — ab 3 „wackelt" er. */
+  /** Unentschuldigte Fehltermine in Folge (seit der letzten Anwesenheit), ab 3 „wackelt" er. */
   unentschuldigtStreak: number;
   /** Fest verbuchte Punkte-Bestandteile (fürs „Dei Ausbeute"-Aufschlüsseln auf Hoam). */
   orgaSumme: number;
@@ -175,7 +186,11 @@ export type MitgliedStats = {
   fehlMalus: number;
   abstimmBonus: number;
   vorschlagPunkte: number;
+  /** Eigene Bewertung zum Abend abgegeben (+1 je Abend). */
+  bewertungsBonus: number;
   textBonus: number;
+  /** Als Erster im Wirtshaus eingecheckt (+1 je Abend, zählt sofort). */
+  checkinBonus: number;
   /** Wirtschaftln-Punkte (V2), siehe lib/punkte.ts */
   punkte: number;
 };
@@ -215,10 +230,10 @@ export function getStats(optionen?: { abDatum?: string; bisDatum?: string; ohneT
     if (!voteByTermin.has(v.terminId)) voteByTermin.set(v.terminId, new Map());
     voteByTermin.get(v.terminId)!.set(v.memberId, v);
   }
-  /** Bewertungsschnitt eines Abends → Orga-Punkte (0–5). */
+  /** Bewertungsschnitt eines Abends → Orga-Punkte (0–5). Es zählen nur Bewertungen von Anwesenden. */
   const orgaVon = new Map<string, number>();
   for (const t of chronologisch) {
-    const werte = [...(byTermin.get(t.id)?.values() ?? [])].filter((b) => b.sterne != null).map((b) => b.sterne!);
+    const werte = [...(byTermin.get(t.id)?.values() ?? [])].filter((b) => b.anwesend && b.sterne != null).map((b) => b.sterne!);
     orgaVon.set(t.id, orgaPunkte(werte.length ? werte.reduce((a, b) => a + b, 0) / werte.length : 0));
   }
 
@@ -234,7 +249,7 @@ export function getStats(optionen?: { abDatum?: string; bisDatum?: string; ohneT
     rundenJeMitglied.set(e.memberId, (rundenJeMitglied.get(e.memberId) ?? 0) + 1);
   }
 
-  // Abstimm-Bonus zählt SOFORT beim rechtzeitigen Zu-/Absagen — auch für no ned
+  // Abstimm-Bonus zählt SOFORT beim rechtzeitigen Zu-/Absagen, auch für no ned
   // abgeschlossene (kommende) Termine. Darum über ALLE Termine im Fenster, ned nur
   // die abgeschlossenen (die anderen WP-Posten brauchen weiterhin den Abschluss).
   const alleTermine = db
@@ -244,6 +259,12 @@ export function getStats(optionen?: { abDatum?: string; bisDatum?: string; ohneT
     .filter((t) => t.id !== optionen?.ohneTerminId)
     .filter((t) => imFenster(t.datum))
     .filter((t) => !optionen?.bisDatum || t.datum <= optionen.bisDatum);
+
+  // Erster Check-in je Termin (+1 WP, zählt wie der Abstimm-Bonus sofort)
+  const ersterCheckin = new Map<string, string>(); // terminId → memberId des Ersten
+  for (const c of db.select().from(checkins).orderBy(asc(checkins.createdAt)).all()) {
+    if (!ersterCheckin.has(c.terminId)) ersterCheckin.set(c.terminId, c.memberId);
+  }
 
   // Wirtshaus-Vorschläge: +1 beim Vorschlagen, +1 wenn's tatsächlich besucht wird
   const alleWirtshaeuser = db.select().from(wirtshaeuser).all();
@@ -262,7 +283,9 @@ export function getStats(optionen?: { abDatum?: string; bisDatum?: string; ohneT
     let abschluesse = 0;
     let orgaSumme = 0;
     let abstimmBonus = 0;
+    let bewertungsBonus = 0;
     let textBonus = 0;
+    let checkinBonus = 0;
     const besuchteWirtshaeuser = new Set<string>();
 
     // Serien-Zähler laufen über die ganze Chronik (ab Beitritt); in die Punkte
@@ -288,6 +311,7 @@ export function getStats(optionen?: { abDatum?: string; bisDatum?: string; ohneT
           schweinsbraten += b!.schweinsbraten;
           if (b!.taxi) taxi += 1;
           abende += 1;
+          if (b!.sterne != null) bewertungsBonus += PTS.bewertung;
           if (b!.kommentar?.trim()) textBonus += PTS.bewertungsText;
           if (t.wirtshausId) besuchteWirtshaeuser.add(t.wirtshausId);
         }
@@ -300,7 +324,7 @@ export function getStats(optionen?: { abDatum?: string; bisDatum?: string; ohneT
       }
       if (t.abgeschlossenVon === member.id && zaehlt) abschluesse += 1;
 
-      // Serie & Fehl-Staffeln — Termine vor dem Beitritt zählen nicht als gefehlt
+      // Serie & Fehl-Staffeln, Termine vor dem Beitritt zählen nicht als gefehlt
       const zaehltFuerSerie = t.datum >= beitritt || byTermin.get(t.id)?.has(member.id);
       if (!zaehltFuerSerie) continue;
       if (dabei) {
@@ -322,10 +346,12 @@ export function getStats(optionen?: { abDatum?: string; bisDatum?: string; ohneT
       }
     }
 
-    // Abstimm-Bonus: rechtzeitig zu-/abgesagt → +1, sofort (auch für kommende Termine)
+    // Abstimm-Bonus: rechtzeitig zu-/abgesagt → +1, sofort (auch für kommende Termine).
+    // Check-in-Bonus genauso: der Erste am Tisch kriegt seinen WP scho am Abend.
     for (const t of alleTermine) {
       const vote = voteByTermin.get(t.id)?.get(member.id);
       if (vote && rechtzeitigAbgestimmt(vote.erstmalsAm, t.datum)) abstimmBonus += PTS.abstimmen;
+      if (ersterCheckin.get(t.id) === member.id) checkinBonus += PTS.checkin;
     }
 
     // Anzeige-Serie: dabei = positiv, gefehlt (egal welche Art) = negativ
@@ -343,7 +369,7 @@ export function getStats(optionen?: { abDatum?: string; bisDatum?: string; ohneT
     }
 
     const runden = rundenJeMitglied.get(member.id) ?? 0;
-    const komponenten = { hoiben, abende, taxi, runden, abschluesse, orgaSumme, serienBonus, fehlMalus, abstimmBonus, vorschlagPunkte, textBonus };
+    const komponenten = { hoiben, abende, taxi, runden, abschluesse, orgaSumme, serienBonus, fehlMalus, abstimmBonus, vorschlagPunkte, bewertungsBonus, textBonus, checkinBonus };
     return {
       member,
       ...komponenten,
@@ -365,10 +391,10 @@ export function getSaldo(): number {
   let saldo = 0;
   for (const e of eintraege) {
     if (e.status === 'aufgehoben') continue;
-    // Runden werden am Tisch zahlt — der Wert zählt für WP & Großbauer, ned für d'Kasse
+    // Runden werden am Tisch zahlt, der Wert zählt für WP & Großbauer, ned für d'Kasse
     if (e.kind === 'runde') continue;
     if (e.kind === 'strafe') {
-      // Offene Forderungen stehen scho in der Kasse — der Kassenwart treibt's nur no ein
+      // Offene Forderungen stehen scho in der Kasse, der Kassenwart treibt's nur no ein
       saldo += Math.abs(e.betragCents);
     } else {
       saldo += e.betragCents;
@@ -379,7 +405,7 @@ export function getSaldo(): number {
 
 export function getKasseEintraege() {
   // Melder als zweiter members-Join (Alias), dazu Termin + Wirtshaus fürs „wo".
-  // Runden bleiben draußen: am Tisch zahlt, koa Geldbewegung — dokumentiert über WP + Moshammer.
+  // Runden bleiben draußen: am Tisch zahlt, koa Geldbewegung, dokumentiert über WP + Moshammer.
   const melder = alias(members, 'melder');
   return db
     .select({ eintrag: kasse, member: members, melder, termin: termine, wirtshaus: wirtshaeuser })
@@ -432,9 +458,11 @@ export function getArchiv() {
       const planer = t.planerId ? (memberById.get(t.planerId) ?? null) : null;
       const besucheHier = alleBesuche.filter((b) => b.terminId === t.id);
 
-      const sterneWerte = besucheHier.filter((b) => b.sterne != null).map((b) => b.sterne!);
-      const kaiserWerte = besucheHier.filter((b) => b.kaiserSterne != null).map((b) => b.kaiserSterne!);
-      const brodnWerte = besucheHier.filter((b) => b.brodnSterne != null).map((b) => b.brodnSterne!);
+      // Es zählen nur Bewertungen von Anwesenden, und je Kategorie nur die,
+      // die abgegeben wurden (2 Brodn-Esser → Schnitt aus genau denen zwei).
+      const sterneWerte = besucheHier.filter((b) => b.anwesend && b.sterne != null).map((b) => b.sterne!);
+      const kaiserWerte = besucheHier.filter((b) => b.anwesend && b.kaiserSterne != null).map((b) => b.kaiserSterne!);
+      const brodnWerte = besucheHier.filter((b) => b.anwesend && b.brodnSterne != null).map((b) => b.brodnSterne!);
       const rating = schnitt(sterneWerte);
       const ratingAnzahl = sterneWerte.length;
       const kaiser = schnitt(kaiserWerte);
@@ -470,7 +498,7 @@ export function getArchiv() {
     });
 }
 
-/** Freiwillige Nachbewertungen (ohne WP) samt Bewerter — für Karte & Sterne-Statistik. */
+/** Freiwillige Nachbewertungen (ohne WP) samt Bewerter, für Karte & Sterne-Statistik. */
 export function getNachbewertungen() {
   return db
     .select({ bewertung: wirtshausBewertungen, member: members })
@@ -539,7 +567,7 @@ export function getBadgeHistorie(): Map<string, HistorienSegment[]> {
   return verlauf;
 }
 
-/** Alle Kassenwart-Einträge über die Saisons (gewähltes Amt — Historie aus der DB). */
+/** Alle Kassenwart-Einträge über die Saisons (gewähltes Amt, Historie aus der DB). */
 export function getKassenwartHistorie() {
   return db
     .select({ amt: aemter, member: members })

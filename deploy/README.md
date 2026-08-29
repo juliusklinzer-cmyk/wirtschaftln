@@ -8,7 +8,8 @@
 ## Erstinstallation
 
 Live seit 19.07.2026 auf Hetzner Cloud CPX12 (`178.105.234.52`, Nürnberg), Code unter `/opt/wirtschaftln`.
-Es gibt (noch) kein Git-Remote — deployt wird per rsync aus dem WSL-Checkout:
+Git-Remote (seit 29.08.2026): `git@github.com:juliusklinzer-cmyk/wirtschaftln.git` (privat).
+Deployt wird weiterhin per rsync aus dem WSL-Checkout:
 
 ```bash
 # Update deployen (WICHTIG: deploy/.env ausnehmen — sonst löscht --delete die Server-Secrets!)

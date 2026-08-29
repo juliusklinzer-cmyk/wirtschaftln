@@ -44,11 +44,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           position: 'absolute', top: 0, left: 0, right: 0, zIndex: 40,
           height: 'calc(env(safe-area-inset-top) + 16px)',
           pointerEvents: 'none',
-          backdropFilter: 'blur(10px)',
-          WebkitBackdropFilter: 'blur(10px)',
-          maskImage: 'linear-gradient(180deg, black 0%, black 50%, transparent 100%)',
-          WebkitMaskImage: 'linear-gradient(180deg, black 0%, black 50%, transparent 100%)',
-          background: 'linear-gradient(180deg, rgba(255,255,255,0.6) 0%, rgba(255,255,255,0) 85%)',
+          backdropFilter: 'blur(5px)',
+          WebkitBackdropFilter: 'blur(5px)',
+          maskImage: 'linear-gradient(180deg, black 0%, black 45%, transparent 100%)',
+          WebkitMaskImage: 'linear-gradient(180deg, black 0%, black 45%, transparent 100%)',
+          background: 'linear-gradient(180deg, rgba(255,255,255,0.28) 0%, rgba(255,255,255,0) 85%)',
         }}
       />
       {/* Header scrollt MIT dem Inhalt weg (bewusst ned sticky, Julius 29.08.) —

@@ -21,7 +21,10 @@ export function TabBar() {
         display: 'flex',
         background: 'var(--weiss)',
         borderTop: '1px solid var(--ink-100)',
-        padding: '8px 6px calc(10px + env(safe-area-inset-bottom))',
+        // Safe-Area unten nur teilweise mitnehmen: volle 34px Insel-Abstand
+        // schieben d'Icons ~1cm hoch (Julius, 29.08.) — knapp überm
+        // Home-Balken schaut's dichter und wertiger aus
+        padding: '8px 6px max(10px, calc(env(safe-area-inset-bottom) - 14px))',
         boxShadow: '0 -4px 20px rgba(12,43,90,0.06)',
       }}
     >

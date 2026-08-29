@@ -187,7 +187,9 @@ body {
 }
 
 body {
-  background: var(--bg-app);
+  /* Weiß wie d'Tab-Leiste: falls a Betriebssystem unterm App-Rahmen an
+     Spalt lasst (iOS-Vollbild), blitzt koa Grau mehr durch */
+  background: var(--weiss);
   color: var(--text-body);
   font-family: var(--font-ui);
   font-size: var(--fs-body);

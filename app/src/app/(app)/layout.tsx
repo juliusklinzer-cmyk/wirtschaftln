@@ -53,7 +53,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       />
       {/* Header scrollt MIT dem Inhalt weg (bewusst ned sticky, Julius 29.08.) —
           nur d'Tab-Leiste unten bleibt stehen */}
-      <main className="wn-scroll-still" style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', position: 'relative', overscrollBehavior: 'contain' }}>
+      {/* paddingBottom hält den Inhalt über der fix verankerten Tab-Leiste frei */}
+      <main className="wn-scroll-still" style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', position: 'relative', overscrollBehavior: 'contain', paddingBottom: 'calc(58px + env(safe-area-inset-bottom))' }}>
         <AppBar
           name={anzeigeName(me)}
           photoUrl={me.photoUrl}

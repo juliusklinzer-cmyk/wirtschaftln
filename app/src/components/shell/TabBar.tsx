@@ -17,7 +17,17 @@ export function TabBar() {
   return (
     <nav
       style={{
-        flex: 'none',
+        // Fix an der ECHTEN Bildschirm-Unterkante verankert: iOS (Vollbild-
+        // Modus) gibt dem App-Rahmen unten sonst eine verkürzte Fläche und
+        // d'Leiste „schwebt". Auf Android/alten iPhones ändert sich optisch
+        // nix, nur die Befestigung.
+        position: 'fixed',
+        left: 0,
+        right: 0,
+        bottom: 0,
+        zIndex: 45,
+        maxWidth: 'var(--container-app)',
+        margin: '0 auto',
         display: 'flex',
         background: 'var(--weiss)',
         borderTop: '1px solid var(--ink-100)',

@@ -18,31 +18,37 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   return (
     <div
       style={{
+        // Fest verankerter App-Rahmen (statt 100dvh): füllt den sichtbaren
+        // Bildschirm IMMER exakt — koa Spalt mehr unterm Menü, wenn iOS im
+        // Vollbild-Modus (black-translucent) die Höhe anders rechnet.
+        position: 'fixed',
+        inset: 0,
         maxWidth: 'var(--container-app)',
         margin: '0 auto',
-        height: '100dvh',
         display: 'flex',
         flexDirection: 'column',
         background: 'var(--bg-app)',
         boxShadow: '0 0 60px rgba(7,25,58,0.45)',
-        position: 'relative',
       }}
     >
       {/* 🤳 Dani-Modus: der weiße Streifen liegt über der ganzen App */}
       <DaniStreifen />
-      {/* Safe-Area-Fläche (Statusleiste/Kamera-Insel): halbdurchsichtiges Navy
-          mit Blur — der Inhalt scrollt sichtbar drunter durch (wertig wie bei
-          nativen Apps), Uhr & Akku bleiben trotzdem lesbar. Ohne Notch is
-          env() = 0 und nix zu sehen. */}
+      {/* Safe-Area (Statusleiste/Kamera-Insel): farbloser, weich auslaufender
+          Blur — oben leicht milchig, nach unten 100 % transparent, koa harte
+          Kante (Julius, 29.08.). Beim Öffnen liegt er überm weißen Header und
+          is unsichtbar; beim Scrollen läuft der Inhalt sichtbar drunter durch.
+          Ohne Notch is env() = 0 und nix zu sehen. */}
       <div
         aria-hidden
         style={{
           position: 'absolute', top: 0, left: 0, right: 0, zIndex: 40,
-          height: 'env(safe-area-inset-top)',
-          background: 'rgba(7,25,58,0.55)',
-          backdropFilter: 'blur(14px) saturate(160%)',
-          WebkitBackdropFilter: 'blur(14px) saturate(160%)',
+          height: 'calc(env(safe-area-inset-top) + 16px)',
           pointerEvents: 'none',
+          backdropFilter: 'blur(10px)',
+          WebkitBackdropFilter: 'blur(10px)',
+          maskImage: 'linear-gradient(180deg, black 0%, black 50%, transparent 100%)',
+          WebkitMaskImage: 'linear-gradient(180deg, black 0%, black 50%, transparent 100%)',
+          background: 'linear-gradient(180deg, rgba(255,255,255,0.6) 0%, rgba(255,255,255,0) 85%)',
         }}
       />
       {/* Header scrollt MIT dem Inhalt weg (bewusst ned sticky, Julius 29.08.) —

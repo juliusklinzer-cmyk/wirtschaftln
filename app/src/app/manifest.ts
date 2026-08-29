@@ -12,7 +12,7 @@ export default function manifest(): MetadataRoute.Manifest {
     start_url: '/',
     display: 'standalone',
     background_color: '#07193A',
-    theme_color: '#07193A',
+    theme_color: '#FFFFFF',
     lang: 'de',
     // App-Icon: das Münchner Kindl mit der Hoibe (seit 09.08.2026)
     icons: [

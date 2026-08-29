@@ -17,24 +17,11 @@ export function TabBar() {
   return (
     <nav
       style={{
-        // Fix an der ECHTEN Bildschirm-Unterkante verankert: iOS (Vollbild-
-        // Modus) gibt dem App-Rahmen unten sonst eine verkürzte Fläche und
-        // d'Leiste „schwebt". Auf Android/alten iPhones ändert sich optisch
-        // nix, nur die Befestigung.
-        position: 'fixed',
-        left: 0,
-        right: 0,
-        bottom: 0,
-        zIndex: 45,
-        maxWidth: 'var(--container-app)',
-        margin: '0 auto',
+        flex: 'none',
         display: 'flex',
         background: 'var(--weiss)',
         borderTop: '1px solid var(--ink-100)',
-        // Safe-Area unten nur teilweise mitnehmen: volle 34px Insel-Abstand
-        // schieben d'Icons ~1cm hoch (Julius, 29.08.) — knapp überm
-        // Home-Balken schaut's dichter und wertiger aus
-        padding: '8px 6px max(10px, calc(env(safe-area-inset-bottom) - 14px))',
+        padding: '8px 6px calc(10px + env(safe-area-inset-bottom))',
         boxShadow: '0 -4px 20px rgba(12,43,90,0.06)',
       }}
     >

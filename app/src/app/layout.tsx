@@ -28,10 +28,11 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     title: 'Wirtschaftln',
-    // black-translucent: d'App zeichnet bis ganz oben, der Inhalt scrollt
-    // unter Kamera-Insel/Statusleiste durch; den statischen Navy-Streifen
-    // dafür legt's App-Layout in die Safe-Area (Julius, 29.08.2026)
-    statusBarStyle: 'black-translucent',
+    // 'default' + weißer theme-color: iOS färbt die Statusleiste wie den
+    // Header (nahtlos weiß). black-translucent war ein Irrweg: iOS gibt
+    // Web-Apps die unteren ~62px dann nicht her, d'Tab-Leiste kann nie
+    // an d'Bildschirmkante (ausprobiert & gemessen, 29.08.2026).
+    statusBarStyle: 'default',
   },
 };
 
@@ -40,7 +41,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   viewportFit: 'cover',
-  themeColor: '#07193A',
+  themeColor: '#FFFFFF',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

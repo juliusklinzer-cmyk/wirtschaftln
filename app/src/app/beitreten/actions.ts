@@ -12,12 +12,46 @@ import { newId, nowIso } from '@/lib/ids';
 
 export type BeitrittState = { error?: string };
 
+/**
+ * Live-Check beim Tippen: zu welchem Stammtisch gehört der Code? (null = unbekannt)
+ * Läuft über dieselbe Bremse wie der Beitritt selbst — sonst wär das a
+ * kostenloses Orakel zum Code-Raten.
+ */
+export async function codePruefen(code: string): Promise<{ name: string; stadt: string | null } | null> {
+  const c = String(code ?? '').trim();
+  if (c.length < 3) return null;
+  const wer = await absender();
+  if (gesperrt(wer)) return null;
+  const g = findGruppeByCode(c);
+  if (!g || g.status !== 'aktiv') {
+    fehlversuchZaehlen(wer);
+    return null;
+  }
+  return { name: g.name, stadt: g.stadt };
+}
+
 // Bremse gegen Code-Raten: 10 Fehlversuche → 15 Minuten Pause, gezählt pro
 // Absender (X-Forwarded-For von Caddy). Bewusst NICHT global: sonst könnt
 // ein einzelner Rater die Aufnahme für ALLE Stammtische dichtmachen.
 const MAX_FEHLVERSUCHE = 10;
 const SPERRE_MS = 15 * 60_000;
 const fehlversuche = new Map<string, { count: number; bis: number }>();
+
+function gesperrt(wer: string): boolean {
+  const sperre = fehlversuche.get(wer);
+  if (!sperre || sperre.count < MAX_FEHLVERSUCHE) return false;
+  if (Date.now() < sperre.bis) return true;
+  fehlversuche.delete(wer);
+  return false;
+}
+
+function fehlversuchZaehlen(wer: string): void {
+  if (fehlversuche.size > 500) {
+    for (const [k, v] of fehlversuche) if (Date.now() >= v.bis) fehlversuche.delete(k);
+  }
+  const f = fehlversuche.get(wer) ?? { count: 0, bis: 0 };
+  fehlversuche.set(wer, { count: f.count + 1, bis: Date.now() + SPERRE_MS });
+}
 
 async function absender(): Promise<string> {
   const h = await headers();
@@ -38,19 +72,11 @@ export async function beitreten(_prev: BeitrittState, formData: FormData): Promi
   const email = String(formData.get('email') ?? '').trim().toLowerCase();
 
   const wer = await absender();
-  const sperre = fehlversuche.get(wer);
-  if (sperre && sperre.count >= MAX_FEHLVERSUCHE) {
-    if (Date.now() < sperre.bis) return { error: 'Z’viele Fehlversuche, probier’s in a Viertelstund nomoi.' };
-    fehlversuche.delete(wer);
-  }
+  if (gesperrt(wer)) return { error: 'Z’viele Fehlversuche, probier’s in a Viertelstund nomoi.' };
 
   const gruppe = code ? findGruppeByCode(code) : null;
   if (!gruppe || gruppe.status !== 'aktiv') {
-    if (fehlversuche.size > 500) {
-      for (const [k, v] of fehlversuche) if (Date.now() >= v.bis) fehlversuche.delete(k);
-    }
-    const f = fehlversuche.get(wer) ?? { count: 0, bis: 0 };
-    fehlversuche.set(wer, { count: f.count + 1, bis: Date.now() + SPERRE_MS });
+    fehlversuchZaehlen(wer);
     return { error: 'Der Gründungscode stimmt ned, schau nomoi in d’Gruppe.' };
   }
   fehlversuche.delete(wer);

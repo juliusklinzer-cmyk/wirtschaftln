@@ -10,7 +10,7 @@ export const metadata = {
   openGraph: {
     title: 'A persönliche Einladung zum Wirtschaftln',
     description:
-      'Du bist eingeladen, Gründungsmitglied vom Wirtschaftln zu werden, dem Münchner Stammtisch seit 2019. Treu im Brauch, offen für Neis.',
+      'Du bist eingeladen, Gründungsmitglied bei deinem Stammtisch zu werden. Treu im Brauch, offen für Neis.',
     images: [{ url: '/brand/og.jpg', width: 1200, height: 630, alt: 'Wirtschaftln-Wappen' }],
   },
 };
@@ -75,7 +75,7 @@ export default async function BeitretenPage() {
             marginTop: 8,
           }}
         >
-          Gründungsmitglieder · München seit 2019
+          Mit dem Code aus deiner Runde
         </div>
       </div>
 
@@ -93,7 +93,7 @@ export default async function BeitretenPage() {
             Servus, du gehörst dazua!
           </div>
           <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--ink-500)', marginBottom: 16 }}>
-            Mit dem Gründungscode aus der Runde wirst’d Gründungsmitglied.
+            Mit dem Gründungscode aus deiner Runde wirst’d Mitglied bei eurem Stammtisch.
           </div>
 
           <BeitrittForm />

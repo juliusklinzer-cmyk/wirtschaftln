@@ -2,7 +2,7 @@ import { drizzle, type BetterSQLite3Database } from 'drizzle-orm/better-sqlite3'
 import { and, eq } from 'drizzle-orm';
 import type Database from 'better-sqlite3';
 import * as dirSchema from './directory-schema';
-import { gruppen, konten, type Gruppe, type Konto } from './directory-schema';
+import { gruppen, konten, gruendungsTokens, type Gruppe, type Konto, type GruendungsToken } from './directory-schema';
 import { ensureGruender, openDirectorySqlite } from './core';
 
 /**
@@ -38,6 +38,66 @@ export function findGruppe(id: string): Gruppe | null {
 export function findGruppeByCode(code: string): Gruppe | null {
   if (!code) return null;
   return getDirectory().db.select().from(gruppen).where(eq(gruppen.gruendungscode, code)).get() ?? null;
+}
+
+export function slugFrei(id: string): boolean {
+  return !findGruppe(id);
+}
+
+export function codeFrei(code: string, ausserGruppeId?: string): boolean {
+  const g = findGruppeByCode(code);
+  return !g || g.id === ausserGruppeId;
+}
+
+/** Neuen Stammtisch eintragen (Gründungs-Wizard). */
+export function gruppeAnlegen(zeile: typeof gruppen.$inferInsert): void {
+  getDirectory().db.insert(gruppen).values(zeile).run();
+}
+
+/* ── Gründungs-Tokens: genau einer pro Gründer-Mitglied, genau einmal einlösbar ── */
+
+export function tokenFuerMitglied(memberId: string): GruendungsToken | null {
+  return getDirectory().db.select().from(gruendungsTokens).where(eq(gruendungsTokens.memberId, memberId)).get() ?? null;
+}
+
+export function tokenAnlegen(token: string, memberId: string): GruendungsToken {
+  getDirectory()
+    .db.insert(gruendungsTokens)
+    .values({ token, memberId, status: 'offen', createdAt: new Date().toISOString() })
+    .onConflictDoNothing()
+    .run();
+  return tokenFuerMitglied(memberId)!;
+}
+
+export function findToken(token: string): GruendungsToken | null {
+  return getDirectory().db.select().from(gruendungsTokens).where(eq(gruendungsTokens.token, token)).get() ?? null;
+}
+
+/**
+ * Gruppe anlegen + Token einlösen in EINER Transaktion (Verzeichnis-DB).
+ * Liefert false, wenn der Token inzwischen scho eingelöst war (Doppelklick,
+ * zwei Leute mit demselben Link) — dann wird auch die Gruppe ned angelegt.
+ */
+export function gruppeGruendenMitToken(zeile: typeof gruppen.$inferInsert, token: string): boolean {
+  const d = getDirectory();
+  const tx = d.sqlite.transaction((): boolean => {
+    const offen = d.sqlite.prepare("SELECT 1 FROM gruendungs_tokens WHERE token = ? AND status = 'offen'").get(token);
+    if (!offen) return false;
+    d.db.insert(gruppen).values(zeile).run();
+    const r = d.db
+      .update(gruendungsTokens)
+      .set({ status: 'eingeloest', eingeloestVonGruppeId: zeile.id, eingeloestAm: new Date().toISOString() })
+      .where(and(eq(gruendungsTokens.token, token), eq(gruendungsTokens.status, 'offen')))
+      .run();
+    if (r.changes !== 1) throw new Error('Token-Race');
+    return true;
+  });
+  try {
+    return tx();
+  } catch (err) {
+    if (err instanceof Error && err.message === 'Token-Race') return false;
+    throw err;
+  }
 }
 
 export function alleGruppen(): Gruppe[] {

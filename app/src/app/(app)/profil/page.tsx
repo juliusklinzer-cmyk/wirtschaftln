@@ -12,6 +12,9 @@ import { BadgeBild, SerienLeiste } from '@/components/domain/BadgeBild';
 import { ProfilBearbeiten } from './profil-bearbeiten';
 import { DaniModusSchalter } from '@/components/domain/DaniModus';
 import { tenantConfig } from '@/lib/tenant-config';
+import { tokenFuerGruenderMitglied, tokenLink, gruppenName } from '@/lib/gruendung';
+import { TokenKarte } from '@/components/domain/TokenKarte';
+import { datumKurz } from '@/lib/format';
 
 export const metadata = { title: 'Mei Profil · Wirtschaftln' };
 
@@ -19,6 +22,8 @@ export default async function ProfilPage() {
   const me = await getCurrentMember();
   if (!me) redirect('/login');
   const config = tenantConfig();
+  // 🏰 Gründungs-Token: nur Mitglieder des Gründer-Stammtischs, lazy gemünzt
+  const token = config.istGruender && !me.erstanmeldung ? tokenFuerGruenderMitglied(me.id) : null;
   const saison = aktuelleSaison();
   const statsSaison = getStats({ abDatum: saison.start });
   const statsAllzeit = getStats();
@@ -190,6 +195,21 @@ export default async function ProfilPage() {
           vereinsWahl: config.features.vereinsWahl,
         }}
       />
+
+      {/* 🏰 Gründungs-Token: genau oan Stammtisch in d'Welt setzen */}
+      {token && (
+        <Card pad={14}>
+          <TokenKarte
+            token={token.token}
+            link={tokenLink(token.token)}
+            eingeloest={
+              token.status === 'eingeloest'
+                ? { gruppeName: gruppenName(token.eingeloestVonGruppeId) ?? '—', am: token.eingeloestAm ? datumKurz(token.eingeloestAm.slice(0, 10)) : '—' }
+                : null
+            }
+          />
+        </Card>
+      )}
 
       {/* 🤳 Gaudi-Ecke (nur beim Gründer-Stammtisch, Feature daniModus) */}
       {!me.erstanmeldung && config.features.daniModus && (

@@ -1,11 +1,21 @@
 'use client';
 
-import { useActionState } from 'react';
+import { useActionState, useState, useTransition } from 'react';
 import { Button, Input } from '@/components/ds';
-import { beitreten, type BeitrittState } from './actions';
+import { beitreten, codePruefen, type BeitrittState } from './actions';
 
 export function BeitrittForm() {
   const [state, action, pending] = useActionState<BeitrittState, FormData>(beitreten, {});
+  // Nach der Code-Eingabe steht dran, wem man beitritt (Verzeichnis-Lookup)
+  const [gruppe, setGruppe] = useState<{ name: string; stadt: string | null } | null>(null);
+  const [, starte] = useTransition();
+  const pruefen = (code: string) => {
+    if (code.trim().length < 3) {
+      setGruppe(null);
+      return;
+    }
+    starte(async () => setGruppe(await codePruefen(code)));
+  };
 
   return (
     <form action={action} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -14,8 +24,10 @@ export function BeitrittForm() {
         name="code"
         inputMode="numeric"
         placeholder="Der Code aus da Gruppe"
-        hint="Steht in der Wirtshaus-WhatsApp-Gruppe."
+        hint={gruppe ? `✓ Du trittst dem ${gruppe.name}${gruppe.stadt ? ` (${gruppe.stadt})` : ''} bei.` : 'Steht in der WhatsApp-Gruppe von eurem Stammtisch.'}
         required
+        onChange={(e) => pruefen(e.target.value)}
+        onBlur={(e) => pruefen(e.target.value)}
       />
       <Input label="Nachname" name="nachname" placeholder="Klinzer" required />
       <Input label="Vorname" name="vorname" placeholder="Julius" required />

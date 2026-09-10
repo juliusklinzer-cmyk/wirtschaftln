@@ -6,6 +6,7 @@ import { and, eq, ne } from 'drizzle-orm';
 import { db, members, sessions, bindTenant, currentTenant, runWithTenant, tenantVerfuegbar } from '@/lib/db';
 import { istGueltigerSlug } from '@/lib/db/core';
 import { gruenderGruppeId } from '@/lib/db/directory';
+import { parseTenantConfig, type TenantConfig } from '@/lib/tenant-config';
 
 const COOKIE = 'wn_session';
 const MAX_AGE_DAYS = 90;
@@ -96,6 +97,18 @@ export const getCurrentMember = cache(async () => {
   if (row.member.status !== 'aktiv') return null;
   return row.member;
 });
+
+/**
+ * Tenant-Config des Mandanten aus dem Cookie — OHNE die Session zu prüfen
+ * (fürs Root-Layout und das Manifest: Branding steht schon auf der
+ * Login-Seite richtig, wenn der Cookie da is). null = koa/ungültiger Cookie.
+ */
+export async function tenantConfigAusCookie(): Promise<TenantConfig | null> {
+  const s = await sessionAusCookie();
+  if (!s) return null;
+  const t = bindTenant(s.gruppeId);
+  return t ? parseTenantConfig(t.gruppe) : null;
+}
 
 /**
  * Für Route-Handler: React-cache greift dort ned, deshalb den Mandanten aus

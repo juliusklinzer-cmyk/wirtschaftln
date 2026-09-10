@@ -199,9 +199,14 @@ body {
 
 /* Am Desktop/breiten Browser is d'App nur a schmale Handy-Spalte in da Mitte —
    drumrum München (Alpenpanorama) statt leerer Rand. Am Handy (Spalte = ganze
-   Breite) greift's ned, spart also den Bild-Download. */
+   Breite) greift's ned, spart also den Bild-Download. Das Tourismus-Foto
+   gibt's nur mit München-Branding (Gründer, body.wn-muenchen); andere
+   Stammtische kriegen den ruhigen Navy-Verlauf. */
 @media (min-width: 480px) {
   body {
+    background: linear-gradient(rgba(7, 25, 58, 0.55), rgba(7, 25, 58, 0.78)), var(--navy-900);
+  }
+  body.wn-muenchen {
     background:
       linear-gradient(rgba(7, 25, 58, 0.55), rgba(7, 25, 58, 0.78)),
       url('/brand/munich-alps-panorama.jpg') center center / cover no-repeat fixed,

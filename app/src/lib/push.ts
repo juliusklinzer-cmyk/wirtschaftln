@@ -1,6 +1,7 @@
 import webpush from 'web-push';
 import { eq } from 'drizzle-orm';
 import { db, pushSubscriptions } from '@/lib/db';
+import { tenantConfig } from '@/lib/tenant-config';
 
 /**
  * Web-Push über VAPID (Schlüssel in .env.local / Server-Env).
@@ -15,7 +16,9 @@ function konfiguriert(): boolean {
 }
 
 async function senden(subs: Array<typeof pushSubscriptions.$inferSelect>, titel: string, text: string, url: string) {
-  const payload = JSON.stringify({ title: titel, body: text, url });
+  // Icon pro Stammtisch: Münchner Kindl nur mit München-Branding (Gründer)
+  const icon = tenantConfig().features.muenchenBranding ? '/brand/kindl-256.png' : '/brand/shield-256.png';
+  const payload = JSON.stringify({ title: titel, body: text, url, icon });
   await Promise.allSettled(
     subs.map(async (s) => {
       try {

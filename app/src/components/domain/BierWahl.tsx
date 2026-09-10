@@ -2,6 +2,7 @@
 
 import { useEffect, useId, useRef, useState } from 'react';
 import type { Bier, BierOption } from '@/lib/biersorten';
+import { useTenantConfig } from '@/components/shell/TenantProvider';
 
 const istBier = (o: BierOption): o is Bier => 'name' in o;
 // Nur ei Bierwahl offen: geht oane auf, schließen d'anderen
@@ -107,6 +108,9 @@ function BierZeile({ aktiv, onClick, children }: { aktiv: boolean; onClick: () =
 }
 
 export function BierLogo({ bier }: { bier: Bier }) {
+  // Brauerei-Logos (Quelle Wikipedia) gibt's nur beim Gründer (Feature brauereiLogos), sonst nix
+  const logos = useTenantConfig().features.brauereiLogos;
+  if (!logos) return null;
   return (
     // eslint-disable-next-line @next/next/no-img-element
     <img src={bier.logo} alt="" width={26} height={26}

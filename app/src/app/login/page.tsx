@@ -61,7 +61,7 @@ export default async function LoginPage() {
             marginTop: 8,
           }}
         >
-          Münchner Stammtisch · seit 2019
+          Dei Stammtisch · in der Hosentasch’n
         </div>
       </div>
 

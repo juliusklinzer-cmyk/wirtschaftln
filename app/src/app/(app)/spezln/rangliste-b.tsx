@@ -8,7 +8,8 @@ import { SerienLeiste } from '@/components/domain/BadgeBild';
 import { BadgeInfo, amtKey, type BadgeInfoDaten } from '@/components/domain/BadgeInfo';
 import { PunkteInfo } from '@/components/domain/PunkteInfo';
 import { BadgeBild } from '@/components/domain/BadgeBild';
-import { Steckbrief, steckbriefLeer } from '@/components/domain/Steckbrief';
+import { steckbriefLeer } from '@/components/domain/Steckbrief';
+import { SteckbriefClient as Steckbrief } from '@/components/domain/SteckbriefClient';
 import {
   Siegel,
   Delta,

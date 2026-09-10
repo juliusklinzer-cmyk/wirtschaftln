@@ -170,7 +170,7 @@ export default async function ProfilPage() {
         <Card pad={14}>
           <div style={{ fontFamily: 'var(--font-fraktur)', fontSize: 21, color: 'var(--navy)', marginBottom: 8 }}>Da Steckbrief</div>
           <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink-500)', marginBottom: 8 }}>So sehng di d’Spezln:</div>
-          <Steckbrief daten={me} />
+          <Steckbrief daten={me} logos={config.features.brauereiLogos} />
         </Card>
       )}
 

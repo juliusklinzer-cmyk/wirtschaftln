@@ -26,6 +26,12 @@ export type TenantFeatures = {
   archivKarte: boolean;
   /** Regel „koa Wirtshaus zweimal" (Welle 3: stammhaus überspringt sie) */
   nieZweimal: boolean;
+  /** Brauerei-Logos (public/brand/biersorten, Quelle Wikipedia) statt Text/Emoji */
+  brauereiLogos: boolean;
+  /** Google-Places-Fotos der Wirtshäuser in die DB holen (Gründer-Bestand bleibt) */
+  wirtshausFotos: boolean;
+  /** Münchner Kindl als App-Icon, Alpen-Panorama am Desktop */
+  muenchenBranding: boolean;
 };
 
 export type PublicTenantConfig = {
@@ -53,6 +59,9 @@ export const GRUENDER_FEATURES: TenantFeatures = {
   altbestand: true,
   archivKarte: true,
   nieZweimal: true,
+  brauereiLogos: true,
+  wirtshausFotos: true,
+  muenchenBranding: true,
 };
 
 /** Neue Stammtische: die Münchner Sonderlocken bleiben aus. */
@@ -63,6 +72,9 @@ export const GENERISCHE_FEATURES: TenantFeatures = {
   altbestand: false,
   archivKarte: true,
   nieZweimal: true,
+  brauereiLogos: false,
+  wirtshausFotos: false,
+  muenchenBranding: false,
 };
 
 export const MUENCHEN_GEO: TenantGeo = {

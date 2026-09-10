@@ -87,9 +87,12 @@ export function ArchivKarte({
 }) {
   const router = useRouter();
   // Geo-Config des Stammtischs (Kartenmitte, Umkreis, Such-Suffix); null = die ganze Welt
-  const { geo } = useTenantConfig();
+  const { geo, features } = useTenantConfig();
   const geoRef = useRef(geo);
   geoRef.current = geo;
+  // Google-Fotos nachladen nur mit Feature wirtshausFotos (Gründer)
+  const fotosRef = useRef(features.wirtshausFotos);
+  fotosRef.current = features.wirtshausFotos;
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);
   const overlayRef = useRef<any>(null);
@@ -192,7 +195,7 @@ export function ArchivKarte({
             service.textSearch({ query: mitOrt(pin.name, geo) }, (results: any[], status: string) => {
               const treffer = status === 'OK' ? results?.[0] : null;
               if (treffer) {
-                if (!pin.photoUrl) {
+                if (!pin.photoUrl && fotosRef.current) {
                   const url = treffer.photos?.[0]?.getUrl({ maxWidth: 640, maxHeight: 480 });
                   if (url) void wirtshausFotoSetzen(pin.id, url);
                 }

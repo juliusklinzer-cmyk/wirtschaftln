@@ -109,7 +109,8 @@ async function wirtshausAusSuche(formData: FormData, vorgeschlagenVon: string | 
   const adresse = String(formData.get('w_adresse') ?? '').trim() || null;
   const bezirk = String(formData.get('w_bezirk') ?? '').trim() || null;
   const telefon = String(formData.get('w_telefon') ?? '').trim() || null;
-  const fotoRoh = erlaubteFotoUrl(String(formData.get('w_photoUrl') ?? '').trim());
+  // Google-Fotos nur beim Gründer (Feature wirtshausFotos) — sonst koa Foto in die DB
+  const fotoRoh = tenantConfig().features.wirtshausFotos ? erlaubteFotoUrl(String(formData.get('w_photoUrl') ?? '').trim()) : null;
   // Foto sofort als Data-URL in die DB holen, Google-URLs laufen ab/zicken.
   // Klappt der Download grad ned, bleibt die stabile URL als Fallback.
   const fotoStabil = fotoRoh ? await stabileFotoUrl(fotoRoh) : null;
@@ -518,6 +519,7 @@ async function stabileFotoUrl(photoUrl: string): Promise<string | null> {
 export async function wirtshausFotoSetzen(wirtshausId: string, photoUrl: string) {
   const me = await getCurrentMember();
   if (!me) return;
+  if (!tenantConfig().features.wirtshausFotos) return;
   if (!erlaubteFotoUrl(photoUrl)) return;
   const w = db.select().from(wirtshaeuser).where(eq(wirtshaeuser.id, wirtshausId)).get();
   if (!w || w.photoUrl) return;

@@ -27,7 +27,7 @@ function Logo({ src }: { src: string }) {
 }
 
 /** Der bayrische Steckbrief eines Spezls, zeigt nur, was ausgefüllt ist. */
-export function Steckbrief({ daten }: { daten: SteckbriefDaten }) {
+export function Steckbrief({ daten, logos = true }: { daten: SteckbriefDaten; /** Brauerei-Logos (nur Gründer) */ logos?: boolean }) {
   if (steckbriefLeer(daten)) return null;
   const zeilen: Array<{ icon: React.ReactNode; label: string; wert: string }> = [];
   if (daten.herkunft) zeilen.push({ icon: '📍', label: 'Herkunft', wert: daten.herkunft });
@@ -41,11 +41,11 @@ export function Steckbrief({ daten }: { daten: SteckbriefDaten }) {
     zeilen.push({ icon: '⚽', label: 'Verein', wert: daten.verein });
   }
   if (daten.lieblingsbier) {
-    const logo = bierLogo(daten.lieblingsbier);
+    const logo = logos ? bierLogo(daten.lieblingsbier) : null;
     zeilen.push({ icon: logo ? <Logo src={logo} /> : '🍺', label: 'Helles', wert: daten.lieblingsbier });
   }
   if (daten.lieblingsweissbier) {
-    const logo = bierLogo(daten.lieblingsweissbier);
+    const logo = logos ? bierLogo(daten.lieblingsweissbier) : null;
     zeilen.push({ icon: logo ? <Logo src={logo} /> : '🍺', label: 'Weißbier', wert: daten.lieblingsweissbier });
   }
   if (daten.leibspeise) zeilen.push({ icon: '🥘', label: 'Leibspeise', wert: daten.leibspeise });

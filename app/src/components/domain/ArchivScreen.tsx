@@ -75,7 +75,8 @@ const MEDAILLE: Record<number, { bg: string; fg: string }> = {
 
 /** Brauerei-Logo auf weißem Rund statt Text-Chip, antippen/hovern zeigt den vollen Namen. */
 function BiersorteChip({ sorte, hell = false }: { sorte: string; hell?: boolean }) {
-  const logo = bierLogo(sorte);
+  // Brauerei-Logos nur beim Gründer (Feature brauereiLogos), sonst der Text-Chip
+  const logo = useTenantConfig().features.brauereiLogos ? bierLogo(sorte) : null;
   if (logo) {
     return (
       <span
@@ -118,7 +119,9 @@ export function ArchivScreen({
   /** Listen-Chronik statt Karte (Feature archivKarte aus, z. B. Stammhaus): nur Sterne/Schmarrn/Brodn. */
   ohneKarte?: boolean;
 }) {
-  const ort = useTenantConfig().geo?.suchSuffix ?? null;
+  const { geo, features } = useTenantConfig();
+  const ort = geo?.suchSuffix ?? null;
+  const brauereiLogos = features.brauereiLogos;
   const [view, setView] = useState<'karte' | 'offen' | MetrikKey>(ohneKarte ? 'rang' : 'karte');
   const [idx, setIdx] = useState(0);
   const [detail, setDetail] = useState<{ e: ArchivEintrag; rank: number | null } | null>(null);
@@ -390,6 +393,7 @@ const navBtn: React.CSSProperties = {
 
 /* ── Zeile im „Offen"-Tab: Vorschlag mit Finder + Zwei-Schritt-Entfernen ── */
 function OffenerVorschlag({ e, ich }: { e: ArchivEintrag; ich: { id: string; darfModerieren: boolean } }) {
+  const brauereiLogos = useTenantConfig().features.brauereiLogos;
   const [nachfrage, setNachfrage] = useState(false);
   const [meldung, setMeldung] = useState<{ ok: boolean; text: string } | null>(null);
   const [pending, startTransition] = useTransition();
@@ -438,7 +442,7 @@ function OffenerVorschlag({ e, ich }: { e: ArchivEintrag; ich: { id: string; dar
           )}
           {/* Welches Helle gibt's? Kommt vom Finder (bzw. Standard Augustiner) */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 3, minWidth: 0 }}>
-            {bierLogo(e.biersorte) && (
+            {brauereiLogos && bierLogo(e.biersorte) && (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={bierLogo(e.biersorte)!} alt="" width={15} height={15} style={{ width: 15, height: 15, objectFit: 'contain', flex: 'none' }} />
             )}

@@ -13,6 +13,7 @@ import {
   nachtragsfristOffen,
   getPraesidentId,
   getBekannteWirtshaeuser,
+  getWirtshausById,
 } from '@/lib/queries';
 import { datumLang, datumKurz } from '@/lib/format';
 import { PTS, rechtzeitigAbgestimmt, berlinTag, bierdeckelOffen, abschlussOffen, abschlussAb } from '@/lib/punkte';
@@ -30,6 +31,8 @@ import { ChronikListe } from '@/components/domain/ChronikListe';
 import { ladeArchivEintraege } from '@/lib/archiv-eintraege';
 import { WirtshausSuche } from '@/components/domain/WirtshausSuche';
 import { Bierdeckel, type BierdeckelSpezl } from '@/components/domain/Bierdeckel';
+import { tenantConfig } from '@/lib/tenant-config';
+import { KlappenKopf } from '@/components/ds';
 
 /**
  * Vorbelegung des Abschluss-Zettels am Abend selbst: Zugesagte stehen auf der
@@ -175,6 +178,9 @@ async function AktiverTermin({ terminId, meId, isAdmin }: { terminId: string; me
   // Verwalten (Wirtshaus festlegen/ändern, Anmeldung schließen):
   // Organisator, aktueller Präsident oder Admin
   const darfVerwalten = isAdmin || termin.planerId === meId || meId === getPraesidentId();
+  // Stammhaus-Typ: das Stammhaus is der Default, Reservieren is a Ein-Tap-Bestätigung
+  const config = tenantConfig();
+  const stammhaus = config.typ === 'stammhaus' && config.stammhausWirtshausId ? getWirtshausById(config.stammhausWirtshausId) : null;
 
   // Bierdeckel: am Stammtisch-Abend (ab Termin-Uhrzeit bis zum Abschluss)
   // strichelt jeder seine eigenen Hoiben live, Stand aus den Besuchs-Einträgen.
@@ -273,7 +279,41 @@ async function AktiverTermin({ terminId, meId, isAdmin }: { terminId: string; me
       {termin.phase === 'planung' && termin.planerId &&
         (darfVerwalten ? (
           <>
-            <SectionHeader eyebrow="Dei Aufgabe" title="Wirtshaus festlegen" />
+            <SectionHeader eyebrow="Dei Aufgabe" title={stammhaus ? 'Reservieren' : 'Wirtshaus festlegen'} />
+            {stammhaus && (
+              <Card>
+                <form action={wirtshausFestlegen.bind(null, termin.id)} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  <input type="hidden" name="vorhandenesWirtshausId" value={stammhaus.id} />
+                  <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink-700)' }}>
+                    Wia immer im <b>{stammhaus.name}</b>{stammhaus.adresse ? ` (${stammhaus.adresse})` : ''}?
+                  </div>
+                  <Button type="submit" fullWidth variant="gold">
+                    Passt, reserviert im {stammhaus.name}
+                  </Button>
+                  <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink-500)' }}>
+                    Beim Bestätigen kriegen alle Spezln a Push-Nachricht und a Mail.
+                  </div>
+                </form>
+              </Card>
+            )}
+            {stammhaus ? (
+              <details
+                style={{
+                  background: 'var(--weiss)', border: '1px solid var(--ink-100)',
+                  borderRadius: 'var(--r-lg)', boxShadow: 'var(--sh-sm)', overflow: 'hidden',
+                }}
+              >
+                <KlappenKopf>Ausflug: heit amoi wo anders</KlappenKopf>
+                <div style={{ padding: '4px 18px 18px' }}>
+                  <form action={wirtshausFestlegen.bind(null, termin.id)} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                    <WirtshausSuche bekannte={getBekannteWirtshaeuser()} />
+                    <Button type="submit" fullWidth variant="secondary">
+                      Ausflug eintragen
+                    </Button>
+                  </form>
+                </div>
+              </details>
+            ) : (
             <Card>
               <form action={wirtshausFestlegen.bind(null, termin.id)} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                 {offene.length > 0 && (
@@ -315,6 +355,7 @@ async function AktiverTermin({ terminId, meId, isAdmin }: { terminId: string; me
                 </div>
               </form>
             </Card>
+            )}
           </>
         ) : (
           <Card tone="parchment">

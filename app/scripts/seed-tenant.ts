@@ -1,4 +1,4 @@
-// Zweiter Stammtisch für die lokale Entwicklung (NICHT auf dem Server):
+// Zweiter (und dritter) Stammtisch für die lokale Entwicklung (NICHT auf dem Server):
 // legt den „Probier-Stammtisch“ (Slug: probier) mit eigener DB an, damit ma
 // Mandanten-Isolation, Login-Routing und die Gruppen-Auswahl testen kann.
 //   npm run db:seed:tenant
@@ -59,3 +59,39 @@ for (const p of leute) {
 const konten = syncKonten(directory, sqlite, SLUG);
 console.log(`${neu} Mitglied(er) neu, ${konten} Konto/Konten im Verzeichnis, DB: ${tenantDbPath(SLUG)}`);
 console.log('Login: resi@probier.wirtschaftln.de / servus123 — Beitritt mit Code PROBIER.');
+
+// ── Dritter Mandant: Typ „stammhaus" (immer dasselbe Wirtshaus) ──
+const SH = 'stammhaus';
+const SH_WIRTSHAUS_ID = 'w_stammhaus';
+if (!directory.prepare('SELECT 1 FROM gruppen WHERE id = ?').get(SH)) {
+  directory
+    .prepare(
+      `INSERT INTO gruppen (id, name, motto, stadt, gruendungsjahr, typ, gruendungscode, ist_gruender, config, status, created_at)
+       VALUES (?, ?, ?, ?, ?, 'stammhaus', ?, 0, ?, 'aktiv', ?)`,
+    )
+    .run(SH, 'Hirschen-Stammtisch', 'Immer im Hirschen.', 'Regensburg', 2021, 'HIRSCHEN', JSON.stringify({ stammhausWirtshausId: SH_WIRTSHAUS_ID, hoibePreisCents: 390 }), now());
+  console.log(`Stammtisch „Hirschen-Stammtisch“ (${SH}, Typ stammhaus) angelegt, Gründungscode: HIRSCHEN`);
+}
+const shDb = openTenantSqlite(SH);
+if (!shDb.prepare('SELECT 1 FROM wirtshaeuser WHERE id = ?').get(SH_WIRTSHAUS_ID)) {
+  shDb
+    .prepare("INSERT INTO wirtshaeuser (id, name, adresse, bezirk, biersorte, altbestand, created_at) VALUES (?, 'Zum Goldenen Hirschen', 'Hirschengasse 1, 93047 Regensburg', 'Altstadt', 'Augustiner', 0, ?)")
+    .run(SH_WIRTSHAUS_ID, now());
+}
+let shNeu = 0;
+for (const p of [
+  { vorname: 'Wastl', nachname: 'Wirt', spitzname: 'da Wastl', email: 'wastl@stammhaus.wirtschaftln.de', role: 'admin' },
+  { vorname: 'Lena', nachname: 'Stammgast', spitzname: "d'Lena", email: 'lena@stammhaus.wirtschaftln.de', role: 'mitglied' },
+]) {
+  if (shDb.prepare('SELECT 1 FROM members WHERE email = ?').get(p.email)) continue;
+  shDb
+    .prepare(
+      `INSERT INTO members (id, name, vorname, nachname, spitzname, email, password_hash, role, status, erstanmeldung, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'aktiv', 0, ?)`,
+    )
+    .run(id('m'), `${p.vorname} ${p.nachname}`, p.vorname, p.nachname, p.spitzname, p.email, hashPassword('servus123'), p.role, now());
+  shNeu += 1;
+}
+const shKonten = syncKonten(directory, shDb, SH);
+console.log(`Stammhaus: ${shNeu} Mitglied(er) neu, ${shKonten} Konto/Konten, DB: ${tenantDbPath(SH)}`);
+console.log('Login: wastl@stammhaus.wirtschaftln.de / servus123 — Beitritt mit Code HIRSCHEN.');

@@ -4,7 +4,10 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Icon } from '@/components/ds';
 
-const TABS = [
+export type TabDef = { href: string; label: string; icon: string };
+
+/** Wandernder Stammtisch (Gründer): mit Archiv-Karte. */
+export const TABS_WANDERND: TabDef[] = [
   { href: '/', label: 'Hoam', icon: 'home' },
   { href: '/termin', label: 'Termin', icon: 'calendar' },
   { href: '/karte', label: 'Archiv', icon: 'map' },
@@ -12,7 +15,11 @@ const TABS = [
   { href: '/kasse', label: 'Kasse', icon: 'beer' },
 ];
 
-export function TabBar() {
+/** Stammhaus: immer dasselbe Wirtshaus, a Karte braucht's ned. */
+export const TABS_STAMMHAUS: TabDef[] = TABS_WANDERND.filter((t) => t.href !== '/karte');
+
+export function TabBar({ tabs = TABS_WANDERND }: { tabs?: TabDef[] }) {
+  const TABS = tabs;
   const pathname = usePathname();
   return (
     <nav

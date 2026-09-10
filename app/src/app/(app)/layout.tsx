@@ -5,7 +5,7 @@ import { getStats } from '@/lib/queries';
 import { aktuelleSaison } from '@/lib/saison';
 import { logout } from '@/app/login/actions';
 import { AppBar } from '@/components/shell/AppBar';
-import { TabBar } from '@/components/shell/TabBar';
+import { TabBar, TABS_STAMMHAUS, TABS_WANDERND } from '@/components/shell/TabBar';
 import { DaniStreifen } from '@/components/domain/DaniModus';
 import { TenantProvider } from '@/components/shell/TenantProvider';
 import { publicTenantConfig } from '@/lib/tenant-config';
@@ -52,7 +52,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         />
         {children}
       </main>
-      <TabBar />
+      <TabBar tabs={config.typ === 'stammhaus' ? TABS_STAMMHAUS : TABS_WANDERND} />
     </div>
     </TenantProvider>
   );

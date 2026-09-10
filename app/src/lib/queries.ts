@@ -13,6 +13,7 @@ import {
 } from '@/lib/punkte';
 import { vergabeStand } from '@/lib/badges';
 import { aktuelleSaison } from '@/lib/saison';
+import { tenantConfig } from '@/lib/tenant-config';
 import type { BekanntesWirtshaus } from '@/lib/wirtshaus-abgleich';
 
 export type Termin = typeof termine.$inferSelect;
@@ -112,6 +113,8 @@ export function getAktiveMitglieder() {
  * (laufender Termin) oder vorgeschlagen (offener Pin, samt Finder-Name).
  */
 export function getBekannteWirtshaeuser(): BekanntesWirtshaus[] {
+  // Regel „koa Wirtshaus zweimal“: beim Stammhaus-Typ aus → Besuchte sind frei
+  const nieZweimal = tenantConfig().features.nieZweimal;
   const besuchtIds = new Set(
     db.select().from(termine).where(eq(termine.phase, 'abgeschlossen')).all().map((t) => t.wirtshausId).filter(Boolean),
   );
@@ -127,7 +130,12 @@ export function getBekannteWirtshaeuser(): BekanntesWirtshaus[] {
       name: w.name,
       art: w.altbestand || besuchtIds.has(w.id) ? 'besucht' : eingeplantIds.has(w.id) ? 'eingeplant' : 'vorgeschlagen',
       von: (w.vorgeschlagenVon && finder.get(w.vorgeschlagenVon)) || null,
-    }));
+    }))
+    .filter((b) => nieZweimal || b.art !== 'besucht');
+}
+
+export function getWirtshausById(id: string) {
+  return db.select().from(wirtshaeuser).where(eq(wirtshaeuser.id, id)).get() ?? null;
 }
 
 /** Aktueller Kassenwart (gewähltes Amt der laufenden Saison), darf Ausgaben buchen. */

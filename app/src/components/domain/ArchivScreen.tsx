@@ -110,13 +110,16 @@ function BiersorteChip({ sorte, hell = false }: { sorte: string; hell?: boolean 
 export function ArchivScreen({
   eintraege,
   ich,
+  ohneKarte = false,
 }: {
   eintraege: ArchivEintrag[];
   /** Eingeloggter Spezl, darfModerieren = Admin oder aktueller Präsident. */
   ich: { id: string; darfModerieren: boolean };
+  /** Listen-Chronik statt Karte (Feature archivKarte aus, z. B. Stammhaus): nur Sterne/Schmarrn/Brodn. */
+  ohneKarte?: boolean;
 }) {
   const ort = useTenantConfig().geo?.suchSuffix ?? null;
-  const [view, setView] = useState<'karte' | 'offen' | MetrikKey>('karte');
+  const [view, setView] = useState<'karte' | 'offen' | MetrikKey>(ohneKarte ? 'rang' : 'karte');
   const [idx, setIdx] = useState(0);
   const [detail, setDetail] = useState<{ e: ArchivEintrag; rank: number | null } | null>(null);
 
@@ -140,7 +143,7 @@ export function ArchivScreen({
         { label: 'Schmarrn', value: 'kaiser' },
         { label: 'Brodn', value: 'brodn' },
         { label: 'Offen', value: 'offen' },
-      ]}
+      ].filter((t) => !ohneKarte || (t.value !== 'karte' && t.value !== 'offen'))}
     />
   );
 

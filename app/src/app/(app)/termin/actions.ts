@@ -37,8 +37,15 @@ export async function neuerTermin(formData: FormData) {
   const datum = String(formData.get('datum') ?? '');
   const zeit = String(formData.get('zeit') ?? '19:00');
   if (!datum) return;
+  // Stammhaus-Typ: das Stammhaus steht scho drin, der Organisator bestätigt
+  // nur no („reserviert“) oder tauscht's für an Ausflug aus
+  const config = tenantConfig();
+  const stammhausId =
+    config.typ === 'stammhaus' && config.stammhausWirtshausId && db.select().from(wirtshaeuser).where(eq(wirtshaeuser.id, config.stammhausWirtshausId)).get()
+      ? config.stammhausWirtshausId
+      : null;
   db.insert(termine)
-    .values({ id: newId('t'), datum, zeit, phase: 'planung', planerId: null, createdAt: nowIso() })
+    .values({ id: newId('t'), datum, zeit, phase: 'planung', planerId: null, wirtshausId: stammhausId, createdAt: nowIso() })
     .run();
 
   // 📣 Startschuss für d'Abstimmung, alle Spezln kriegen Push + Mail

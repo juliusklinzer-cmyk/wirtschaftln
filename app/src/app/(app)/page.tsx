@@ -29,6 +29,7 @@ import { AbstimmungsStand } from '@/components/domain/AbstimmungsStand';
 import { StreakChip } from '@/components/domain/StreakChip';
 import { PushAktivieren } from '@/components/domain/PushAktivieren';
 import { WirtshausGfunden } from '@/components/domain/WirtshausGfunden';
+import { tenantConfig } from '@/lib/tenant-config';
 import { RichtungsKnopf } from '@/components/domain/RichtungsKnopf';
 import { BadgeFeier, type FeierBadge } from '@/components/domain/BadgeFeier';
 import { CheckinKarte } from '@/components/domain/CheckinKarte';
@@ -43,6 +44,7 @@ const PAYPAL_POOL_URL = process.env.NEXT_PUBLIC_PAYPAL_POOL_URL;
 export default async function HomePage() {
   const me = (await getCurrentMember())!;
   erzwingeProfil(me);
+  const config = tenantConfig();
   const stats = getStats();
   const meineStats = stats.find((s) => s.member.id === me.id);
   const rangliste = [...stats].sort((a, b) => b.punkte - a.punkte);
@@ -304,27 +306,28 @@ export default async function HomePage() {
 
       <PushAktivieren />
 
-      {/* Wirtshaus gfunden, darf jeder: landet als offener Pin auf der Karte.
-          Als Klappe, damit das Formular d'Startseite ned in d'Länge zieht. */}
-      <details
-        style={{
-          background: 'var(--weiss)', border: '1px solid var(--ink-100)',
-          borderRadius: 'var(--r-lg)', boxShadow: 'var(--sh-sm)', overflow: 'hidden',
-        }}
-      >
-        <KlappenKopf
-          chip={
-            <span className="wn-tnum" style={{ flex: 'none', fontSize: 12, fontWeight: 800, padding: '3px 10px', borderRadius: 999, background: 'var(--pergament)', color: 'var(--gold-700)' }}>
-              +{PTS.vorschlag} WP
-            </span>
-          }
+      {/* Wirtshaus gfunden, darf jeder: landet als offener Pin auf der Karte (beim Stammhaus-Typ ned). */}
+      {config.typ !== 'stammhaus' && (
+        <details
+          style={{
+            background: 'var(--weiss)', border: '1px solid var(--ink-100)',
+            borderRadius: 'var(--r-lg)', boxShadow: 'var(--sh-sm)', overflow: 'hidden',
+          }}
         >
-          Wirtshaus gfunden?
-        </KlappenKopf>
-        <div style={{ padding: '4px 18px 18px' }}>
-          <WirtshausGfunden bekannte={getBekannteWirtshaeuser()} />
-        </div>
-      </details>
+          <KlappenKopf
+            chip={
+              <span className="wn-tnum" style={{ flex: 'none', fontSize: 12, fontWeight: 800, padding: '3px 10px', borderRadius: 999, background: 'var(--pergament)', color: 'var(--gold-700)' }}>
+                +{PTS.vorschlag} WP
+              </span>
+            }
+          >
+            Wirtshaus gfunden?
+          </KlappenKopf>
+          <div style={{ padding: '4px 18px 18px' }}>
+            <WirtshausGfunden bekannte={getBekannteWirtshaeuser()} />
+          </div>
+        </details>
+      )}
 
       {/* Umfragen: neue starten + scho beantwortete mit Ergebnis */}
       <SectionHeader eyebrow="Vom Stammtisch" title="Umfragen" fraktur style={{ marginTop: 8 }} />

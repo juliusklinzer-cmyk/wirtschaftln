@@ -8,7 +8,7 @@ import { hoibenStricheln } from '@/app/(app)/termin/actions';
 export type BierdeckelSpezl = {
   name: string;
   photoUrl: string | null;
-  verein: 'bayern' | 'sechzig' | null;
+  verein: string | null;
   hoiben: number;
 };
 

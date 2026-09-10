@@ -10,7 +10,9 @@ import { findeBekanntes } from '@/lib/wirtshaus-abgleich';
 import { vergabeWechsel, wechselTexte } from '@/lib/badges';
 import { WACKELT_AB_UNENTSCHULDIGT, berlinTag, bierdeckelOffen, abschlussOffen, checkinOffen, CHECKIN_VORLAUF_STUNDEN } from '@/lib/punkte';
 import { HELLE, ALKOHOLFREIE_HELLE } from '@/lib/biersorten';
-import { HOIBE_KELLERPREIS_CENTS } from '@/lib/preise';
+import { hoibePreisCents, hoibePreisEuro } from '@/lib/preise';
+import { appHost, appUrl, mailSignatur, tenantConfig } from '@/lib/tenant-config';
+import { imUmkreis, mitOrt } from '@/lib/tenant-config-public';
 import { fotoAlsDataUrl } from '@/lib/foto';
 import { mailAn } from '@/lib/mail';
 import { pushAnAlle, pushAn } from '@/lib/push';
@@ -46,7 +48,7 @@ export async function neuerTermin(formData: FormData) {
   const empfaenger = getAktiveMitglieder().filter((m) => m.id !== me.id).map((m) => m.email);
   await Promise.allSettled([
     pushAnAlle(titel, text, '/termin'),
-    mailAn(empfaenger, titel, `Servus!\n\n${text}\n\n→ https://wirtschaftln.de/termin\n\nDei Wirtschaftln-App`),
+    mailAn(empfaenger, titel, `Servus!\n\n${text}\n\n→ ${appUrl('/termin')}\n\n${mailSignatur()}`),
   ]);
   revalidateAll();
 }
@@ -56,7 +58,7 @@ async function geocode(query: string): Promise<{ lat: number; lng: number } | nu
   try {
     const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=de&q=${encodeURIComponent(query)}`;
     const res = await fetch(url, {
-      headers: { 'User-Agent': 'wirtschaftln.de (Stammtisch-App)' },
+      headers: { 'User-Agent': `${appHost()} (Stammtisch-App)` },
       signal: AbortSignal.timeout(4000),
     });
     if (!res.ok) return null;
@@ -108,7 +110,7 @@ async function wirtshausAusSuche(formData: FormData, vorgeschlagenVon: string | 
   let lat = Number(formData.get('w_lat')) || null;
   let lng = Number(formData.get('w_lng')) || null;
   if (lat == null || lng == null) {
-    const coords = await geocode(adresse ? `${adresse}` : `${name}, München`);
+    const coords = await geocode(adresse ? `${adresse}` : mitOrt(name, tenantConfig().geo));
     lat = coords?.lat ?? null;
     lng = coords?.lng ?? null;
   }
@@ -181,7 +183,7 @@ export async function wirtshausFestlegen(terminId: string, formData: FormData) {
   const empfaenger = getAktiveMitglieder().filter((m) => m.id !== me.id).map((m) => m.email);
   await Promise.allSettled([
     pushAnAlle(titel, text, '/termin'),
-    mailAn(empfaenger, titel, `Servus!\n\n${text}\n\n→ https://wirtschaftln.de/termin\n\nDei Wirtschaftln-App`),
+    mailAn(empfaenger, titel, `Servus!\n\n${text}\n\n→ ${appUrl('/termin')}\n\n${mailSignatur()}`),
   ]);
   revalidateAll();
 }
@@ -268,7 +270,7 @@ export async function orgaSchnappen(terminId: string): Promise<OrgaErgebnis> {
   const empfaenger = getAktiveMitglieder().filter((m) => m.id !== me.id).map((m) => m.email);
   await Promise.allSettled([
     pushAnAlle(titel, text, '/termin'),
-    mailAn(empfaenger, titel, `Servus!\n\n${text}\n\n→ https://wirtschaftln.de/termin\n\nDei Wirtschaftln-App`),
+    mailAn(empfaenger, titel, `Servus!\n\n${text}\n\n→ ${appUrl('/termin')}\n\n${mailSignatur()}`),
   ]);
   revalidateAll();
   return { ok: true };
@@ -379,13 +381,13 @@ export async function besuchAbschliessen(terminId: string, formData: FormData) {
 
   // ⭐ Geschmissene Runden → Kasse-Eintrag mit echtem Wert: Teilnehmer × Bräustüberl-Hoibe
   // (zählt für Großbauer + Runden-WP; zahlt sich am Tisch, fließt also NICHT in den Saldo)
-  const rundenWert = dabeiIds.length * HOIBE_KELLERPREIS_CENTS;
+  const rundenWert = dabeiIds.length * hoibePreisCents();
   db.delete(kasse).where(and(eq(kasse.terminId, terminId), eq(kasse.kind, 'runde'))).run();
   for (const memberId of rundenIds) {
     db.insert(kasse)
       .values({
         id: newId('k'), memberId, terminId,
-        grund: `Runde gschmissen im ${wirtshausName} 🍻 (${dabeiIds.length} × ${(HOIBE_KELLERPREIS_CENTS / 100).toFixed(2).replace('.', ',')} €)`,
+        grund: `Runde gschmissen im ${wirtshausName} 🍻 (${dabeiIds.length} × ${hoibePreisEuro()} €)`,
         betragCents: rundenWert, kind: 'runde', status: 'beglichen', createdAt: nowIso(),
       })
       .run();
@@ -394,7 +396,7 @@ export async function besuchAbschliessen(terminId: string, formData: FormData) {
   // ❌ Zugesagt & nicht erschienen → offene Forderung: Runde = Teilnehmer × Kellerpreis.
   // Offene Auto-Strafen dieses Termins neu aufbauen (beglichene bleiben unangetastet);
   // die Zahlungsaufforderung mit PayPal-Link erscheint dem Spezl auf der Startseite.
-  const betrag = dabeiIds.length * HOIBE_KELLERPREIS_CENTS;
+  const betrag = dabeiIds.length * hoibePreisCents();
   const alteStrafen = db.select().from(kasse).where(and(eq(kasse.terminId, terminId), eq(kasse.kind, 'strafe'))).all();
   for (const s of alteStrafen) {
     if (s.status === 'offen' && s.grund.startsWith(STRAFE_GRUND_PREFIX)) {
@@ -409,7 +411,7 @@ export async function besuchAbschliessen(terminId: string, formData: FormData) {
     db.insert(kasse)
       .values({
         id: newId('k'), memberId, terminId,
-        grund: `${STRAFE_GRUND_PREFIX}: Runde für die Spezln (${dabeiIds.length} × ${(HOIBE_KELLERPREIS_CENTS / 100).toFixed(2).replace('.', ',')} €) im ${wirtshausName}`,
+        grund: `${STRAFE_GRUND_PREFIX}: Runde für die Spezln (${dabeiIds.length} × ${hoibePreisEuro()} €) im ${wirtshausName}`,
         betragCents: -betrag, kind: 'strafe', status: 'offen', createdAt: nowIso(),
       })
       .run();
@@ -446,7 +448,7 @@ export async function besuchAbschliessen(terminId: string, formData: FormData) {
       db.insert(kasse)
         .values({
           id: newId('k'), memberId: s.member.id, terminId,
-          grund: `Strafrunde: 3× unentschuldigt gfehlt (${dabeiIds.length} × ${(HOIBE_KELLERPREIS_CENTS / 100).toFixed(2).replace('.', ',')} €)`,
+          grund: `Strafrunde: 3× unentschuldigt gfehlt (${dabeiIds.length} × ${hoibePreisEuro()} €)`,
           betragCents: -betrag, kind: 'strafe', status: 'offen', createdAt: nowIso(),
         })
         .run();
@@ -476,8 +478,8 @@ export async function besuchAbschliessen(terminId: string, formData: FormData) {
       if (w.altId) sendungen.push(pushAn([w.altId], `${w.icon} ${w.label}-Wechsel!`, texte.anAlten, '/spezln'));
       const neuMail = mailVon(w.neuId);
       const altMail = mailVon(w.altId);
-      if (neuMail) sendungen.push(mailAn([neuMail], `${w.icon} ${w.label}-Wechsel!`, `Servus ${neuName}!\n\n${texte.anNeuen}\n\n→ https://wirtschaftln.de/spezln\n\nDei Wirtschaftln-App`));
-      if (altMail && w.altId) sendungen.push(mailAn([altMail], `${w.icon} ${w.label}-Wechsel!`, `Servus ${nameVon(w.altId)}!\n\n${texte.anAlten}\n\n→ https://wirtschaftln.de/spezln\n\nDei Wirtschaftln-App`));
+      if (neuMail) sendungen.push(mailAn([neuMail], `${w.icon} ${w.label}-Wechsel!`, `Servus ${neuName}!\n\n${texte.anNeuen}\n\n→ ${appUrl('/spezln')}\n\n${mailSignatur()}`));
+      if (altMail && w.altId) sendungen.push(mailAn([altMail], `${w.icon} ${w.label}-Wechsel!`, `Servus ${nameVon(w.altId)}!\n\n${texte.anAlten}\n\n→ ${appUrl('/spezln')}\n\n${mailSignatur()}`));
     }
     await Promise.allSettled(sendungen);
   }
@@ -529,8 +531,8 @@ export async function wirtshausOrtSetzen(wirtshausId: string, daten: { lat: numb
   if (!me) return;
   const lat = Number(daten?.lat);
   const lng = Number(daten?.lng);
-  // München & Umland, alles andere ist ein Fehlgriff der Suche
-  if (!Number.isFinite(lat) || !Number.isFinite(lng) || lat < 47.5 || lat > 48.8 || lng < 10.5 || lng > 12.5) return;
+  // Stadt & Umland (config.geo), alles andere ist ein Fehlgriff der Suche; ohne Geo-Config koa Grenze
+  if (!Number.isFinite(lat) || !Number.isFinite(lng) || !imUmkreis(tenantConfig().geo, lat, lng)) return;
   const w = db.select().from(wirtshaeuser).where(eq(wirtshaeuser.id, wirtshausId)).get();
   if (!w || w.lat != null) return;
   const adresse = String(daten.adresse ?? '').trim().slice(0, 200) || null;

@@ -138,7 +138,7 @@ export function Rangliste({
                 </div>
                 <div style={{ position: 'relative', flex: 'none' }}>
                   <Avatar src={e.photoUrl} name={e.name} size={rank <= 3 ? 52 : 44} ring={rank === 1} verein={e.steckbrief.verein} />
-                  {e.steckbrief.verein ? (
+                  {e.steckbrief.verein && VEREIN_LOGO[e.steckbrief.verein] ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={VEREIN_LOGO[e.steckbrief.verein]} alt="" style={{ position: 'absolute', right: -4, bottom: -2, width: 18, height: 18, objectFit: 'contain', background: '#fff', borderRadius: '50%', padding: 2, boxShadow: 'var(--sh-sm)' }} />
                   ) : (
@@ -253,7 +253,7 @@ export function Rangliste({
               {/* Nur's Badge + wer's grad tragt (Julius 29.08.), alles Weitere
                   zeigt d'Badge-Bühne beim Antippen */}
               <div style={{ filter: b.holder ? 'none' : 'grayscale(1)', opacity: b.holder ? 1 : 0.45 }}>
-                <BadgeBild slug={b.key} icon={b.icon} name={b.name} size={116} />
+                <BadgeBild slug={b.slug} icon={b.icon} name={b.name} size={116} />
               </div>
               {b.holder ? (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 10, maxWidth: '100%' }}>
@@ -347,7 +347,7 @@ function SpezlDetailB({
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '18px 20px 0' }}>
             <div style={{ position: 'relative', animation: 'wnFederPop 500ms cubic-bezier(0.34, 1.56, 0.64, 1) both' }}>
               <Avatar src={e.photoUrl} name={e.name} size={88} ring={rank === 1} verein={e.steckbrief.verein} />
-              {e.steckbrief.verein ? (
+              {e.steckbrief.verein && VEREIN_LOGO[e.steckbrief.verein] ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={VEREIN_LOGO[e.steckbrief.verein]} alt="" style={{ position: 'absolute', left: -4, bottom: 2, width: 24, height: 24, objectFit: 'contain', background: '#fff', borderRadius: '50%', padding: 2, boxShadow: 'var(--sh-sm)' }} />
               ) : (

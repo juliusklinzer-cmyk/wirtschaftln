@@ -64,6 +64,14 @@ export function kontoAnlegen(email: string, gruppeId: string, memberId: string):
     .run();
 }
 
+/** Stammdaten/Config eines Stammtischs ändern (Admin-Seite „Stammtisch"). */
+export function gruppeAktualisieren(
+  id: string,
+  patch: Partial<Pick<Gruppe, 'name' | 'motto' | 'stadt' | 'gruendungsjahr' | 'gruendungscode' | 'config'>>,
+): void {
+  getDirectory().db.update(gruppen).set(patch).where(eq(gruppen.id, id)).run();
+}
+
 export function kontoLoeschen(gruppeId: string, memberId: string): void {
   getDirectory()
     .db.delete(konten)

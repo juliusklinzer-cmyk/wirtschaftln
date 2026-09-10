@@ -21,7 +21,8 @@ export const members = sqliteTable('members', {
   leibspeise: text('leibspeise'),
   lieblingsbiergarten: text('lieblingsbiergarten'),
   lieblingswirtshaus: text('lieblingswirtshaus'),
-  verein: text('verein', { enum: ['bayern', 'sechzig'] }),
+  // Gründer (Feature vereinsWahl): 'bayern' | 'sechzig' mit Wappen; sonst freier Vereinsname
+  verein: text('verein'),
   schafkopfer: integer('schafkopfer', { mode: 'boolean' }).notNull().default(false),
   beschreibung: text('beschreibung'),
   // true, bis der Spezl beim ersten Login Passwort gesetzt + Profil ausgefüllt hat

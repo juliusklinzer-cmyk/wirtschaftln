@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { Avatar, Icon } from '@/components/ds';
 import { VotePills } from '@/components/domain/VotePills';
 
-export type ZugesagterSpezl = { name: string; photoUrl: string | null; verein: 'bayern' | 'sechzig' | null };
+export type ZugesagterSpezl = { name: string; photoUrl: string | null; verein: string | null };
 
 /**
  * Abstimmung auf der Heim-Karte: solange koa Stimme da is, stehen die

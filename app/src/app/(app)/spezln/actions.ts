@@ -13,6 +13,7 @@ import { getPraesidentId, getAktiveMitglieder } from '@/lib/queries';
 import { anzeigeName } from '@/lib/namen';
 import { pushAnAlle } from '@/lib/push';
 import { mailAn } from '@/lib/mail';
+import { appUrl, mailSignatur, tenantConfig } from '@/lib/tenant-config';
 
 export type AufnahmeErgebnis = { ok: true; meldung: string } | { ok: false; meldung: string };
 
@@ -58,10 +59,12 @@ export async function mitgliedAnlegen(formData: FormData): Promise<AufnahmeErgeb
 
   // 📬 Willkommens-Mail an den Neuen, mit Zugang und dem Hinweis, dass er
   // beim ersten Anmelden sei eigenes Passwort setzt.
+  const c = tenantConfig();
+  const woher = [c.stadt, c.gruendungsjahr ? `seit ${c.gruendungsjahr}` : null].filter(Boolean).join(', ');
   await mailAn(
     [email],
-    '🍺 Servus beim Wirtschaftln-Stammtisch!',
-    `Servus ${vorname}!\n\nDu bist jetzt dabei beim Wirtschaftln, dem Stammtisch, München, seit 2019.\n\nSo kommst eini:\n→ https://wirtschaftln.de/login\nE-Mail: ${email}\nStart-Passwort: ${password}\n\nBeim ersten Anmelden setzt dich glei dei eigenes Passwort und füllst dei Profil aus (Lieblingsbier ned vergessen).\n\nBis boid am Tisch!\nDei Wirtschaftln-App`,
+    `🍺 Servus beim ${c.name}-Stammtisch!`,
+    `Servus ${vorname}!\n\nDu bist jetzt dabei beim ${c.name}, dem Stammtisch${woher ? `, ${woher}` : ''}.\n\nSo kommst eini:\n→ ${appUrl('/login')}\nE-Mail: ${email}\nStart-Passwort: ${password}\n\nBeim ersten Anmelden setzt dich glei dei eigenes Passwort und füllst dei Profil aus (Lieblingsbier ned vergessen).\n\nBis boid am Tisch!\n${mailSignatur()}`,
   );
   revalidatePath('/spezln');
   return { ok: true, meldung: `✓ ${vorname} is aufgnommen, d'Willkommens-Mail an ${email} is raus.` };
@@ -93,7 +96,7 @@ export async function amtZuweisen(formData: FormData) {
   const empfaenger = getAktiveMitglieder().filter((m) => m.id !== me.id).map((m) => m.email);
   await Promise.allSettled([
     pushAnAlle(titelText, text, '/spezln'),
-    mailAn(empfaenger, titelText, `Servus!\n\n${text}\n\n→ https://wirtschaftln.de/spezln\n\nDei Wirtschaftln-App`),
+    mailAn(empfaenger, titelText, `Servus!\n\n${text}\n\n→ ${appUrl('/spezln')}\n\n${mailSignatur()}`),
   ]);
   revalidatePath('/spezln');
 }

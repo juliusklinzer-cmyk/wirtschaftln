@@ -432,7 +432,7 @@ export type ArchivHinweis = { art: 'kaisi' | 'brodn' | 'allgemein'; text: string
 export type ArchivTeilnehmer = {
   name: string;
   photoUrl: string | null;
-  verein: 'bayern' | 'sechzig' | null;
+  verein: string | null;
   hoiben: number;
   kaiserschmarrn: number;
   schweinsbraten: number;

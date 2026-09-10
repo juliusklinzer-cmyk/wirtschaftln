@@ -11,7 +11,7 @@ import {
 import { anzeigeName, urkundenName } from '@/lib/namen';
 import { aktuelleSaison } from '@/lib/saison';
 import { datumKurz } from '@/lib/format';
-import { saisonBadgesVergeben, serienAbzeichen, amtInfo, AEMTER_INFO, SAISON_BADGES } from '@/lib/badges';
+import { saisonBadgesVergeben, serienAbzeichen, amtInfo, AEMTER_INFO, saisonBadges } from '@/lib/badges';
 import type { BadgeInfoDaten, HallOfFameEintrag, ZaehlerBlock } from '@/components/domain/BadgeInfo';
 import type { SpezlEintrag, AmtEintrag, GalerieBadge, StatsBlock } from './rangliste';
 
@@ -98,7 +98,7 @@ export function ladeRanglisteDaten(meId: string): {
       photoUrl: allzeit.member.photoUrl,
       istIch: allzeit.member.id === meId,
       amt: amtVonMember.get(allzeit.member.id) ?? null,
-      badges: (badgesJeMember.get(allzeit.member.id) ?? []).map(({ key, icon, name, tag, pflicht }) => ({ key, icon, name, tag, pflicht })),
+      badges: (badgesJeMember.get(allzeit.member.id) ?? []).map(({ key, slug, icon, name, tag, pflicht }) => ({ key, slug, icon, name, tag, pflicht })),
       serien: [...serienAbzeichen(allzeit.bestStreak)],
       steckbrief: {
         herkunft: allzeit.member.herkunft,
@@ -140,8 +140,9 @@ export function ladeRanglisteDaten(meId: string): {
   // Galerie zeigt IMMER alle Badge-Typen (wie die Ämter), vor'm ersten Abend
   // steht koa Träger dran („no ned vergeben"), danach der aktuelle Halter.
   const badgeHolder = new Map(badges.map((b) => [b.key, b.holderId]));
-  const galerie: GalerieBadge[] = SAISON_BADGES.map(({ key, icon, name, tag, pflicht }) => ({
+  const galerie: GalerieBadge[] = saisonBadges().map(({ key, slug, icon, name, tag, pflicht }) => ({
     key,
+    slug,
     icon,
     name,
     tag,
@@ -184,11 +185,11 @@ export function ladeRanglisteDaten(meId: string): {
   };
 
   const badgeInfos: Record<string, BadgeInfoDaten> = {};
-  for (const b of SAISON_BADGES) {
+  for (const b of saisonBadges()) {
     badgeInfos[b.key] = {
       key: b.key,
       art: 'badge',
-      slug: b.key,
+      slug: b.slug,
       icon: b.icon,
       name: b.name,
       untertitel: b.tag,

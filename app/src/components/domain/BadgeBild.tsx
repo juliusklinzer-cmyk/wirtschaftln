@@ -7,9 +7,10 @@ import { useState } from 'react';
  * Fällt auf die goldene Emoji-Disc zurück, solange die Datei fehlt.
  * Für Serien-Abzeichen: slug `serie-<n>`.
  */
-export function BadgeBild({ slug, icon, name, size = 30 }: { slug: string; icon: string; name: string; size?: number }) {
+export function BadgeBild({ slug, icon, name, size = 30 }: { slug: string | null; icon: string; name: string; size?: number }) {
   const [pngFehlt, setPngFehlt] = useState(false);
-  if (!pngFehlt) {
+  // slug null = generisches Badge-Set ohne PNG-Art → direkt die Emoji-Disc
+  if (slug && !pngFehlt) {
     return (
       // eslint-disable-next-line @next/next/no-img-element
       <img

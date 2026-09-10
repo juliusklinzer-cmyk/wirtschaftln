@@ -20,10 +20,12 @@ export type ProfilWerte = {
   leibspeise: string | null;
   lieblingsbiergarten: string | null;
   lieblingswirtshaus: string | null;
-  verein: 'bayern' | 'sechzig' | null;
+  verein: string | null;
   schafkopfer: boolean;
   beschreibung: string | null;
   erstanmeldung: boolean;
+  /** Bayern/Sechzig-Picker mit Wappen (Gründer) statt freiem Vereinsfeld */
+  vereinsWahl: boolean;
 };
 
 export function ProfilForm({ werte, onGespeichert }: { werte: ProfilWerte; onGespeichert?: () => void }) {
@@ -67,43 +69,47 @@ export function ProfilForm({ werte, onGespeichert }: { werte: ProfilWerte; onGes
       <Input label="Lieblings-Biergarten" name="lieblingsbiergarten" defaultValue={werte.lieblingsbiergarten ?? ''} placeholder="z. B. Augustiner-Keller" />
       <Input label="Lieblings-Wirtshaus" name="lieblingswirtshaus" defaultValue={werte.lieblingswirtshaus ?? ''} placeholder="z. B. Wirtshaus in der Au" />
 
-      {/* Bayern oder Sechzig */}
-      <div>
-        <label style={{ display: 'block', fontSize: 13, fontWeight: 700, color: 'var(--ink-700)', marginBottom: 6 }}>
-          Bayern oder Sechzig?
-        </label>
-        <input type="hidden" name="verein" value={verein} />
-        <div style={{ display: 'flex', gap: 8 }}>
-          {[
-            { wert: 'bayern', label: 'Bayern', logo: '/brand/vereine/fcb.png' },
-            { wert: 'sechzig', label: 'Sechzig', logo: '/brand/vereine/1860.png' },
-            { wert: '', label: 'Freund des Fußball', logo: null },
-          ].map((o) => (
-            <button
-              key={o.wert}
-              type="button"
-              onClick={() => setVerein(o.wert)}
-              style={{
-                flex: 1, padding: '10px 6px', borderRadius: 'var(--r-md)', cursor: 'pointer',
-                border: verein === o.wert ? '1.5px solid var(--muc-blau)' : '1.5px solid var(--ink-200)',
-                background: verein === o.wert ? 'var(--info-bg)' : 'var(--weiss)',
-                fontFamily: 'var(--font-ui)', fontSize: 13, fontWeight: 800,
-                color: verein === o.wert ? 'var(--muc-blau)' : 'var(--ink-500)',
-                display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                filter: o.logo && verein !== o.wert ? 'grayscale(0.6)' : 'none',
-              }}
-            >
-              {o.logo ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={o.logo} alt="" style={{ width: 24, height: 24, objectFit: 'contain' }} />
-              ) : (
-                <span style={{ fontSize: 16 }}>🥨</span>
-              )}
-              {o.label}
-            </button>
-          ))}
+      {/* Bayern oder Sechzig (Gründer, Feature vereinsWahl) — sonst freies Vereinsfeld */}
+      {werte.vereinsWahl ? (
+        <div>
+          <label style={{ display: 'block', fontSize: 13, fontWeight: 700, color: 'var(--ink-700)', marginBottom: 6 }}>
+            Bayern oder Sechzig?
+          </label>
+          <input type="hidden" name="verein" value={verein} />
+          <div style={{ display: 'flex', gap: 8 }}>
+            {[
+              { wert: 'bayern', label: 'Bayern', logo: '/brand/vereine/fcb.png' },
+              { wert: 'sechzig', label: 'Sechzig', logo: '/brand/vereine/1860.png' },
+              { wert: '', label: 'Freund des Fußball', logo: null },
+            ].map((o) => (
+              <button
+                key={o.wert}
+                type="button"
+                onClick={() => setVerein(o.wert)}
+                style={{
+                  flex: 1, padding: '10px 6px', borderRadius: 'var(--r-md)', cursor: 'pointer',
+                  border: verein === o.wert ? '1.5px solid var(--muc-blau)' : '1.5px solid var(--ink-200)',
+                  background: verein === o.wert ? 'var(--info-bg)' : 'var(--weiss)',
+                  fontFamily: 'var(--font-ui)', fontSize: 13, fontWeight: 800,
+                  color: verein === o.wert ? 'var(--muc-blau)' : 'var(--ink-500)',
+                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                  filter: o.logo && verein !== o.wert ? 'grayscale(0.6)' : 'none',
+                }}
+              >
+                {o.logo ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={o.logo} alt="" style={{ width: 24, height: 24, objectFit: 'contain' }} />
+                ) : (
+                  <span style={{ fontSize: 16 }}>🥨</span>
+                )}
+                {o.label}
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
+      ) : (
+        <Input label="Lieblingsverein (optional)" name="verein" defaultValue={werte.verein ?? ''} placeholder="z. B. 1. FC Nürnberg" />
+      )}
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', background: 'var(--pergament)', border: '1px solid var(--pergament-edge)', borderRadius: 'var(--r-md)' }}>
         {/* eslint-disable-next-line @next/next/no-img-element */}

@@ -6,6 +6,7 @@ import sharp from 'sharp';
 import { db, members } from '@/lib/db';
 import { getCurrentMember, destroyOtherSessions } from '@/lib/session';
 import { hashPassword, verifyPassword } from '@/lib/password';
+import { tenantConfig } from '@/lib/tenant-config';
 
 export type ProfilState = { error?: string; ok?: boolean };
 
@@ -68,7 +69,8 @@ export async function profilSpeichern(_prev: ProfilState, formData: FormData): P
       leibspeise: feld('leibspeise'),
       lieblingsbiergarten: feld('lieblingsbiergarten'),
       lieblingswirtshaus: feld('lieblingswirtshaus'),
-      verein: verein === 'bayern' || verein === 'sechzig' ? verein : null,
+      // Gründer: nur die zwoa Wappen; sonst freier Vereinsname
+      verein: tenantConfig().features.vereinsWahl ? (verein === 'bayern' || verein === 'sechzig' ? verein : null) : feld('verein', 60),
       schafkopfer: formData.get('schafkopfer') === 'on',
       beschreibung: feld('beschreibung', 500),
       erstanmeldung: false,

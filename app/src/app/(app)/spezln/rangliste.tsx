@@ -24,7 +24,7 @@ export type StatsBlock = {
   deltaRang: number;
 };
 
-export type SpezlBadge = { key: string; icon: string; name: string; tag: string; pflicht: string | null };
+export type SpezlBadge = { key: string; slug: string | null; icon: string; name: string; tag: string; pflicht: string | null };
 export type SerienAbzeichen = { icon: string; name: string; ab: number };
 
 export type SpezlEintrag = {

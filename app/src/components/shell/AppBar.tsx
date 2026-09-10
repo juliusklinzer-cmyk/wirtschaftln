@@ -12,9 +12,11 @@ const TITLES: Record<string, string> = {
   '/spezln': 'Spezln',
   '/kasse': 'Vereinskasse',
   '/profil': 'Mei Profil',
+  '/stammtisch': 'Stammtisch',
 };
 
 export function AppBar({
+  appName = 'Wirtschaftln',
   name,
   photoUrl,
   isAdmin,
@@ -22,6 +24,8 @@ export function AppBar({
   wp,
   onLogout,
 }: {
+  /** Name des Stammtischs (Tenant-Config), Wortmarke im Header */
+  appName?: string;
   name: string;
   photoUrl: string | null;
   isAdmin: boolean;
@@ -102,7 +106,7 @@ export function AppBar({
           ) : (
             <>
               <div style={{ fontFamily: 'var(--font-fraktur)', fontSize: 22, color: 'var(--navy)', lineHeight: 1 }}>
-                Wirtschaftln
+                {appName}
               </div>
               <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--gold-700)' }}>
                 {saison}
@@ -183,6 +187,24 @@ export function AppBar({
                 </div>
               </div>
             </div>
+            {isAdmin && (
+              <Link
+                href="/stammtisch"
+                onClick={() => setMenu(false)}
+                style={{
+                  display: 'block',
+                  padding: '13px 14px',
+                  fontFamily: 'var(--font-ui)',
+                  fontSize: 14,
+                  fontWeight: 700,
+                  color: 'var(--ink-900)',
+                  textDecoration: 'none',
+                  borderBottom: '1px solid var(--ink-100)',
+                }}
+              >
+                Stammtisch verwalten
+              </Link>
+            )}
             <Link
               href="/profil"
               onClick={() => setMenu(false)}

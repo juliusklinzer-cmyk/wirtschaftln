@@ -10,7 +10,7 @@ export type AbschlussMitglied = {
   id: string;
   name: string;
   photoUrl: string | null;
-  verein: 'bayern' | 'sechzig' | null;
+  verein: string | null;
   /** hat beim Termin zugesagt → steht von Anfang an auf der Liste */
   zugesagt: boolean;
 };

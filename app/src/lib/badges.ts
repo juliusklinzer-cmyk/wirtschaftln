@@ -1,4 +1,5 @@
 import type { MitgliedStats } from '@/lib/queries';
+import { tenantConfig } from '@/lib/tenant-config';
 
 /**
  * Saison-Badges aus dem Design-Prototyp (RanglisteScreen.jsx): werden automatisch
@@ -7,6 +8,8 @@ import type { MitgliedStats } from '@/lib/queries';
  */
 export type SaisonBadge = {
   key: string;
+  /** PNG-Art unter public/brand/badges/<slug>.png; null = goldene Emoji-Disc (generisches Set) */
+  slug: string | null;
   icon: string;
   name: string;
   tag: string;
@@ -17,23 +20,51 @@ export type SaisonBadge = {
 };
 
 export const SAISON_BADGES: SaisonBadge[] = [
-  { key: 'zacherHund', icon: '🐺', name: 'Zacher Hund', tag: 'am meisten dabei', pflicht: null,
+  { key: 'zacherHund', slug: 'zacherHund', icon: '🐺', name: 'Zacher Hund', tag: 'am meisten dabei', pflicht: null,
     geschichte: 'Da zache Hund lasst koan Stammtisch aus, bei Schnee, Bahnstreik und Männergrippe: er sitzt scho am Tisch, bevor da Wirt s’Licht oschalt.' },
-  { key: 'maximator', icon: '🍺', name: 'Maximator', tag: 'meiste Hoibe', pflicht: 'Trinkt bei jedem Stammtisch vorweg ein Starkbier.',
+  { key: 'maximator', slug: 'maximator', icon: '🍺', name: 'Maximator', tag: 'meiste Hoibe', pflicht: 'Trinkt bei jedem Stammtisch vorweg ein Starkbier.',
     geschichte: 'Benannt nach’m Starkbier, des er sich verdient hat: Wer de meisten Hoibe stemmt, trägt den Maximator, und büaßt dafür mit am Starkbier vorweg.' },
-  { key: 'moshammer', icon: '💸', name: 'Moshammer', tag: 'meiste Runden', pflicht: null,
+  { key: 'moshammer', slug: 'moshammer', icon: '💸', name: 'Moshammer', tag: 'meiste Runden', pflicht: null,
     geschichte: 'Wia da Mosi über d’Maximilianstraß: großzügig, glamourös und immer a Runde parat. Der spendabelste Spezl vom ganzen Stammtisch.' },
-  { key: 'heiwong', icon: '😴', name: 'Heiwong', tag: 'am wenigsten da', pflicht: null,
+  { key: 'heiwong', slug: 'heiwong', icon: '😴', name: 'Heiwong', tag: 'am wenigsten da', pflicht: null,
     geschichte: 'Den Heiwong zieht’s oiwei z’fruah hoam, oder er kommt gar ned erst. De wenigsten Abende der Saison: des oanzige Badge, des koana mog.' },
-  { key: 'meisterEder', icon: '⭐', name: 'Eder', tag: 'bestes Wirtshaus reserviert', pflicht: null,
+  { key: 'meisterEder', slug: 'meisterEder', icon: '⭐', name: 'Eder', tag: 'bestes Wirtshaus reserviert', pflicht: null,
     geschichte: 'Wia da Schreinermeister aus da Serie: a G’spür für de guadn Stuben. Hat des bestbewertete Wirtshaus der Saison aufgrissen und reserviert.' },
-  { key: 'taxler', icon: '🚕', name: 'Taxler', tag: 'fährt & nimmt alle mit', pflicht: null,
+  { key: 'taxler', slug: 'taxler', icon: '🚕', name: 'Taxler', tag: 'fährt & nimmt alle mit', pflicht: null,
     geschichte: 'Bleibt nüchtern, fährt umanand und bringt alle hoam. Ohne den Taxler waar da hoibe Stammtisch no am Marienplatz gstrandet.' },
-  { key: 'dieSau', icon: '🐷', name: 'Die Sau', tag: 'meiste Schweinsbraten', pflicht: null,
+  { key: 'dieSau', slug: 'dieSau', icon: '🐷', name: 'Die Sau', tag: 'meiste Schweinsbraten', pflicht: null,
     geschichte: 'Respekt und a bisserl Sorge: de meisten Schweinsbraten der Saison. Kruste, Knödl, Soß, nix bleibt über. A Sau halt, im allerbesten Sinn.' },
-  { key: 'alterPeter', icon: '⛪', name: 'Alter Peter', tag: 'höchste Serie', pflicht: null,
+  { key: 'alterPeter', slug: 'alterPeter', icon: '⛪', name: 'Alter Peter', tag: 'höchste Serie', pflicht: null,
     geschichte: 'Wia der Turm überm Rindermarkt: steht und steht und steht. Die längste Serie, seit’s den Stammtisch gibt, bei Gleichstand entscheiden d’Hoibe.' },
 ];
+
+/**
+ * Generisches Set für neue Stammtische: gleiche Keys (dieselbe Vergabe-Logik),
+ * neutrale Namen/G'schichtln ohne Münchner Originale, ohne PNG-Art (Emoji-Disc).
+ */
+export const SAISON_BADGES_GENERISCH: SaisonBadge[] = [
+  { key: 'zacherHund', slug: null, icon: '🐺', name: 'Zacher Hund', tag: 'am meisten dabei', pflicht: null,
+    geschichte: 'Lasst koan Stammtisch aus, bei Schnee, Streik und Männergrippe: sitzt scho am Tisch, bevor da Wirt s’Licht oschalt.' },
+  { key: 'maximator', slug: null, icon: '🍺', name: 'Durstlöscher', tag: 'meiste Hoibe', pflicht: 'Trinkt bei jedem Stammtisch vorweg ein Starkbier.',
+    geschichte: 'Wer de meisten Hoibe stemmt, trägt den Durstlöscher, und büaßt dafür mit am Starkbier vorweg.' },
+  { key: 'moshammer', slug: null, icon: '💸', name: 'Spendierhosn', tag: 'meiste Runden', pflicht: null,
+    geschichte: 'Großzügig und immer a Runde parat: der spendabelste Spezl vom ganzen Stammtisch.' },
+  { key: 'heiwong', slug: null, icon: '😴', name: 'Heimgeher', tag: 'am wenigsten da', pflicht: null,
+    geschichte: 'Den Heimgeher zieht’s oiwei z’fruah hoam, oder er kommt gar ned erst. Des oanzige Badge, des koana mog.' },
+  { key: 'meisterEder', slug: null, icon: '⭐', name: 'Wirtshauskenner', tag: 'bestes Wirtshaus reserviert', pflicht: null,
+    geschichte: 'A G’spür für de guadn Stuben: hat des bestbewertete Wirtshaus der Saison aufgrissen und reserviert.' },
+  { key: 'taxler', slug: null, icon: '🚕', name: 'Taxler', tag: 'fährt & nimmt alle mit', pflicht: null,
+    geschichte: 'Bleibt nüchtern, fährt umanand und bringt alle hoam. Ohne den Taxler waar da hoibe Stammtisch gstrandet.' },
+  { key: 'dieSau', slug: null, icon: '🐷', name: 'Bratenkönig', tag: 'meiste Schweinsbraten', pflicht: null,
+    geschichte: 'Respekt und a bisserl Sorge: de meisten Schweinsbraten der Saison. Kruste, Knödl, Soß, nix bleibt über.' },
+  { key: 'alterPeter', slug: null, icon: '🔥', name: 'Dauerbrenner', tag: 'höchste Serie', pflicht: null,
+    geschichte: 'Steht und steht und steht: die längste Serie, seit’s den Stammtisch gibt, bei Gleichstand entscheiden d’Hoibe.' },
+];
+
+/** Das Badge-Set des gebundenen Stammtischs (Feature-Flag muenchenBadges). */
+export function saisonBadges(): SaisonBadge[] {
+  return tenantConfig().features.muenchenBadges ? SAISON_BADGES : SAISON_BADGES_GENERISCH;
+}
 
 export type BadgeVergabe = SaisonBadge & { holderId: string };
 
@@ -62,7 +93,7 @@ export function saisonBadgesVergeben(stats: MitgliedStats[], meisterEderId: stri
     dieSau: stats.some((s) => s.schweinsbraten > 0) ? byMax((s) => s.schweinsbraten).member.id : null,
     alterPeter,
   };
-  return SAISON_BADGES.flatMap((b) => (holderIds[b.key] ? [{ ...b, holderId: holderIds[b.key]! }] : []));
+  return saisonBadges().flatMap((b) => (holderIds[b.key] ? [{ ...b, holderId: holderIds[b.key]! }] : []));
 }
 
 /**
@@ -125,7 +156,7 @@ export function vergabeWechsel(vorher: Map<string, string>, nachher: Map<string,
     'amt:praesident': { icon: '👑', label: 'Präsident' },
     'amt:schriftfuehrer': { icon: '✒️', label: 'Schriftführer' },
   };
-  for (const b of SAISON_BADGES) meta[b.key] = { icon: b.icon, label: b.name };
+  for (const b of saisonBadges()) meta[b.key] = { icon: b.icon, label: b.name };
   const wechsel: Wechsel[] = [];
   for (const [key, neuId] of nachher) {
     const altId = vorher.get(key) ?? null;
@@ -148,7 +179,9 @@ export function wechselTexte(w: Wechsel, neuName: string): { anNeuen: string; an
     'amt:praesident': { neu: 'Du bist jetza da Präsident 👑, WP-Rang 1! Zahlt immer zuletzt, entscheidet final.', alt: `${neuName} hat di als Präsident abglöst, hol dir’n Rang zruck!` },
     'amt:schriftfuehrer': { neu: 'Du bist jetza da Schriftführer ✒️, du schließt am meisten ab!', alt: `${neuName} is jetza Schriftführer, schließ wieder öfter ab.` },
   };
-  const t = texte[w.key] ?? { neu: `Du bist jetza ${w.label}!`, alt: `${neuName} is jetza ${w.label}.` };
+  // Die Münchner Sprüche passen nur zum Münchner Set — sonst der neutrale Satz mit dem Badge-Namen
+  const muenchen = tenantConfig().features.muenchenBadges || w.key.startsWith('amt:');
+  const t = (muenchen ? texte[w.key] : undefined) ?? { neu: `Du bist jetza ${w.label}!`, alt: `${neuName} is jetza ${w.label}.` };
   return { anNeuen: t.neu, anAlten: t.alt, anAlle: `${w.icon} ${neuName} is jetza ${w.label}!` };
 }
 

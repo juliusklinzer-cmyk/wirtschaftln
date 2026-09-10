@@ -1,7 +1,8 @@
 import { getCurrentMember, erzwingeProfil } from '@/lib/session';
 import { anzeigeName } from '@/lib/namen';
 import { getSaldo, getKasseEintraege, getOffeneStrafen, getAktiveMitglieder, getKassenwartId, getPraesidentId } from '@/lib/queries';
-import { HOIBE_KELLERPREIS_CENTS } from '@/lib/preise';
+import { hoibePreisEuro } from '@/lib/preise';
+import { tenantConfig } from '@/lib/tenant-config';
 import { euro, datumKurz } from '@/lib/format';
 import { Card, SectionHeader, Avatar, Badge, Input } from '@/components/ds';
 import { AktionsChips, type AktionsChip } from '@/components/domain/AktionsChips';
@@ -26,7 +27,8 @@ export default async function KassePage() {
   // Rollen: der Kassenwart wahrt d'Kasse (buchen, eintreiben), der Präsident erlässt Schulden
   const darfKasse = me.role === 'admin' || me.id === kassenwartId;
   const darfErlassen = me.role === 'admin' || me.id === getPraesidentId();
-  const hoibePreis = (HOIBE_KELLERPREIS_CENTS / 100).toFixed(2).replace('.', ',');
+  const config = tenantConfig();
+  const hoibePreis = hoibePreisEuro(config.hoibePreisCents);
 
   return (
     <div className="wn-eintritt" style={{ padding: '16px 16px 24px', display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -63,14 +65,19 @@ export default async function KassePage() {
             <div style={{ fontFamily: 'var(--font-fraktur)', fontSize: 19, color: 'var(--navy)', lineHeight: 1.1 }}>D’Maßeinheit</div>
             <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink-500)', marginTop: 3, lineHeight: 1.5 }}>
               Zahlt wird in Hoibe: 1 Hoibe = <b className="wn-tnum">{hoibePreis} €</b>{' '}
-              <a
-                href="https://braeustuben.de/speisekarten-getraenke/#getraenkekarte"
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{ color: 'var(--muc-blau)', fontWeight: 800, textDecoration: 'none' }}
-              >
-                (Bräustüberl)
-              </a>
+              {/* Der Bräustüberl-Link gilt nur für den Gründer (Augustiner-Kellerpreis); sonst steht das Bier der Config dran */}
+              {config.istGruender ? (
+                <a
+                  href="https://braeustuben.de/speisekarten-getraenke/#getraenkekarte"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ color: 'var(--muc-blau)', fontWeight: 800, textDecoration: 'none' }}
+                >
+                  (Bräustüberl)
+                </a>
+              ) : (
+                <span>({config.bierName})</span>
+              )}
               . A Runde = Teilnehmer × Hoibe.
             </div>
           </div>

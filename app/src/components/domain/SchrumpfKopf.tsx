@@ -69,7 +69,7 @@ export function MiniKopfLeiste({
   photoUrl: string | null;
   name: string;
   wp: number;
-  verein?: 'bayern' | 'sechzig' | null;
+  verein?: string | null;
   /** Extra-Element ganz rechts, z. B. der Schließen-Knopf im Spezl-Sheet. */
   rechts?: React.ReactNode;
   /** true = frei schwebende Karte mit Radius + Schatten (Profil-Seite); false = bündig (Sheet-Kopf). */

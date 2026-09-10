@@ -1,5 +1,10 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { cache } from 'react';
+// Next-interner Request-Store: dieselbe Stelle, aus der cookies()/headers()
+// lesen — synchron erreichbar in Server Components, Server Actions und
+// Route-Handlern, und pro Request eindeutig. Wir hängen den Mandanten per
+// WeakMap dran (kein Mutieren des Stores).
+import { workAsyncStorage } from 'next/dist/server/app-render/work-async-storage.external';
 import type Database from 'better-sqlite3';
 import { drizzle, type BetterSQLite3Database } from 'drizzle-orm/better-sqlite3';
 import * as schema from './schema';
@@ -12,11 +17,13 @@ import { findGruppe, type Gruppe } from './directory';
  * der pro Request auf die DB des gerade gebundenen Mandanten zeigt.
  *
  * Binden passiert über bindTenant() (getCurrentMember ruft es aus dem Cookie
- * heraus auf; Login/Beitreten binden explizit) — per AsyncLocalStorage.enterWith
- * für den Rest des Request-Kontexts (gilt in Server Components, Server Actions
- * UND Route-Handlern; React-`cache()` greift nur beim Rendern, ned in Actions)
- * plus React-cache-Slot als zweites Netz beim Rendern. Route-Handler und
- * Skripte können alternativ runWithTenant() um einen Callback legen.
+ * heraus auf; Login/Beitreten binden explizit). Drei Slots, in dieser Reihenfolge:
+ *  1. AsyncLocalStorage via runWithTenant() (Route-Handler, Skripte)
+ *  2. Next-Request-Store (WeakMap): gilt synchron im ganzen Request — auch NACH
+ *     einem `await getCurrentMember()` in einer Server Action. React-`cache()`
+ *     greift dort ned, und AsyncLocalStorage.enterWith() gilt nur für die
+ *     Fortsetzung des Aufrufers, ned für den, der drauf wartet.
+ *  3. React-cache()-Slot als Netz beim Rendern
  *
  * Ohne gebundenen Mandanten wirft der Proxy absichtlich (fail fast) — so
  * fällt sofort auf, wenn irgendwo `db` vor dem Binden angefasst wird, und
@@ -37,6 +44,15 @@ export type Tenant = {
 const geoeffnet = new Map<string, Tenant>();
 const als = new AsyncLocalStorage<Tenant>();
 const requestSlot = cache((): { tenant: Tenant | null } => ({ tenant: null }));
+const requestSlots = new WeakMap<object, Tenant>();
+
+function requestKey(): object | null {
+  try {
+    return workAsyncStorage.getStore() ?? null;
+  } catch {
+    return null;
+  }
+}
 
 export class TenantNichtGebunden extends Error {
   constructor() {
@@ -84,6 +100,8 @@ export function bindTenant(id: string): Tenant | null {
   // asynchron daraus folgt — also den laufenden Request (Next legt um jeden
   // Request seinen eigenen Async-Kontext, andere Requests sehen das ned).
   als.enterWith(tenant);
+  const key = requestKey();
+  if (key) requestSlots.set(key, tenant);
   const slot = slotSicher();
   if (slot) slot.tenant = tenant;
   return tenant;
@@ -102,7 +120,8 @@ export function runWithTenant<T>(id: string, fn: () => T): T {
 }
 
 export function currentTenantOrNull(): Tenant | null {
-  return als.getStore() ?? slotSicher()?.tenant ?? null;
+  const key = requestKey();
+  return als.getStore() ?? (key ? requestSlots.get(key) : undefined) ?? slotSicher()?.tenant ?? null;
 }
 
 export function currentTenant(): Tenant {

@@ -11,17 +11,23 @@ let mapsPromise: Promise<any> | null = null;
  * Maps-App im Routen-Modus). Adresse schlägt Koordinaten, dann steht in
  * Google Maps das Wirtshaus mit Namen statt einem nackten Punkt.
  */
-export function navigationsUrl(ziel: {
-  name: string;
-  adresse?: string | null;
-  lat?: number | null;
-  lng?: number | null;
-}): string {
+export function navigationsUrl(
+  ziel: {
+    name: string;
+    adresse?: string | null;
+    lat?: number | null;
+    lng?: number | null;
+  },
+  /** Orts-Fallback ohne Adresse/Koordinaten (config.geo.suchSuffix), null = nur der Name */
+  ort: string | null = 'München',
+): string {
   const destination = ziel.adresse
     ? `${ziel.name}, ${ziel.adresse}`
     : ziel.lat != null && ziel.lng != null
       ? `${ziel.lat},${ziel.lng}`
-      : `${ziel.name}, München`;
+      : ort
+        ? `${ziel.name}, ${ort}`
+        : ziel.name;
   return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(destination)}`;
 }
 
@@ -29,8 +35,9 @@ export function navigationsUrl(ziel: {
  * Google-Maps-Ortsansicht (Fotos, Bewertungen, Öffnungszeiten), für
  * „gfundene" Wirtshäuser, die man si erst amoi anschauen mog.
  */
-export function ortsUrl(ziel: { name: string; adresse?: string | null }): string {
-  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${ziel.name}, ${ziel.adresse ?? 'München'}`)}`;
+export function ortsUrl(ziel: { name: string; adresse?: string | null }, ort: string | null = 'München'): string {
+  const zusatz = ziel.adresse ?? ort;
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(zusatz ? `${ziel.name}, ${zusatz}` : ziel.name)}`;
 }
 
 export function loadGoogleMaps(): Promise<any> {

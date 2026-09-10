@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { loadGoogleMaps } from '@/lib/google-maps';
 import { findeBekanntes, type BekanntesWirtshaus } from '@/lib/wirtshaus-abgleich';
+import { useTenantConfig } from '@/components/shell/TenantProvider';
+import { umkreisBounds } from '@/lib/tenant-config-public';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -30,6 +32,9 @@ export function WirtshausSuche({
   bekannte?: BekanntesWirtshaus[];
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const { geo } = useTenantConfig();
+  const geoRef = useRef(geo);
+  geoRef.current = geo;
   const [treffer, setTreffer] = useState<WirtshausTreffer | null>(null);
   const [eingabe, setEingabe] = useState('');
   const [status, setStatus] = useState<'lade' | 'bereit' | 'fehler'>('lade');
@@ -47,8 +52,13 @@ export function WirtshausSuche({
         autocomplete = new google.maps.places.Autocomplete(inputRef.current, {
           fields: ['name', 'formatted_address', 'address_components', 'geometry', 'formatted_phone_number', 'photos'],
           componentRestrictions: { country: 'de' },
-          // München + Umland bevorzugen
-          bounds: new google.maps.LatLngBounds({ lat: 48.0, lng: 11.35 }, { lat: 48.28, lng: 11.8 }),
+          // Stadt + Umland bevorzugen (Umkreis aus der Tenant-Config)
+          ...(geoRef.current
+            ? (() => {
+                const b = umkreisBounds(geoRef.current);
+                return { bounds: new google.maps.LatLngBounds(b.sw, b.ne) };
+              })()
+            : {}),
         });
         listener = autocomplete.addListener('place_changed', () => {
           const place = autocomplete.getPlace();

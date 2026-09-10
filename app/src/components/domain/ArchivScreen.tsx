@@ -8,11 +8,12 @@ import { RichtungsKnopf } from '@/components/domain/RichtungsKnopf';
 import { navigationsUrl, ortsUrl } from '@/lib/google-maps';
 import { bierLogo } from '@/lib/biersorten';
 import { nachbewerten, wirtshausEntfernen } from '@/app/(app)/karte/actions';
+import { useTenantConfig } from '@/components/shell/TenantProvider';
 
 export type ArchivTeilnehmer = {
   name: string;
   photoUrl: string | null;
-  verein: 'bayern' | 'sechzig' | null;
+  verein: string | null;
   hoiben: number;
   kaiserschmarrn: number;
   schweinsbraten: number;
@@ -114,6 +115,7 @@ export function ArchivScreen({
   /** Eingeloggter Spezl, darfModerieren = Admin oder aktueller Präsident. */
   ich: { id: string; darfModerieren: boolean };
 }) {
+  const ort = useTenantConfig().geo?.suchSuffix ?? null;
   const [view, setView] = useState<'karte' | 'offen' | MetrikKey>('karte');
   const [idx, setIdx] = useState(0);
   const [detail, setDetail] = useState<{ e: ArchivEintrag; rank: number | null } | null>(null);
@@ -170,7 +172,7 @@ export function ArchivScreen({
               onOpen={() => {
                 // „Nächstes Mal" antippen → direkt in Google Maps navigieren
                 if (aktiv.naechstes) {
-                  window.open(navigationsUrl({ name: aktiv.name, lat: aktiv.lat, lng: aktiv.lng }), '_blank', 'noopener');
+                  window.open(navigationsUrl({ name: aktiv.name, lat: aktiv.lat, lng: aktiv.lng }, ort), '_blank', 'noopener');
                   return;
                 }
                 // Besuchte & Altbestand → eigenes Detail mit Bewertungen
@@ -179,7 +181,7 @@ export function ArchivScreen({
                   return;
                 }
                 // Gfundene (offene) → Google-Maps-Ort zum Anschauen (Fotos, Bewertungen, Zeiten)
-                window.open(ortsUrl({ name: aktiv.name }), '_blank', 'noopener');
+                window.open(ortsUrl({ name: aktiv.name }, ort), '_blank', 'noopener');
               }}
             />
           </div>

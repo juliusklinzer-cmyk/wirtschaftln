@@ -23,7 +23,7 @@ export function Avatar({
   name?: string;
   size?: number;
   ring?: boolean;
-  verein?: 'bayern' | 'sechzig' | null;
+  verein?: string | null;
   badge?: React.ReactNode;
   present?: boolean;
   style?: React.CSSProperties;

@@ -20,7 +20,7 @@ import {
 } from '@/lib/queries';
 import { PTS, WACKELT_AB_UNENTSCHULDIGT, rechtzeitigAbgestimmt, checkinOffen } from '@/lib/punkte';
 import { nowIso } from '@/lib/ids';
-import { vergabeWechsel, wechselTexte, AEMTER_INFO } from '@/lib/badges';
+import { vergabeWechsel, wechselTexte, AEMTER_INFO, saisonBadges } from '@/lib/badges';
 import { datumLang, datumKurz } from '@/lib/format';
 import { euro } from '@/lib/format';
 import { Card, SectionHeader, Avatar, Icon, KlappenKopf } from '@/components/ds';
@@ -79,7 +79,7 @@ export default async function HomePage() {
           const amt = AMT_TITEL[w.key] ? AEMTER_INFO[AMT_TITEL[w.key]] : null;
           return {
             key: w.key,
-            slug: amt ? amt.slug : w.key.startsWith('amt:') ? null : w.key,
+            slug: amt ? amt.slug : (saisonBadges().find((b) => b.key === w.key)?.slug ?? null),
             icon: w.icon,
             name: w.label,
             spruch: wechselTexte(w, anzeigeName(me)).anNeuen,

@@ -1,6 +1,7 @@
 import { eq } from 'drizzle-orm';
 import { db, termine, wirtshaeuser } from '@/lib/db';
 import { getCurrentMember, withSessionTenant } from '@/lib/session';
+import { appHost, tenantConfig } from '@/lib/tenant-config';
 
 /**
  * Kalender-Export: lädt den Stammtisch als .ics herunter.
@@ -23,6 +24,7 @@ async function ics(params: Promise<{ id: string }>) {
     ? db.select().from(wirtshaeuser).where(eq(wirtshaeuser.id, termin.wirtshausId)).get()
     : null;
 
+  const config = tenantConfig();
   const [h, m] = termin.zeit.split(':').map(Number);
   const start = `${termin.datum.replaceAll('-', '')}T${String(h).padStart(2, '0')}${String(m).padStart(2, '0')}00`;
   const endeStunde = Math.min(23, h + 4);
@@ -33,12 +35,12 @@ async function ics(params: Promise<{ id: string }>) {
     'VERSION:2.0',
     'PRODID:-//Wirtschaftln//Stammtisch//DE',
     'BEGIN:VEVENT',
-    `UID:${termin.id}@wirtschaftln.de`,
+    `UID:${termin.id}@${appHost()}`,
     `DTSTART;TZID=Europe/Berlin:${start}`,
     `DTEND;TZID=Europe/Berlin:${end}`,
-    `SUMMARY:Stammtisch · ${wirtshaus?.name ?? 'Wirtschaftln'}`,
+    `SUMMARY:Stammtisch · ${wirtshaus?.name ?? config.name}`,
     wirtshaus?.adresse ? `LOCATION:${wirtshaus.adresse.replaceAll(',', '\\,')}` : null,
-    'DESCRIPTION:Oiwei anders. Oiwei dahoam. 🍺',
+    `DESCRIPTION:${config.motto ? `${config.motto} ` : ''}🍺`,
     'END:VEVENT',
     'END:VCALENDAR',
   ].filter(Boolean);

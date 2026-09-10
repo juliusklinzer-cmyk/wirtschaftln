@@ -8,7 +8,7 @@ import { einchecken } from '@/app/(app)/termin/actions';
 export type EingecheckterSpezl = {
   name: string;
   photoUrl: string | null;
-  verein: 'bayern' | 'sechzig' | null;
+  verein: string | null;
   platz: string | null;
   istIch: boolean;
 };

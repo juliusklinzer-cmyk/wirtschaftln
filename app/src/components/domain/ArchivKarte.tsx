@@ -4,6 +4,8 @@ import { useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { wirtshausFotoSetzen, wirtshausOrtSetzen } from '@/app/(app)/termin/actions';
 import { loadGoogleMaps } from '@/lib/google-maps';
+import { useTenantConfig } from '@/components/shell/TenantProvider';
+import { mitOrt } from '@/lib/tenant-config-public';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -84,6 +86,10 @@ export function ArchivKarte({
   onPick: (idx: number) => void;
 }) {
   const router = useRouter();
+  // Geo-Config des Stammtischs (Kartenmitte, Umkreis, Such-Suffix); null = die ganze Welt
+  const { geo } = useTenantConfig();
+  const geoRef = useRef(geo);
+  geoRef.current = geo;
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);
   const overlayRef = useRef<any>(null);
@@ -96,14 +102,17 @@ export function ArchivKarte({
     loadGoogleMaps()
       .then((google) => {
         if (aufgeraeumt || !containerRef.current || mapRef.current) return;
-        const MUENCHEN = { lat: 48.137, lng: 11.575 };
+        const geo = geoRef.current;
+        const MITTE = geo?.center ?? { lat: 48.137, lng: 11.575 };
+        // Ohne Geo-Config (Stammtisch ohne Stadt) derf die Karte frei zoomen
+        const MIN_ZOOM = geo ? 9 : 3;
         const map = new google.maps.Map(containerRef.current, {
-          center: MUENCHEN,
-          zoom: 12,
-          // minZoom: näher als „München & Umland" raus geht's nicht, verhindert
+          center: MITTE,
+          zoom: geo ? 12 : 6,
+          // minZoom: näher als „Stadt & Umland" raus geht's nicht, verhindert
           // den Bug, bei dem die Karte plötzlich auf die ganze Welt rausspringt
           // (fitBounds/Resize bei noch unvermessenem Container → Zoom 0).
-          minZoom: 9,
+          minZoom: MIN_ZOOM,
           disableDefaultUI: true,
           zoomControl: false, // cleaner, gezoomt wird mit zwei Fingern
           gestureHandling: 'greedy',
@@ -113,12 +122,12 @@ export function ArchivKarte({
 
         // Rettungsanker: springt der Kartenstand trotzdem weg (Safari/PWA nach
         // dem Aufwachen), letzten guten Stand merken und zurückspringen.
-        const guterStand = { center: MUENCHEN as { lat: number; lng: number }, zoom: 12 };
+        const guterStand = { center: MITTE as { lat: number; lng: number }, zoom: geo ? 12 : 6 };
         map.addListener('idle', () => {
           const c = map.getCenter();
           const z = map.getZoom();
           if (c == null || z == null) return;
-          const plausibel = z >= 9 && Math.abs(c.lat() - MUENCHEN.lat) < 1.5 && Math.abs(c.lng() - MUENCHEN.lng) < 2.5;
+          const plausibel = z >= MIN_ZOOM && (!geo || (Math.abs(c.lat() - MITTE.lat) < 1.5 && Math.abs(c.lng() - MITTE.lng) < 2.5));
           if (plausibel) {
             guterStand.center = { lat: c.lat(), lng: c.lng() };
             guterStand.zoom = z;
@@ -180,7 +189,7 @@ export function ArchivKarte({
               if (ergaenzt) router.refresh();
               return;
             }
-            service.textSearch({ query: `${pin.name} München` }, (results: any[], status: string) => {
+            service.textSearch({ query: mitOrt(pin.name, geo) }, (results: any[], status: string) => {
               const treffer = status === 'OK' ? results?.[0] : null;
               if (treffer) {
                 if (!pin.photoUrl) {

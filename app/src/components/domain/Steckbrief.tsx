@@ -7,7 +7,7 @@ export type SteckbriefDaten = {
   leibspeise: string | null;
   lieblingsbiergarten: string | null;
   lieblingswirtshaus: string | null;
-  verein: 'bayern' | 'sechzig' | null;
+  verein: string | null;
   schafkopfer: boolean;
   beschreibung: string | null;
 };
@@ -31,12 +31,14 @@ export function Steckbrief({ daten }: { daten: SteckbriefDaten }) {
   if (steckbriefLeer(daten)) return null;
   const zeilen: Array<{ icon: React.ReactNode; label: string; wert: string }> = [];
   if (daten.herkunft) zeilen.push({ icon: '📍', label: 'Herkunft', wert: daten.herkunft });
-  if (daten.verein) {
+  if (daten.verein === 'bayern' || daten.verein === 'sechzig') {
     zeilen.push({
       icon: <Logo src={daten.verein === 'bayern' ? '/brand/vereine/fcb.png' : '/brand/vereine/1860.png'} />,
       label: 'Verein',
       wert: daten.verein === 'bayern' ? 'FC Bayern' : 'TSV 1860',
     });
+  } else if (daten.verein) {
+    zeilen.push({ icon: '⚽', label: 'Verein', wert: daten.verein });
   }
   if (daten.lieblingsbier) {
     const logo = bierLogo(daten.lieblingsbier);

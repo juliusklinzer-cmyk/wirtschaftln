@@ -2,6 +2,7 @@
 
 import { Icon } from '@/components/ds';
 import { navigationsUrl, ortsUrl } from '@/lib/google-maps';
+import { useTenantConfig } from '@/components/shell/TenantProvider';
 
 /**
  * Runder Gold-Knopf mit dem Wegbeschreibungs-Symbol, öffnet Google Maps
@@ -19,9 +20,10 @@ export function RichtungsKnopf({
   modus?: 'route' | 'ort';
   style?: React.CSSProperties;
 }) {
+  const ort = useTenantConfig().geo?.suchSuffix ?? null;
   return (
     <a
-      href={modus === 'ort' ? ortsUrl(ziel) : navigationsUrl(ziel)}
+      href={modus === 'ort' ? ortsUrl(ziel, ort) : navigationsUrl(ziel, ort)}
       target="_blank"
       rel="noopener noreferrer"
       aria-label={modus === 'ort' ? `${ziel.name} in Google Maps anschauen` : `Navigation zum ${ziel.name}`}

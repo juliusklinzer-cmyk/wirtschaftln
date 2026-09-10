@@ -5,7 +5,8 @@ import { eq } from 'drizzle-orm';
 import { db, kasse } from '@/lib/db';
 import { getCurrentMember } from '@/lib/session';
 import { getKassenwartId, getPraesidentId, getAktiveMitglieder } from '@/lib/queries';
-import { HOIBE_KELLERPREIS_CENTS } from '@/lib/preise';
+import { hoibePreisCents } from '@/lib/preise';
+import { appUrl, mailSignatur } from '@/lib/tenant-config';
 import { newId, nowIso } from '@/lib/ids';
 import { anzeigeName } from '@/lib/namen';
 import { pushAn } from '@/lib/push';
@@ -40,7 +41,7 @@ export async function melden(formData: FormData) {
       id: newId('k'),
       memberId,
       grund: `${grund}, des kost ${hoibe === 1 ? 'a Hoibe' : `${hoibe} Hoibe`} 🍺`,
-      betragCents: -(hoibe * HOIBE_KELLERPREIS_CENTS),
+      betragCents: -(hoibe * hoibePreisCents()),
       kind: 'strafe',
       status: 'offen',
       gemeldetVon: me.id,
@@ -53,7 +54,7 @@ export async function melden(formData: FormData) {
   const text = `${anzeigeName(me)} hat di gmeldt: „${grund}", des kost ${hoibe === 1 ? 'a Hoibe' : `${hoibe} Hoibe`}. Zohl beim Kassenwart oder per PayPal. 🍺`;
   await Promise.allSettled([
     pushAn([memberId], titel, text, '/kasse'),
-    mailAn([opfer.email], titel, `Servus ${anzeigeName(opfer)}!\n\n${text}\n\n→ https://wirtschaftln.de/kasse\n\nDei Wirtschaftln-App`),
+    mailAn([opfer.email], titel, `Servus ${anzeigeName(opfer)}!\n\n${text}\n\n→ ${appUrl('/kasse')}\n\n${mailSignatur()}`),
   ]);
   revalidate();
 }
@@ -119,7 +120,7 @@ export async function spenden(formData: FormData) {
       id: newId('k'),
       memberId: me.id,
       grund: anlass ? `💝 ${hoibeText} gspendt, ${anlass}` : `💝 ${hoibeText} gspendt`,
-      betragCents: hoibe * HOIBE_KELLERPREIS_CENTS,
+      betragCents: hoibe * hoibePreisCents(),
       kind: 'einzahlung',
       status: 'beglichen',
       gemeldetVon: me.id,

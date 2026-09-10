@@ -11,12 +11,14 @@ import { Steckbrief, steckbriefLeer } from '@/components/domain/Steckbrief';
 import { BadgeBild, SerienLeiste } from '@/components/domain/BadgeBild';
 import { ProfilBearbeiten } from './profil-bearbeiten';
 import { DaniModusSchalter } from '@/components/domain/DaniModus';
+import { tenantConfig } from '@/lib/tenant-config';
 
 export const metadata = { title: 'Mei Profil · Wirtschaftln' };
 
 export default async function ProfilPage() {
   const me = await getCurrentMember();
   if (!me) redirect('/login');
+  const config = tenantConfig();
   const saison = aktuelleSaison();
   const statsSaison = getStats({ abDatum: saison.start });
   const statsAllzeit = getStats();
@@ -77,7 +79,7 @@ export default async function ProfilPage() {
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '18px 20px 0' }}>
             <div style={{ position: 'relative', animation: 'wnFederPop 500ms cubic-bezier(0.34, 1.56, 0.64, 1) both' }}>
               <Avatar src={me.photoUrl} name={anzeigeName(me)} size={88} ring={rang === 1} verein={me.verein} />
-              {me.verein ? (
+              {me.verein === 'bayern' || me.verein === 'sechzig' ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={me.verein === 'bayern' ? '/brand/vereine/fcb.png' : '/brand/vereine/1860.png'} alt="" style={{ position: 'absolute', left: -4, bottom: 2, width: 24, height: 24, objectFit: 'contain', background: '#fff', borderRadius: '50%', padding: 2, boxShadow: 'var(--sh-sm)' }} />
               ) : (
@@ -143,7 +145,7 @@ export default async function ProfilPage() {
             <div style={{ display: 'flex', gap: 10, overflowX: 'auto', paddingBottom: 4 }}>
               {badges.map((b) => (
                 <span key={b.key} style={{ flex: 'none' }}>
-                  <BadgeBild slug={b.key} icon={b.icon} name={`${b.name} · ${b.tag}`} size={92} />
+                  <BadgeBild slug={b.slug} icon={b.icon} name={`${b.name} · ${b.tag}`} size={92} />
                 </span>
               ))}
             </div>
@@ -185,11 +187,12 @@ export default async function ProfilPage() {
           schafkopfer: me.schafkopfer,
           beschreibung: me.beschreibung,
           erstanmeldung: me.erstanmeldung,
+          vereinsWahl: config.features.vereinsWahl,
         }}
       />
 
-      {/* 🤳 Gaudi-Ecke */}
-      {!me.erstanmeldung && (
+      {/* 🤳 Gaudi-Ecke (nur beim Gründer-Stammtisch, Feature daniModus) */}
+      {!me.erstanmeldung && config.features.daniModus && (
         <Card pad={14}>
           <div style={{ fontFamily: 'var(--font-fraktur)', fontSize: 21, color: 'var(--navy)', marginBottom: 10 }}>D’Gaudi</div>
           <DaniModusSchalter />

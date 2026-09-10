@@ -2,7 +2,8 @@
 
 import { revalidatePath } from 'next/cache';
 import { and, eq } from 'drizzle-orm';
-import { db, members, aemter } from '@/lib/db';
+import { db, members, aemter, currentTenant } from '@/lib/db';
+import { kontoAnlegen } from '@/lib/db/directory';
 import { getCurrentMember } from '@/lib/session';
 import { hashPassword } from '@/lib/password';
 import { newId, nowIso } from '@/lib/ids';
@@ -36,9 +37,10 @@ export async function mitgliedAnlegen(formData: FormData): Promise<AufnahmeErgeb
   if (db.select().from(members).where(eq(members.email, email)).get()) {
     return { ok: false, meldung: `Mit ${email} gibt's scho an Account.` };
   }
+  const id = newId('m');
   db.insert(members)
     .values({
-      id: newId('m'),
+      id,
       name: `${vorname} ${nachname}`,
       vorname,
       nachname,
@@ -51,6 +53,8 @@ export async function mitgliedAnlegen(formData: FormData): Promise<AufnahmeErgeb
       createdAt: nowIso(),
     })
     .run();
+  // Login-Routing: E-Mail → Stammtisch im Verzeichnis merken
+  kontoAnlegen(email, currentTenant().id, id);
 
   // 📬 Willkommens-Mail an den Neuen, mit Zugang und dem Hinweis, dass er
   // beim ersten Anmelden sei eigenes Passwort setzt.

@@ -48,8 +48,21 @@ git pull
 docker compose --env-file deploy/.env up -d --build
 ```
 
-Migrationen laufen beim App-Start automatisch (einmal pro `.sql`-Datei, Bookkeeping in `wn_migrations`).
-Die Datenbank liegt im benannten Volume `app-data` und übersteht Redeploys.
+Migrationen laufen beim ersten Öffnen jeder Mandanten-DB automatisch (einmal pro `.sql`-Datei,
+Bookkeeping in `wn_migrations`); wer sie sofort für alle Stammtische haben will:
+`docker compose exec app node scripts/migrate-all-tenants.ts`. Die Daten liegen im benannten
+Volume `app-data` und überstehen Redeploys.
+
+## Eine DB pro Stammtisch (seit 10.09.2026)
+
+Unter `/data` (Env `DATA_DIR`) liegen `directory.db` (Verzeichnis: Stammtische, Konten für das
+Login-Routing, Gründungs-Tokens) und `tenants/<slug>.db` (je Stammtisch alles Fachliche). Beim
+ersten Start nach dem Umstieg kopiert die App die alte `/data/wirtschaftln.db` automatisch nach
+`tenants/wirtschaftln.db` (WAL-sicher per `VACUUM INTO`) und trägt den eigenen Stammtisch als
+Gründer-Mandant ein — das Original bleibt als Backup liegen. Derselbe Schritt mit Protokoll:
+`docker compose exec app node scripts/migrate-to-tenants.ts` (idempotent). Der Gründungscode
+kommt beim Anlegen aus `WN_GRUENDUNGSCODE` in die `gruppen`-Zeile (danach nur noch dort gepflegt).
+Alle Skripte nehmen `--tenant <slug>` (Default: der eigene Stammtisch).
 
 **Wirtshaus-Fotos** werden seit 27.08.2026 beim Speichern als Data-URL in die DB geholt (Google-Places-URLs
 laufen ab). Falls doch mal wieder `http`-Foto-URLs in der DB stehen (Altbestand, Importe):
@@ -62,8 +75,9 @@ Das cacht, was noch lädt, und löscht tote URLs — die Karte holt sich beim n�
 
 ## Backup (einrichten!)
 
-Die SQLite-DB läuft im WAL-Modus — **nie** die Datei roh kopieren. `scripts/backup.ts` nutzt die
-Online-Backup-API und behält die letzten 14 Stände unter `/data/backups/`. Profilbilder liegen als
+Die SQLite-DBs laufen im WAL-Modus — **nie** die Dateien roh kopieren. `scripts/backup.ts` sichert
+das Verzeichnis und jeden Stammtisch über die Online-Backup-API und behält je die letzten 14 Stände
+unter `/data/backups/`. Profilbilder liegen als
 Data-URLs mit in der DB, sind also automatisch mitgesichert.
 
 Host-Crontab (`crontab -e`), täglich 04:30 + Kopie raus aus dem Container:

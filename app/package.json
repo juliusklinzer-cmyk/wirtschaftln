@@ -7,7 +7,11 @@
     "build": "next build",
     "start": "next start",
     "db:generate": "drizzle-kit generate",
+    "db:generate:directory": "drizzle-kit generate --config drizzle-directory.config.ts",
+    "db:migrate": "node scripts/migrate-to-tenants.ts",
+    "db:migrate:all": "node scripts/migrate-all-tenants.ts",
     "db:seed": "node scripts/seed.ts",
+    "db:seed:tenant": "node scripts/seed-tenant.ts",
     "db:demo": "node scripts/demo.ts",
     "db:probeabend": "node scripts/probe-abend.ts"
   },

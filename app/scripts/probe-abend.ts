@@ -4,8 +4,8 @@
 // Aufruf:  npm run db:probeabend            → Termin heute, Check-in offen, Abschluss no gsperrt
 //          npm run db:probeabend abschluss  → Termin liegt 3 Std. zruck → Abschluss is offen
 //          npm run db:probeabend weg        → räumt den Probe-Abend wieder weg
-import Database from 'better-sqlite3';
-import path from 'node:path';
+//          (--tenant <slug> für an anderen Stammtisch)
+import { oeffneMandant } from './_tenant.ts';
 
 // Harter Prod-Schutz wie in demo.ts — Testdaten haben auf der echten DB nix verloren.
 if (process.env.NODE_ENV === 'production') {
@@ -16,9 +16,7 @@ if (process.env.NODE_ENV === 'production') {
 const TERMIN_ID = 't_probeabend';
 const WIRTSHAUS_ID = 'w_probeabend';
 
-const dbPath = process.env.DATABASE_PATH ?? path.join(process.cwd(), 'data', 'wirtschaftln.db');
-const db = new Database(dbPath);
-db.pragma('journal_mode = WAL');
+const { sqlite: db } = oeffneMandant();
 
 const modus = process.argv[2] ?? 'an';
 

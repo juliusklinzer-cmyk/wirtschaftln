@@ -2,12 +2,10 @@
 // (seit 2019) besucht hat — Julius' Google-Maps-Liste vom 17.07.2026.
 // Landen als „Bsucht vor da App"-Pins auf der Karte, ohne Termin-/Besuchsdaten;
 // Adresse, Koordinaten und Foto holt sich der Karten-Backfill über Google Places.
-// Aufruf lokal: node scripts/altbestand.ts
+// Aufruf lokal: node scripts/altbestand.ts            (--tenant <slug> für an anderen Stammtisch)
 // Aufruf Prod:  docker compose exec app node scripts/altbestand.ts
-import Database from 'better-sqlite3';
 import { randomBytes } from 'node:crypto';
-import path from 'node:path';
-import fs from 'node:fs';
+import { oeffneMandant } from './_tenant.ts';
 
 const NAMEN = [
   'Zum Sollner Hirschen',
@@ -62,25 +60,9 @@ const NAMEN = [
   'Zum Tattenbach', // nachgetragen 03.08.2026 — hat in Julius' Liste gfehlt
 ];
 
-const dbPath = process.env.DATABASE_PATH ?? path.join(process.cwd(), 'data', 'wirtschaftln.db');
-fs.mkdirSync(path.dirname(dbPath), { recursive: true });
-const sqlite = new Database(dbPath);
-sqlite.pragma('journal_mode = WAL');
-
-// Schema sicherstellen (gleiche Logik wie src/lib/db: wn_migrations-Bookkeeping).
-sqlite.exec('CREATE TABLE IF NOT EXISTS wn_migrations (name TEXT PRIMARY KEY, applied_at TEXT NOT NULL)');
-{
-  const folder = path.join(process.cwd(), 'drizzle');
-  const applied = new Set((sqlite.prepare('SELECT name FROM wn_migrations').all() as Array<{ name: string }>).map((r) => r.name));
-  for (const file of fs.readdirSync(folder).filter((f) => f.endsWith('.sql')).sort()) {
-    if (applied.has(file)) continue;
-    const sql = fs.readFileSync(path.join(folder, file), 'utf8');
-    for (const stmt of sql.split('--> statement-breakpoint')) {
-      if (stmt.trim()) sqlite.exec(stmt);
-    }
-    sqlite.prepare('INSERT INTO wn_migrations (name, applied_at) VALUES (?, ?)').run(file, new Date().toISOString());
-  }
-}
+// Mandant wählen (--tenant <slug>, Default: der eigene Stammtisch); Schema is
+// nach oeffneMandant garantiert aktuell (Migrations-Runner im Kern).
+const { sqlite } = oeffneMandant();
 
 const vorhandene = new Set(
   (sqlite.prepare('SELECT name FROM wirtshaeuser').all() as Array<{ name: string }>).map((r) => r.name.trim().toLowerCase()),

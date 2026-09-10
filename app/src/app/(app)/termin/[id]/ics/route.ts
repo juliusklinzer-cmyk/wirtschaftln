@@ -1,9 +1,17 @@
 import { eq } from 'drizzle-orm';
 import { db, termine, wirtshaeuser } from '@/lib/db';
-import { getCurrentMember } from '@/lib/session';
+import { getCurrentMember, withSessionTenant } from '@/lib/session';
 
-/** Kalender-Export: lädt den Stammtisch als .ics herunter. */
-export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+/**
+ * Kalender-Export: lädt den Stammtisch als .ics herunter.
+ * Route-Handler: der Mandant kommt per withSessionTenant (AsyncLocalStorage)
+ * aus dem Cookie — React-cache greift hier ned.
+ */
+export function GET(_req: Request, ctx: { params: Promise<{ id: string }> }) {
+  return withSessionTenant(() => ics(ctx.params));
+}
+
+async function ics(params: Promise<{ id: string }>) {
   const me = await getCurrentMember();
   if (!me) return new Response('Unauthorized', { status: 401 });
 

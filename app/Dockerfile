@@ -25,6 +25,9 @@ RUN npm run build
 FROM node:24-slim AS runner
 WORKDIR /app
 ENV NODE_ENV=production
+# DATA_DIR: Verzeichnis-DB + tenants/<slug>.db; DATABASE_PATH bleibt als Pfad
+# der alten Einzel-DB (wird beim ersten Start nach tenants/ kopiert)
+ENV DATA_DIR=/data
 ENV DATABASE_PATH=/data/wirtschaftln.db
 
 RUN groupadd -r app && useradd -r -g app app && mkdir -p /data && chown app:app /data
@@ -34,7 +37,10 @@ COPY --from=builder --chown=app:app /app/.next/static ./.next/static
 COPY --from=builder --chown=app:app /app/public ./public
 # Migrationen + Seed-Skript für den Erststart
 COPY --from=builder --chown=app:app /app/drizzle ./drizzle
+COPY --from=builder --chown=app:app /app/drizzle-directory ./drizzle-directory
 COPY --from=builder --chown=app:app /app/scripts ./scripts
+# Die Skripte importieren den Mandanten-Kern direkt aus src (Node strip-types)
+COPY --from=builder --chown=app:app /app/src/lib/db/core.ts ./src/lib/db/core.ts
 # sharp braucht seine nativen libvips-Libs (@img/*) — der Standalone-Tracer
 # nimmt die .so-Dateien nicht mit (Profilbild-Upload crasht sonst mit ERR_DLOPEN_FAILED)
 COPY --from=builder --chown=app:app /app/node_modules/sharp ./node_modules/sharp

@@ -1,29 +1,13 @@
 // Erst-Setup: legt den Admin an (idempotent).
 // Aufruf:  npm run db:seed  (Passwort via WN_ADMIN_PASSWORD, sonst generiert)
-import Database from 'better-sqlite3';
+//          node scripts/seed.ts --tenant <slug>  für einen anderen Stammtisch
 import { randomBytes, scryptSync } from 'node:crypto';
-import path from 'node:path';
-import fs from 'node:fs';
+import { syncKonten } from '../src/lib/db/core.ts';
+import { oeffneMandant } from './_tenant.ts';
 
-const dbPath = process.env.DATABASE_PATH ?? path.join(process.cwd(), 'data', 'wirtschaftln.db');
-fs.mkdirSync(path.dirname(dbPath), { recursive: true });
-const sqlite = new Database(dbPath);
-sqlite.pragma('journal_mode = WAL');
-
-// Schema sicherstellen (gleiche Logik wie src/lib/db: wn_migrations-Bookkeeping).
-sqlite.exec("CREATE TABLE IF NOT EXISTS wn_migrations (name TEXT PRIMARY KEY, applied_at TEXT NOT NULL)");
-{
-  const folder = path.join(process.cwd(), 'drizzle');
-  const applied = new Set((sqlite.prepare('SELECT name FROM wn_migrations').all() as Array<{ name: string }>).map((r) => r.name));
-  for (const file of fs.readdirSync(folder).filter((f) => f.endsWith('.sql')).sort()) {
-    if (applied.has(file)) continue;
-    const sql = fs.readFileSync(path.join(folder, file), 'utf8');
-    for (const stmt of sql.split('--> statement-breakpoint')) {
-      if (stmt.trim()) sqlite.exec(stmt);
-    }
-    sqlite.prepare('INSERT INTO wn_migrations (name, applied_at) VALUES (?, ?)').run(file, new Date().toISOString());
-  }
-}
+// Mandant wählen (--tenant <slug>, Default: der eigene Stammtisch); Schema is
+// nach oeffneMandant garantiert aktuell (Migrations-Runner im Kern).
+const { sqlite, id: gruppeId, directory } = oeffneMandant();
 
 function hashPassword(password: string): string {
   const salt = randomBytes(16).toString('hex');
@@ -48,6 +32,7 @@ if (existing) {
        VALUES (?, ?, ?, ?, NULL, ?, ?, NULL, 'admin', 'aktiv', ?)`
     )
     .run(`m_${randomBytes(8).toString('hex')}`, name, vorname, nachname, email, hashPassword(password), new Date().toISOString());
+  syncKonten(directory, sqlite, gruppeId);
   console.log(`Admin angelegt: ${email}`);
   if (!process.env.WN_ADMIN_PASSWORD) {
     console.log(`Generiertes Passwort: ${password}`);

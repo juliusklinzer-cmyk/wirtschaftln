@@ -3,13 +3,10 @@
 // egal was Google mit seinen PhotoService-URLs treibt.
 // Aufruf lokal:  node scripts/fotos-cachen.ts
 // Aufruf Prod:   docker compose exec app node scripts/fotos-cachen.ts
-import Database from 'better-sqlite3';
-import path from 'node:path';
 import sharp from 'sharp';
+import { oeffneMandant } from './_tenant.ts';
 
-const dbPath = process.env.DATABASE_PATH ?? path.join(process.cwd(), 'data', 'wirtschaftln.db');
-const db = new Database(dbPath);
-db.pragma('journal_mode = WAL');
+const { sqlite: db } = oeffneMandant();
 
 async function alsDataUrl(url: string): Promise<string | null> {
   try {

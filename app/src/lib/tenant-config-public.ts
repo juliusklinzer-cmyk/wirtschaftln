@@ -72,7 +72,8 @@ export const GENERISCHE_FEATURES: TenantFeatures = {
   altbestand: false,
   archivKarte: true,
   nieZweimal: true,
-  brauereiLogos: false,
+  // Brauerei-Logos bleiben für alle an (nicht-kommerziell, Julius 11.09.2026)
+  brauereiLogos: true,
   wirtshausFotos: false,
   muenchenBranding: false,
 };

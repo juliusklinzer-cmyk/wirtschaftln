@@ -240,6 +240,7 @@ async function AktiverTermin({ terminId, meId, isAdmin }: { terminId: string; me
           <Bierdeckel
             terminId={termin.id}
             wirtshausName={wirtshaus?.name ?? null}
+            biersorte={wirtshaus?.biersorte ?? null}
             initialHoiben={besucheLive.find((b) => b.memberId === meId)?.hoiben ?? 0}
             spezln={deckelSpezln}
           />

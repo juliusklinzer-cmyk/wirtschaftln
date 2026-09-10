@@ -4,6 +4,8 @@ import { useEffect, useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { Avatar } from '@/components/ds';
 import { hoibenStricheln } from '@/app/(app)/termin/actions';
+import { deckelFuer } from '@/lib/bierdeckel';
+import { DeckelGrafik } from '@/components/domain/DeckelGrafik';
 
 export type BierdeckelSpezl = {
   name: string;
@@ -128,11 +130,14 @@ function MiniStrichliste({ anzahl }: { anzahl: number }) {
 export function Bierdeckel({
   terminId,
   wirtshausName,
+  biersorte = null,
   initialHoiben,
   spezln,
 }: {
   terminId: string;
   wirtshausName: string | null;
+  /** Helles vom Wirtshaus → passender Deckel (Augustiner-Scan, Brauerei-Deckel oder neutral) */
+  biersorte?: string | null;
   initialHoiben: number;
   /** Die anderen am Tisch mit ihrem aktuellen Strich-Stand (nur > 0). */
   spezln: BierdeckelSpezl[];
@@ -143,6 +148,7 @@ export function Bierdeckel({
   const [fehler, setFehler] = useState<string | null>(null);
   const [, startTransition] = useTransition();
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const deckel = deckelFuer(biersorte);
 
   useEffect(() => () => { if (timer.current) clearTimeout(timer.current); }, []);
 
@@ -182,8 +188,8 @@ export function Bierdeckel({
         .wn-bierdeckel:active { transform: scale(0.97); }
       `}</style>
 
-      {/* Der Deckel: unser echter Wirtschaftln-Deckel, antippen strichelt,
-          d'Striche kritzeln sich wie mit'm blauen Kugelschreiber drüber */}
+      {/* Der Deckel: passend zum Bier vom Wirtshaus (beim Augustiner unser echter
+          Deckel-Scan), antippen strichelt, d'Striche kritzeln sich drüber */}
       <button
         type="button"
         onClick={() => aendern(1)}
@@ -197,13 +203,7 @@ export function Bierdeckel({
           WebkitTapHighlightColor: 'transparent',
         }}
       >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src="/bierdeckel.webp"
-          alt=""
-          draggable={false}
-          style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', userSelect: 'none', pointerEvents: 'none' }}
-        />
+        <DeckelGrafik deckel={deckel} />
         <KritzelStriche anzahl={hoiben} />
       </button>
 

@@ -5,7 +5,7 @@ import { anzeigeName } from '@/lib/namen';
 import { and, eq } from 'drizzle-orm';
 import { db, termine, votes, besuche, wirtshaeuser, kasse, pushSubscriptions, checkins } from '@/lib/db';
 import { getCurrentMember } from '@/lib/session';
-import { getAktiveMitglieder, nachtragsfristOffen, getVergabeStand, getStats, getPraesidentId, getBekannteWirtshaeuser, getLetzterAbgeschlossenerTermin } from '@/lib/queries';
+import { getAktiveMitglieder, nachtragsfristOffen, getVergabeStand, getStats, getPraesidentId, getBekannteWirtshaeuser, getLetzterAbgeschlossenerTermin, getAktuellerTermin } from '@/lib/queries';
 import { findeBekanntes } from '@/lib/wirtshaus-abgleich';
 import { vergabeWechsel, wechselTexte } from '@/lib/badges';
 import { WACKELT_AB_UNENTSCHULDIGT, berlinTag, bierdeckelOffen, abschlussOffen, checkinOffen, CHECKIN_VORLAUF_STUNDEN } from '@/lib/punkte';
@@ -37,6 +37,17 @@ export async function neuerTermin(formData: FormData) {
   const datum = String(formData.get('datum') ?? '');
   const zeit = String(formData.get('zeit') ?? '19:00');
   if (!datum) return;
+  await terminAnlegen(datum, zeit, me.id);
+  revalidateAll();
+}
+
+/**
+ * Termin anlegen + Startschuss für d'Abstimmung (Push + Mail an alle außer dem
+ * Anleger). Wird vom Formular UND vom Abschluss (nächster Termin) benutzt.
+ */
+async function terminAnlegen(datum: string, zeitRoh: string, vonMemberId: string) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(datum)) return;
+  const zeit = /^\d{2}:\d{2}$/.test(zeitRoh) ? zeitRoh : '19:00';
   // Stammhaus-Typ: das Stammhaus steht scho drin, der Organisator bestätigt
   // nur no („reserviert“) oder tauscht's für an Ausflug aus
   const config = tenantConfig();
@@ -52,12 +63,11 @@ export async function neuerTermin(formData: FormData) {
   const wann = `${datumLang(datum)}, ${zeit} Uhr`;
   const titel = '🗳️ Neuer Stammtisch, jetzt abstimmen!';
   const text = `Da nächste Stammtisch steht: ${wann}. Sag zua oder ab, wer bis 3 Tag vorher abstimmt, kriagt an WP! Und: D'Orga is no frei, wer reglt's? 🍺`;
-  const empfaenger = getAktiveMitglieder().filter((m) => m.id !== me.id).map((m) => m.email);
+  const empfaenger = getAktiveMitglieder().filter((m) => m.id !== vonMemberId).map((m) => m.email);
   await Promise.allSettled([
     pushAnAlle(titel, text, '/termin'),
     mailAn(empfaenger, titel, `Servus!\n\n${text}\n\n→ ${appUrl('/termin')}\n\n${mailSignatur()}`),
   ]);
-  revalidateAll();
 }
 
 /** Best-effort-Geocoding über Nominatim (OSM), scheitert leise. */
@@ -442,6 +452,13 @@ export async function besuchAbschliessen(terminId: string, formData: FormData) {
     })
     .where(eq(termine.id, terminId))
     .run();
+
+  // 📅 Wer abschließt, macht den nächsten Stammtisch aus (nur beim ersten
+  // Abschluss, und nur wenn no koa neuer Termin steht) — d'Abstimmung startet dann für alle.
+  const naechstesDatum = String(formData.get('naechstesDatum') ?? '').trim();
+  if (erstAbschluss && naechstesDatum && !getAktuellerTermin()) {
+    await terminAnlegen(naechstesDatum, String(formData.get('naechsteZeit') ?? '19:00').trim(), me.id);
+  }
 
   // 🥶 Beim 3. unentschuldigten Fehlen in Folge: einmalig eine Strafrunde
   // (Teilnehmer × Bräustüberl-Hoibe). Nur beim ersten Abschluss, nicht bei Nachträgen.

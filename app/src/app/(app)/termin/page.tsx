@@ -449,6 +449,7 @@ async function AktiverTermin({ terminId, meId, isAdmin }: { terminId: string; me
                     zugesagt: alleVotes.some((v) => v.vote.memberId === m.id && v.vote.wert === 'zu'),
                   }))}
                   action={besuchAbschliessen.bind(null, termin.id)}
+                  naechsterTermin={!termin.abgeschlossenVon}
                   initial={abschlussVorbelegung(
                     besucheLive,
                     mitglieder.filter((m) => alleVotes.some((v) => v.vote.memberId === m.id && v.vote.wert === 'zu')).map((m) => m.id),

@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { Avatar, Button } from '@/components/ds';
+import { Avatar, Button, Input } from '@/components/ds';
 import { HELLE_WAHL, WEISSBIERE, STANDARD_BIERSORTE } from '@/lib/biersorten';
 import { PTS } from '@/lib/punkte';
 import { BierWahl } from '@/components/domain/BierWahl';
@@ -34,11 +34,14 @@ export function AbschlussForm({
   action,
   initial,
   submitLabel = 'Abschließen & ins Archiv',
+  naechsterTermin = false,
 }: {
   mitglieder: AbschlussMitglied[];
   action: (formData: FormData) => Promise<void>;
   initial?: AbschlussWerte;
   submitLabel?: string;
+  /** Beim ersten Abschluss: der Abschließer legt gleich den nächsten Stammtisch fest (Datum + Uhrzeit, Pflicht) */
+  naechsterTermin?: boolean;
 }) {
   type Row = { hoiben: number; brodn: boolean; taxi: boolean; runde: boolean; abgsagt: boolean };
   const leer: Row = { hoiben: 0, brodn: false, taxi: false, runde: false, abgsagt: false };
@@ -154,6 +157,23 @@ export function AbschlussForm({
       <div style={{ marginTop: 10 }}>
         <BierWahl label="Welches Weißbier?" biere={WEISSBIERE} value={weissbier} onChange={setWeissbier} leerLabel="Koa Weißbier / wissen wir nimmer" />
       </div>
+
+      {/* Wer abschließt, macht den nächsten Termin aus — Datum + Uhrzeit reichen,
+          zu-/absagen tun danach alle selber (Julius, 11.09.2026) */}
+      {naechsterTermin && (
+        <div style={{ marginTop: 18, padding: '14px', background: 'var(--pergament)', border: '1px solid var(--pergament-edge)', borderRadius: 'var(--r-lg)', display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div>
+            <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--ink-900)' }}>Und wann geht’s weiter?</div>
+            <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--ink-500)' }}>
+              Wer abschließt, macht den nächsten Stammtisch aus. Zu- oder absagen tun danach alle selber.
+            </div>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 110px', gap: 10 }}>
+            <Input label="Datum" name="naechstesDatum" type="date" required />
+            <Input label="Uhrzeit" name="naechsteZeit" type="time" defaultValue="19:00" />
+          </div>
+        </div>
+      )}
 
       <Button type="submit" fullWidth variant="gold" size="lg" style={{ marginTop: 18 }}>
         {submitLabel}

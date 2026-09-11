@@ -10,9 +10,10 @@ import { StreakChip } from '@/components/domain/StreakChip';
 import { Steckbrief, steckbriefLeer } from '@/components/domain/Steckbrief';
 import { BadgeBild, SerienLeiste } from '@/components/domain/BadgeBild';
 import { ProfilBearbeiten } from './profil-bearbeiten';
+import { tokenErzeugen } from './actions';
 import { DaniModusSchalter } from '@/components/domain/DaniModus';
 import { tenantConfig } from '@/lib/tenant-config';
-import { tokenFuerGruenderMitglied, tokenLink, gruppenName } from '@/lib/gruendung';
+import { tokensFuerGruenderMitglied, tokenLink, gruppenName } from '@/lib/gruendung';
 import { TokenKarte } from '@/components/domain/TokenKarte';
 import { PushEinstellung } from '@/components/domain/PushEinstellung';
 import { datumKurz } from '@/lib/format';
@@ -24,7 +25,8 @@ export default async function ProfilPage() {
   if (!me) redirect('/login');
   const config = tenantConfig();
   // 🏰 Gründungs-Token: nur Mitglieder des Gründer-Stammtischs, lazy gemünzt
-  const token = config.istGruender && !me.erstanmeldung ? tokenFuerGruenderMitglied(me.id) : null;
+  // (der Gründer-Admin derf beliebig viele; alle anderen genau einen)
+  const tokens = config.istGruender && !me.erstanmeldung ? tokensFuerGruenderMitglied(me.id) : [];
   const saison = aktuelleSaison();
   const statsSaison = getStats({ abDatum: saison.start });
   const statsAllzeit = getStats();
@@ -205,16 +207,18 @@ export default async function ProfilPage() {
       )}
 
       {/* 🏰 Gründungs-Token: genau oan Stammtisch in d'Welt setzen */}
-      {token && (
+      {tokens.length > 0 && (
         <Card pad={14}>
           <TokenKarte
-            token={token.token}
-            link={tokenLink(token.token)}
-            eingeloest={
-              token.status === 'eingeloest'
-                ? { gruppeName: gruppenName(token.eingeloestVonGruppeId) ?? '—', am: token.eingeloestAm ? datumKurz(token.eingeloestAm.slice(0, 10)) : '—' }
-                : null
-            }
+            tokens={tokens.map((t) => ({
+              token: t.token,
+              link: tokenLink(t.token),
+              eingeloest:
+                t.status === 'eingeloest'
+                  ? { gruppeName: gruppenName(t.eingeloestVonGruppeId) ?? '—', am: t.eingeloestAm ? datumKurz(t.eingeloestAm.slice(0, 10)) : '—' }
+                  : null,
+            }))}
+            neuerToken={me.role === 'admin' ? tokenErzeugen : undefined}
           />
         </Card>
       )}

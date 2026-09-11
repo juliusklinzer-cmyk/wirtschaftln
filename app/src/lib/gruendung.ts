@@ -11,6 +11,7 @@ import {
   slugFrei,
   tokenAnlegen,
   tokenFuerMitglied,
+  tokensFuerMitglied,
   type GruendungsToken,
 } from '@/lib/db/directory';
 import { istGueltigerSlug } from '@/lib/db/core';
@@ -40,6 +41,18 @@ export function tokenFuerGruenderMitglied(memberId: string): GruendungsToken | n
   if (!currentTenant().gruppe.istGruender) return null;
   const vorhanden = tokenFuerMitglied(memberId);
   if (vorhanden) return vorhanden;
+  return neuerToken(memberId);
+}
+
+/** Alle Tokens des Mitglieds (Gründer-Admin derf beliebig viele; mindestens einer wird gemünzt). */
+export function tokensFuerGruenderMitglied(memberId: string): GruendungsToken[] {
+  if (!currentTenant().gruppe.istGruender) return [];
+  const alle = tokensFuerMitglied(memberId);
+  return alle.length > 0 ? alle : [neuerToken(memberId)];
+}
+
+/** Frischen Token münzen (Aufrufer prüft, ob das Mitglied mehr als einen haben derf). */
+export function neuerToken(memberId: string): GruendungsToken {
   for (let i = 0; i < 5; i += 1) {
     const token = `WIRT-${zufall(4)}-${zufall(4)}`;
     if (!findToken(token)) return tokenAnlegen(token, memberId);

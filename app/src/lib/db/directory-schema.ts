@@ -42,15 +42,20 @@ export const konten = sqliteTable(
 );
 
 // Jedes Gründer-Mitglied kriegt genau EINEN Token, mit dem es genau EINEN
-// neuen Stammtisch in d'Welt setzen derf (nicht viral).
-export const gruendungsTokens = sqliteTable('gruendungs_tokens', {
+// neuen Stammtisch in d'Welt setzen derf (nicht viral). Der Gründer-Admin
+// derf beliebig viele Tokens erzeugen (Migration 0001: Unique → normaler Index).
+export const gruendungsTokens = sqliteTable(
+  'gruendungs_tokens',
+  {
   token: text('token').primaryKey(), // lesbar, z. B. WIRT-XXXX-XXXX
-  memberId: text('member_id').notNull().unique(),
+  memberId: text('member_id').notNull(),
   status: text('status', { enum: ['offen', 'eingeloest'] }).notNull().default('offen'),
   eingeloestVonGruppeId: text('eingeloest_von_gruppe_id').references(() => gruppen.id),
   eingeloestAm: text('eingeloest_am'),
   createdAt: text('created_at').notNull(),
-});
+  },
+  (t) => [index('gruendungs_tokens_member_id').on(t.memberId)],
+);
 
 export type Gruppe = typeof gruppen.$inferSelect;
 export type Konto = typeof konten.$inferSelect;

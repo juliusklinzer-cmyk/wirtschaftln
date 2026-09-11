@@ -57,7 +57,12 @@ export function gruppeAnlegen(zeile: typeof gruppen.$inferInsert): void {
 /* ── Gründungs-Tokens: genau einer pro Gründer-Mitglied, genau einmal einlösbar ── */
 
 export function tokenFuerMitglied(memberId: string): GruendungsToken | null {
-  return getDirectory().db.select().from(gruendungsTokens).where(eq(gruendungsTokens.memberId, memberId)).get() ?? null;
+  return tokensFuerMitglied(memberId)[0] ?? null;
+}
+
+/** Alle Tokens eines Mitglieds, älteste zuerst (Admin derf mehrere haben). */
+export function tokensFuerMitglied(memberId: string): GruendungsToken[] {
+  return getDirectory().db.select().from(gruendungsTokens).where(eq(gruendungsTokens.memberId, memberId)).orderBy(gruendungsTokens.createdAt).all();
 }
 
 export function tokenAnlegen(token: string, memberId: string): GruendungsToken {
@@ -66,7 +71,7 @@ export function tokenAnlegen(token: string, memberId: string): GruendungsToken {
     .values({ token, memberId, status: 'offen', createdAt: new Date().toISOString() })
     .onConflictDoNothing()
     .run();
-  return tokenFuerMitglied(memberId)!;
+  return findToken(token)!;
 }
 
 export function findToken(token: string): GruendungsToken | null {

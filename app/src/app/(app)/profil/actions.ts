@@ -7,8 +7,17 @@ import { db, members } from '@/lib/db';
 import { getCurrentMember, destroyOtherSessions } from '@/lib/session';
 import { hashPassword, verifyPassword } from '@/lib/password';
 import { tenantConfig } from '@/lib/tenant-config';
+import { neuerToken } from '@/lib/gruendung';
 
 export type ProfilState = { error?: string; ok?: boolean };
+
+/** Frischen Gründungs-Token münzen — nur der Admin des Gründer-Stammtischs (unbegrenzt). */
+export async function tokenErzeugen() {
+  const me = await getCurrentMember();
+  if (!me || me.role !== 'admin' || !tenantConfig().istGruender) return;
+  neuerToken(me.id);
+  revalidatePath('/profil');
+}
 
 /**
  * Eigenes Profil speichern, inkl. Profilbild (wird auf 256px verkleinert und

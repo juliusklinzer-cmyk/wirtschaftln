@@ -229,6 +229,13 @@ export async function pushAbonnieren(sub: { endpoint: string; keys: { p256dh: st
     .run();
 }
 
+/** Push für dieses Gerät abbestellen (Profil-Schalter): nur die eigene Subscription. */
+export async function pushAbbestellen(endpoint: string) {
+  const me = await getCurrentMember();
+  if (!me || !endpoint) return;
+  db.delete(pushSubscriptions).where(and(eq(pushSubscriptions.endpoint, endpoint), eq(pushSubscriptions.memberId, me.id))).run();
+}
+
 export async function abstimmen(terminId: string, wert: 'zu' | 'ab') {
   // „Vielleicht" is abgschafft, alte Stimmen bleiben in der DB, neue gibt's nur no zu/ab
   if (wert !== 'zu' && wert !== 'ab') return;

@@ -44,7 +44,7 @@ export type PublicTenantConfig = {
   stammhausWirtshausId: string | null;
   /** Anzeigename vom Standard-Bier („Augustiner Hell") */
   bierName: string;
-  /** Preis für a Hoibe in Cent, Grundlage aller Hoibn-Strafen */
+  /** Preis für a Hoibe in Cent, Grundlage aller Hoibe-Strafen */
   hoibePreisCents: number;
   geo: TenantGeo | null;
   features: TenantFeatures;

@@ -9,7 +9,7 @@ export type StammtischState = { error?: string; ok?: boolean };
 
 /**
  * Admin-Seite „Stammtisch": Name, Motto, Stadt, Gründungsjahr, Gründungscode
- * und Hoibn-Preis. Stammdaten landen in der gruppen-Zeile, der Preis in der
+ * und Hoibe-Preis. Stammdaten landen in der gruppen-Zeile, der Preis in der
  * Config (JSON) — nur Keys, die der Admin setzt, alles andere bleibt Default.
  */
 export async function stammtischSpeichern(_prev: StammtischState, formData: FormData): Promise<StammtischState> {
@@ -39,7 +39,7 @@ export async function stammtischSpeichern(_prev: StammtischState, formData: Form
   const preisRoh = feld('hoibePreis', 10).replace(',', '.');
   const hoibePreisCents = Math.round(Number(preisRoh) * 100);
   if (!Number.isInteger(hoibePreisCents) || hoibePreisCents < 50 || hoibePreisCents > 5000) {
-    return { error: 'Der Hoibn-Preis muss zwischen 0,50 € und 50 € liegen.' };
+    return { error: 'Der Hoibe-Preis muss zwischen 0,50 € und 50 € liegen.' };
   }
 
   // Config-JSON: bestehende Keys behalten, nur den Preis setzen

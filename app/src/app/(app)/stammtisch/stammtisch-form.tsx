@@ -38,7 +38,7 @@ export function StammtischForm({ werte }: { werte: StammtischWerte }) {
         defaultValue={werte.hoibePreis}
         placeholder="3,70"
         inputMode="decimal"
-        hint="D’Maßeinheit für alle Strafen: a Runde = Teilnehmer × Hoibn-Preis."
+        hint="D’Maßeinheit für alle Strafen: a Runde = Teilnehmer × Hoibe-Preis."
         required
       />
 

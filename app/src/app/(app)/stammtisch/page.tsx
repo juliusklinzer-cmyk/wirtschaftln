@@ -9,7 +9,7 @@ import { StammtischForm } from './stammtisch-form';
 export const metadata = { title: 'Stammtisch verwalten' };
 
 /**
- * Admin-Seite „Stammtisch": Stammdaten und Hoibn-Preis des eigenen
+ * Admin-Seite „Stammtisch": Stammdaten und Hoibe-Preis des eigenen
  * Stammtischs. Alles andere (Feature-Flags, Geo, Typ) kommt aus dem
  * Gründungs-Wizard bzw. bleibt beim Gründer auf den gewohnten Werten.
  */

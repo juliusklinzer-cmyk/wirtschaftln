@@ -14,6 +14,7 @@ import { DaniModusSchalter } from '@/components/domain/DaniModus';
 import { tenantConfig } from '@/lib/tenant-config';
 import { tokenFuerGruenderMitglied, tokenLink, gruppenName } from '@/lib/gruendung';
 import { TokenKarte } from '@/components/domain/TokenKarte';
+import { PushEinstellung } from '@/components/domain/PushEinstellung';
 import { datumKurz } from '@/lib/format';
 
 export const metadata = { title: 'Mei Profil · Wirtschaftln' };
@@ -195,6 +196,13 @@ export default async function ProfilPage() {
           vereinsWahl: config.features.vereinsWahl,
         }}
       />
+
+      {/* 🔔 Benachrichtigungen pro Gerät an/aus (auch der Weg zurück nach am „Nein“ in der Browser-Abfrage) */}
+      {!me.erstanmeldung && (
+        <Card pad={14}>
+          <PushEinstellung />
+        </Card>
+      )}
 
       {/* 🏰 Gründungs-Token: genau oan Stammtisch in d'Welt setzen */}
       {token && (

@@ -36,6 +36,7 @@ export default async function StammtischPage() {
             gruendungsjahr: gruppe.gruendungsjahr ? String(gruppe.gruendungsjahr) : '',
             gruendungscode: gruppe.gruendungscode ?? '',
             hoibePreis: hoibePreisEuro(config.hoibePreisCents),
+            logo: config.logo,
           }}
         />
       </Card>

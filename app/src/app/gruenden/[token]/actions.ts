@@ -24,10 +24,12 @@ export async function gruenden(token: string, _prev: GruendungsState, formData: 
     bierName: feld('bierName'),
     hoibePreis: feld('hoibePreis'),
     code: feld('code'),
+    logoData: feld('logoData'),
   };
   const ergebnis = await stammtischGruenden(token, eingabe);
   if (!ergebnis.ok) return { fehler: ergebnis.fehler, schritt: ergebnis.schritt };
-  redirect('/');
+  // Direkt weiter zum Einladen der Spezln
+  redirect('/einladen?neu=1');
 }
 
 /** Code-Vorschlag aus dem Stammtisch-Namen (Schritt 3), garantiert frei. */

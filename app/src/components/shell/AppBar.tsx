@@ -13,10 +13,12 @@ const TITLES: Record<string, string> = {
   '/kasse': 'Vereinskasse',
   '/profil': 'Mei Profil',
   '/stammtisch': 'Stammtisch',
+  '/einladen': 'Spezln einladen',
 };
 
 export function AppBar({
   appName = 'Wirtschaftln',
+  logoSrc = '/brand/shield-256.png',
   name,
   photoUrl,
   isAdmin,
@@ -26,6 +28,8 @@ export function AppBar({
 }: {
   /** Name des Stammtischs (Tenant-Config), Wortmarke im Header */
   appName?: string;
+  /** Logo links oben: eigenes Stammtisch-Logo oder das Wirtschaftln-Wappen */
+  logoSrc?: string;
   name: string;
   photoUrl: string | null;
   isAdmin: boolean;
@@ -99,7 +103,12 @@ export function AppBar({
       }}
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        <Image src="/brand/shield-256.png" alt="" width={34} height={34} style={{ height: 34, width: 'auto' }} />
+        {logoSrc.startsWith('/brand/') ? (
+          <Image src={logoSrc} alt="" width={34} height={34} style={{ height: 34, width: 'auto' }} />
+        ) : (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={logoSrc} alt="" width={34} height={34} style={{ width: 34, height: 34, borderRadius: 9, objectFit: 'cover' }} />
+        )}
         <div>
           {title ? (
             <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--ink-900)' }}>{title}</div>
@@ -187,6 +196,22 @@ export function AppBar({
                 </div>
               </div>
             </div>
+            <Link
+              href="/einladen"
+              onClick={() => setMenu(false)}
+              style={{
+                display: 'block',
+                padding: '13px 14px',
+                fontFamily: 'var(--font-ui)',
+                fontSize: 14,
+                fontWeight: 700,
+                color: 'var(--ink-900)',
+                textDecoration: 'none',
+                borderBottom: '1px solid var(--ink-100)',
+              }}
+            >
+              Spezln einladen
+            </Link>
             {isAdmin && (
               <Link
                 href="/stammtisch"

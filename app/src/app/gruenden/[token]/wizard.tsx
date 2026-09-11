@@ -2,6 +2,7 @@
 
 import { useActionState, useEffect, useState, useTransition } from 'react';
 import { Button, Input, SegmentedTabs } from '@/components/ds';
+import { LogoWahl } from '@/components/domain/LogoWahl';
 import { gruenden, codeVorschlagFuer, codeIstFrei, type GruendungsState } from './actions';
 
 const SCHRITTE = ['Dei Konto', 'Euer Stammtisch', 'Gründungscode', 'Anlegen'] as const;
@@ -90,6 +91,10 @@ export function GruendungsWizard({ token }: { token: string }) {
         <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--ink-900)' }}>Euer Stammtisch</div>
         <Input label="Name vom Stammtisch" name="name" placeholder="z. B. Hirschen-Stammtisch" required maxLength={60} value={name} onChange={(e) => setName(e.target.value)} />
         <Input label="Motto (optional)" name="motto" placeholder="z. B. Oiwei anders. Oiwei dahoam." maxLength={120} />
+        <div>
+          <label style={{ display: 'block', fontSize: 13, fontWeight: 700, color: 'var(--ink-700)', marginBottom: 6 }}>Euer Logo (optional)</label>
+          <LogoWahl name="logoData" stammtischName={name} />
+        </div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 120px', gap: 10 }}>
           <Input label="Stadt" name="stadt" placeholder="z. B. Regensburg" required maxLength={60} hint="Die Karte und die Wirtshaus-Suche richten sich danach." />
           <Input label="Gründungsjahr" name="gruendungsjahr" placeholder={String(new Date().getFullYear())} inputMode="numeric" required maxLength={4} />

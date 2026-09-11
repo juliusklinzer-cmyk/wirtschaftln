@@ -9,6 +9,8 @@ import {
   type TenantGeo,
 } from '@/lib/tenant-config-public';
 
+import { logoUrlFuer } from '@/lib/logo';
+
 export type { PublicTenantConfig, TenantFeatures, TenantGeo } from '@/lib/tenant-config-public';
 
 /**
@@ -20,6 +22,8 @@ export type { PublicTenantConfig, TenantFeatures, TenantGeo } from '@/lib/tenant
 export type TenantConfig = PublicTenantConfig & {
   /** Erstes Jahr der Saison-Zählung (Gründer: 2022, kalibriert auf „Saison 9 · Frühjahr 2026") */
   saisonEpocheJahr: number;
+  /** Logo als PNG-Data-URL (512×512), bleibt serverseitig — der Client kriegt logoUrl */
+  logo: string | null;
 };
 
 type ConfigJson = Partial<{
@@ -29,6 +33,7 @@ type ConfigJson = Partial<{
   saisonEpocheJahr: number;
   geo: TenantGeo | null;
   features: Partial<TenantFeatures>;
+  logo: string | null;
 }>;
 
 function lesen(json: string): ConfigJson {
@@ -47,6 +52,7 @@ export function parseTenantConfig(gruppe: Gruppe): TenantConfig {
   const features: TenantFeatures = { ...basisFeatures, ...(c.features ?? {}) };
   if (gruppe.typ === 'stammhaus' && c.features?.archivKarte === undefined) features.archivKarte = false;
   if (gruppe.typ === 'stammhaus' && c.features?.nieZweimal === undefined) features.nieZweimal = false;
+  const logo = typeof c.logo === 'string' && c.logo.startsWith('data:image/') ? c.logo : null;
   const hoibe = Number(c.hoibePreisCents);
   const epoche = Number(c.saisonEpocheJahr);
   return {
@@ -63,6 +69,8 @@ export function parseTenantConfig(gruppe: Gruppe): TenantConfig {
     geo: c.geo === undefined ? (gruender ? MUENCHEN_GEO : null) : c.geo,
     features,
     istGruender: gruender,
+    logoUrl: logoUrlFuer(gruppe.id, logo),
+    logo,
   };
 }
 
@@ -73,8 +81,9 @@ export function tenantConfig(): TenantConfig {
 
 /** Der Teil, der als Props an Client-Komponenten darf (siehe TenantProvider). */
 export function publicTenantConfig(): PublicTenantConfig {
-  const { saisonEpocheJahr: _epoche, ...rest } = tenantConfig();
+  const { saisonEpocheJahr: _epoche, logo: _logo, ...rest } = tenantConfig();
   void _epoche;
+  void _logo;
   return rest;
 }
 

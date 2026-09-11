@@ -22,6 +22,7 @@ const FALLBACK: PublicTenantConfig = {
   geo: MUENCHEN_GEO,
   features: GRUENDER_FEATURES,
   istGruender: true,
+  logoUrl: null,
 };
 
 const TenantContext = createContext<PublicTenantConfig>(FALLBACK);

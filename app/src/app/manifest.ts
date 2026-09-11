@@ -29,7 +29,14 @@ export default async function manifest(): Promise<MetadataRoute.Manifest> {
     lang: 'de',
     // App-Icon: beim Gründer das Münchner Kindl mit der Hoibe (seit 09.08.2026),
     // sonst das Wirtschaftln-Wappen (eigenes Design, lizenzfrei)
-    icons: muenchen
+    icons: c?.logoUrl
+      ? [
+          { src: `${c.logoUrl}?s=192`, sizes: '192x192', type: 'image/png' },
+          { src: `${c.logoUrl}?s=256`, sizes: '256x256', type: 'image/png' },
+          { src: `${c.logoUrl}?s=512`, sizes: '512x512', type: 'image/png' },
+          { src: `${c.logoUrl}?s=512`, sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+        ]
+      : muenchen
       ? [
           { src: '/brand/kindl-192.png', sizes: '192x192', type: 'image/png' },
           { src: '/brand/kindl-256.png', sizes: '256x256', type: 'image/png' },

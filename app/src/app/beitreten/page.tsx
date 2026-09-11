@@ -19,9 +19,11 @@ export const metadata = {
  * Beitritt für die Runde: Link aus der WhatsApp-Gruppe + Gründungscode.
  * Danach: Passwort setzen + Profil ausfüllen (Erstanmeldung), und los geht’s.
  */
-export default async function BeitretenPage() {
+export default async function BeitretenPage({ searchParams }: { searchParams: Promise<{ code?: string }> }) {
   const me = await getCurrentMember();
   if (me) redirect('/');
+  const { code } = await searchParams;
+  const codeVorbelegt = typeof code === 'string' ? code.slice(0, 40) : '';
 
   return (
     <div
@@ -96,7 +98,7 @@ export default async function BeitretenPage() {
             Mit dem Gründungscode aus deiner Runde wirst’d Mitglied bei eurem Stammtisch.
           </div>
 
-          <BeitrittForm />
+          <BeitrittForm codeVorbelegt={codeVorbelegt} />
 
           <div style={{ textAlign: 'center', marginTop: 16 }}>
             <Link href="/login" style={{ fontSize: 13, fontWeight: 800, color: 'var(--muc-blau)', textDecoration: 'none' }}>

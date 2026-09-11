@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { currentTenant } from '@/lib/db';
 import { findGruppeByCode, gruppeAktualisieren } from '@/lib/db/directory';
 import { getCurrentMember } from '@/lib/session';
+import { logoNormieren } from '@/lib/logo';
 
 export type StammtischState = { error?: string; ok?: boolean };
 
@@ -51,6 +52,13 @@ export async function stammtischSpeichern(_prev: StammtischState, formData: Form
     /* kaputtes JSON → frisch anfangen */
   }
   config.hoibePreisCents = hoibePreisCents;
+  // Logo: nur ändern, wenn a neues gewählt wurde (leer = so lassen)
+  const logoData = String(formData.get('logoData') ?? '');
+  if (logoData && logoData !== config.logo) {
+    const logo = await logoNormieren(logoData);
+    if (!logo) return { error: 'Des Logo kann i ned lesen, probier a anders Bild.' };
+    config.logo = logo;
+  }
 
   gruppeAktualisieren(tenant.id, { name, motto, stadt, gruendungsjahr, gruendungscode, config: JSON.stringify(config) });
   // bindTenant lädt die gruppen-Zeile bei jedem Request frisch → nächste Seite zeigt die neuen Werte

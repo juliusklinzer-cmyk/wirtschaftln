@@ -49,6 +49,8 @@ export type PublicTenantConfig = {
   geo: TenantGeo | null;
   features: TenantFeatures;
   istGruender: boolean;
+  /** Eigenes Logo: /logo/<slug>-<hash>.png (?s=Größe), null = Wirtschaftln-Wappen */
+  logoUrl: string | null;
 };
 
 /** Der eigene Stammtisch: alles an, wie's immer war. */

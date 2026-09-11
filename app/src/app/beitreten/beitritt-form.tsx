@@ -1,10 +1,10 @@
 'use client';
 
-import { useActionState, useState, useTransition } from 'react';
+import { useActionState, useEffect, useState, useTransition } from 'react';
 import { Button, Input } from '@/components/ds';
 import { beitreten, codePruefen, type BeitrittState } from './actions';
 
-export function BeitrittForm() {
+export function BeitrittForm({ codeVorbelegt = '' }: { codeVorbelegt?: string }) {
   const [state, action, pending] = useActionState<BeitrittState, FormData>(beitreten, {});
   // Nach der Code-Eingabe steht dran, wem man beitritt (Verzeichnis-Lookup)
   const [gruppe, setGruppe] = useState<{ name: string; stadt: string | null } | null>(null);
@@ -16,13 +16,19 @@ export function BeitrittForm() {
     }
     starte(async () => setGruppe(await codePruefen(code)));
   };
+  // Aus dem Einladungs-Link: Code steht scho drin → gleich nachschauen, wem man beitritt
+  useEffect(() => {
+    if (codeVorbelegt) pruefen(codeVorbelegt);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [codeVorbelegt]);
 
   return (
     <form action={action} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
       <Input
         label="Gründungscode"
         name="code"
-        inputMode="numeric"
+        defaultValue={codeVorbelegt}
+        inputMode="text"
         placeholder="Der Code aus da Gruppe"
         hint={gruppe ? `✓ Du trittst dem ${gruppe.name}${gruppe.stadt ? ` (${gruppe.stadt})` : ''} bei.` : 'Steht in der WhatsApp-Gruppe von eurem Stammtisch.'}
         required

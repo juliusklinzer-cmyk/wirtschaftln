@@ -2,6 +2,7 @@
 
 import { useActionState } from 'react';
 import { Button, Input } from '@/components/ds';
+import { LogoWahl } from '@/components/domain/LogoWahl';
 import { stammtischSpeichern, type StammtischState } from './actions';
 
 export type StammtischWerte = {
@@ -11,6 +12,8 @@ export type StammtischWerte = {
   gruendungsjahr: string;
   gruendungscode: string;
   hoibePreis: string;
+  /** Aktuelles Logo als Data-URL (null = Wirtschaftln-Wappen) */
+  logo: string | null;
 };
 
 export function StammtischForm({ werte }: { werte: StammtischWerte }) {
@@ -19,6 +22,10 @@ export function StammtischForm({ werte }: { werte: StammtischWerte }) {
     <form action={action} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
       <Input label="Name vom Stammtisch" name="name" defaultValue={werte.name} placeholder="Wirtschaftln" required maxLength={60} />
       <Input label="Motto" name="motto" defaultValue={werte.motto} placeholder="Oiwei anders. Oiwei dahoam." maxLength={120} />
+      <div>
+        <label style={{ display: 'block', fontSize: 13, fontWeight: 700, color: 'var(--ink-700)', marginBottom: 6 }}>Logo (oben in der App und als App-Icon)</label>
+        <LogoWahl name="logoData" stammtischName={werte.name} aktuell={werte.logo} />
+      </div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 120px', gap: 10 }}>
         <Input label="Stadt" name="stadt" defaultValue={werte.stadt} placeholder="München" maxLength={60} />
         <Input label="Gründungsjahr" name="gruendungsjahr" defaultValue={werte.gruendungsjahr} placeholder="2019" inputMode="numeric" maxLength={4} />

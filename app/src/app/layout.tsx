@@ -33,9 +33,11 @@ export async function generateMetadata(): Promise<Metadata> {
     title: name,
     description: beschreibung(c),
     robots: { index: false, follow: false },
-    icons: muenchen
-      ? { icon: '/brand/kindl-favicon.png', apple: '/brand/kindl-apple-icon.png' }
-      : { icon: '/brand/shield-256.png', apple: '/brand/shield-512.png' },
+    icons: c?.logoUrl
+      ? { icon: `${c.logoUrl}?s=192`, apple: `${c.logoUrl}?s=180` }
+      : muenchen
+        ? { icon: '/brand/kindl-favicon.png', apple: '/brand/kindl-apple-icon.png' }
+        : { icon: '/brand/shield-256.png', apple: '/brand/shield-512.png' },
     // Link-Vorschau (WhatsApp & Co.): Wappen auf Navy statt schwarzem Nichts
     openGraph: {
       siteName: name,

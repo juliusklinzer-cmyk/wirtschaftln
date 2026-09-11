@@ -19,6 +19,7 @@ import { hashPassword } from '@/lib/password';
 import { newId, nowIso } from '@/lib/ids';
 import { appUrl } from '@/lib/tenant-config';
 import { createSession } from '@/lib/session';
+import { logoNormieren } from '@/lib/logo';
 
 /**
  * Gründungs-Tokens & Gründungs-Wizard: Jedes Mitglied des Gründer-Stammtischs
@@ -139,6 +140,8 @@ export type GruendungsEingabe = {
   bierName: string;
   hoibePreis: string;
   code: string;
+  /** Logo als Data-URL aus dem Logo-Wähler, leer = koa Logo */
+  logoData: string;
 };
 
 export type GruendungsErgebnis = { ok: true; gruppeId: string } | { ok: false; fehler: string; schritt: 1 | 2 | 3 };
@@ -184,6 +187,7 @@ export async function stammtischGruenden(tokenRoh: string, e: GruendungsEingabe)
   if (!codeFrei(code)) return { ok: false, fehler: 'Den Code hat scho a anderer Stammtisch, nimm an eigenen.', schritt: 3 };
 
   const center = await geocodeStadt(stadt);
+  const logo = e.logoData ? await logoNormieren(e.logoData) : null;
   const slug = freierSlug(name);
   const stammhausId = typ === 'stammhaus' ? newId('w') : null;
   const config = {
@@ -192,6 +196,7 @@ export async function stammtischGruenden(tokenRoh: string, e: GruendungsEingabe)
     saisonEpocheJahr: new Date().getFullYear(),
     geo: center ? { center, boundsKm: 40, suchSuffix: stadt } : null,
     ...(stammhausId ? { stammhausWirtshausId: stammhausId } : {}),
+    ...(logo ? { logo } : {}),
   };
 
   const angelegt = gruppeGruendenMitToken(

@@ -68,7 +68,8 @@ export const GRUENDER_FEATURES: TenantFeatures = {
 export const GENERISCHE_FEATURES: TenantFeatures = {
   daniModus: false,
   vereinsWahl: false,
-  muenchenBadges: false,
+  // Badges mit Original-Bildern und -Namen für alle (Julius 11.09.2026)
+  muenchenBadges: true,
   altbestand: false,
   archivKarte: true,
   nieZweimal: true,

@@ -1,10 +1,21 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
-  <!-- Willi-Becher: reine Kontur in Weiß, innen a Hauch heller als der Grund.
-       Plattform-Wappen für Login/Beitreten/Gründen und Fallback-Icon für
-       Stammtische ohne eigenes Logo. Bewusst ohne Schaum und Details. -->
+  <!-- Willi-Becher, die Original-Form: schmaler Fuß, nach oben hin bauchig
+       (breiteste Stelle im oberen Drittel), zum Rand hin wieder leicht
+       eingezogen. Reine Kontur in Weiß, innen a Hauch heller als der Grund.
+       Plattform-Wappen für Login/Beitreten/Gründen und Fallback-Icon. -->
   <path
-    d="M150 92 L362 92 C372 92 378 100 376 110 C368 160 372 214 372 262 C372 320 366 372 352 420 C346 440 336 450 316 450 L196 450 C176 450 166 440 160 420 C146 372 140 320 140 262 C140 214 144 160 136 110 C134 100 140 92 150 92 Z"
+    d="M150 78
+       L362 78
+       C364 130 372 170 378 206
+       C386 250 380 300 366 348
+       C356 384 344 416 334 444
+       C332 452 326 456 318 456
+       L194 456
+       C186 456 180 452 178 444
+       C168 416 156 384 146 348
+       C132 300 126 250 134 206
+       C140 170 148 130 150 78 Z"
     fill="#FFFFFF" fill-opacity="0.14"
-    stroke="#FFFFFF" stroke-width="22" stroke-linejoin="round"
+    stroke="#FFFFFF" stroke-width="22" stroke-linejoin="round" stroke-linecap="round"
   />
 </svg>

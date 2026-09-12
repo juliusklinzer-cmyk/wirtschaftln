@@ -1,23 +1,29 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
-  <!-- Willibecher nach Original-Proportion (ca. 145 mm hoch, 75 mm an der
-       breitesten Stelle im oberen Viertel, Rand 68 mm, Fuß 62 mm): schlank,
-       unten fast gerade nach oben laufend, Bauch oben, zum Rand leicht
-       eingezogen. Reine Kontur in Weiß, innen a Hauch heller als der Grund. -->
+  <!-- Willibecher, Umriss vom Foto nachgefahren (Augustiner 0,25 l, leeres Glas):
+       Rand knapp unter der breitesten Stelle, die liegt kurz unterm Rand; von
+       dort laufen die Wände fast gerade, ganz leicht zusammen bis zum dicken
+       Boden. Reine Kontur in Weiß, innen a Hauch heller als der Grund. -->
   <path
-    d="M166 66
-       L346 66
-       C348 90 356 120 360 150
-       C363 172 360 196 354 224
-       C346 268 342 320 340 372
-       C339 400 338 424 338 440
-       C338 444 335 446 331 446
-       L181 446
-       C177 446 174 444 174 440
-       C174 424 173 400 172 372
-       C170 320 166 268 158 224
-       C152 196 149 172 152 150
-       C156 120 164 90 166 66 Z"
+    d="M169 41
+       L343 41
+       C346 58 348 76 348 93
+       C348 118 346 138 344.5 158
+       C342.5 184 340.5 208 338.5 233
+       C336 258 333.5 283 330.5 308
+       C329 334 327.5 358 326.5 383
+       C326.5 400 327 416 327 433
+       C327 446 328 456 328 462
+       C328 466 325 468 321 468
+       L202.5 468
+       C198.5 468 195.5 466 195.5 462
+       C195.5 456 195.5 446 195.5 433
+       C195.5 416 194 400 193 383
+       C192 358 188.5 334 185.5 308
+       C182.5 283 180 258 178 233
+       C176 208 172 184 170.5 158
+       C169 138 166 118 165.5 93
+       C165.5 76 167 58 169 41 Z"
     fill="#FFFFFF" fill-opacity="0.14"
-    stroke="#FFFFFF" stroke-width="20" stroke-linejoin="round" stroke-linecap="round"
+    stroke="#FFFFFF" stroke-width="18" stroke-linejoin="round" stroke-linecap="round"
   />
 </svg>

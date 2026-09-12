@@ -24,6 +24,8 @@ export default async function manifest(): Promise<MetadataRoute.Manifest> {
     description,
     start_url: '/',
     display: 'standalone',
+    // Nur Hochformat (Android/Chrome halten sich dran; iOS ignoriert's, dort greift der Dreh-Hinweis in globals.css)
+    orientation: 'portrait',
     background_color: '#07193A',
     theme_color: '#FFFFFF',
     lang: 'de',

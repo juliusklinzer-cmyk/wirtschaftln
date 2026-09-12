@@ -78,6 +78,13 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <body suppressHydrationWarning className={muenchen ? 'wn-muenchen' : undefined}>
         <RegisterSW />
         {children}
+        {/* Am Handy im Querformat: Vorhang mit Dreh-Hinweis (iOS kennt koa Orientation-Lock für Web-Apps) */}
+        <div className="wn-quer" aria-hidden>
+          <div className="wn-quer-inhalt">
+            <span className="wn-quer-icon">📱</span>
+            <span>Bitte d’Handy hochkant halten.</span>
+          </div>
+        </div>
       </body>
     </html>
   );

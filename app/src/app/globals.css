@@ -349,3 +349,40 @@ details[open] > summary .wn-klappe-pfeil {
   width: 0;
   height: 0;
 }
+
+/* ============================================================
+   Querformat-Sperre am Handy: die App is fürs Hochformat gebaut. Der
+   Vorhang legt sich nur bei Handy-Höhen (≤ 520px) im Querformat drüber,
+   Tablets und Desktop bleiben frei. iOS ignoriert manifest.orientation.
+   ============================================================ */
+.wn-quer {
+  display: none;
+}
+@media (orientation: landscape) and (max-height: 520px) and (hover: none) and (pointer: coarse) {
+  .wn-quer {
+    display: flex;
+    position: fixed;
+    inset: 0;
+    z-index: 100000;
+    align-items: center;
+    justify-content: center;
+    background: var(--grad-navy, #0C2B5A);
+    color: var(--pergament, #F6F0E2);
+    font-family: var(--font-ui);
+    font-size: 16px;
+    font-weight: 700;
+    text-align: center;
+    padding: 24px;
+  }
+  .wn-quer-inhalt {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+  }
+  .wn-quer-icon {
+    font-size: 40px;
+    display: inline-block;
+    transform: rotate(90deg);
+  }
+}

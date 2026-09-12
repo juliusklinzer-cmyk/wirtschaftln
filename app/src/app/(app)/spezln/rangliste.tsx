@@ -57,11 +57,11 @@ export type AmtEintrag = {
 
 export type GalerieBadge = SpezlBadge & { holder: { name: string; photoUrl: string | null } | null };
 
-export type Metrik = 'punkte' | 'hoiben' | 'wirtshaeuser';
+export type Metrik = 'punkte' | 'hoiben' | 'abende';
 export const METRIKEN: { value: Metrik; label: string; einheit: string }[] = [
   { value: 'punkte', label: 'Gesamt', einheit: 'WP' },
   { value: 'hoiben', label: 'Hoibe', einheit: 'Hoibe' },
-  { value: 'wirtshaeuser', label: 'Wirtshäuser', einheit: 'Wirtshäuser' },
+  { value: 'abende', label: 'Abende', einheit: 'Abende' },
 ];
 
 export const VEREIN_FARBE: Record<string, string> = { bayern: '#DC052D', sechzig: '#1E9CD7' };

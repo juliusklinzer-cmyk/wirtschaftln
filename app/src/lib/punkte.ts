@@ -24,7 +24,7 @@ export const PTS = {
   vorschlag: 1,
   vorschlagBesucht: 1,
   bewertung: 1,
-  bewertungsText: 1,
+  bewertungsText: 0, // Bewertung is EIN Punkt, Text gibt nix extra (Julius 12.09.2026)
   checkin: 1,
   orgaMax: 5,
 } as const;

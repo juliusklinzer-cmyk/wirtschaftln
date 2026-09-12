@@ -436,7 +436,7 @@ async function AktiverTermin({ terminId, meId, isAdmin }: { terminId: string; me
               Anmeldung geschlossen
             </div>
             <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink-700)', marginTop: 4 }}>
-              Jeder gibt bei <b>„Mei Bewertung“</b> sei eigene Wertung ab (<b>+{PTS.bewertung} WP</b>, mit Text no <b>+{PTS.bewertungsText} WP</b>), aus allen zusammen wird d’Tages-Wertung. Nach’m Abend schließt irgendwer vo eich no d’Logistik ab (wer da war, Hoibe, Runden), der Erste kriegt <b>+{PTS.abschluss} WP</b> (und wer am meisten abschließt, is’ Schriftführer).
+              Jeder gibt bei <b>„Mei Bewertung“</b> sei eigene Wertung ab (<b>+{PTS.bewertung} WP</b>), aus allen zusammen wird d’Tages-Wertung. Nach’m Abend schließt irgendwer vo eich no d’Logistik ab (wer da war, Hoibe, Runden), der Erste kriegt <b>+{PTS.abschluss} WP</b> (und wer am meisten abschließt, is’ Schriftführer).
             </div>
           </Card>
 

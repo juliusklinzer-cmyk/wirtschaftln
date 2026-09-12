@@ -152,7 +152,7 @@ export function MeiBewertung({
         <div style={{ padding: eingebettet ? '12px 0 0' : '4px 18px 18px' }}>
           <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink-500)', marginBottom: 12 }}>
             Jeder bewertet für sich, aus allen Bewertungen wird d’Tages-Wertung.
-            Dei Bewertung bringt <b>+{PTS.bewertung} WP</b>, mit am Text no <b>+{PTS.bewertungsText} WP</b> dazu.
+            Dei Bewertung bringt <b>+{PTS.bewertung} WP</b>. A Text dazu hilft der Chronik, Punkte gibt’s dafür koane extra.
             {team.anzahl > 0 && (
               <>
                 {' '}Team bisher: <b className="wn-tnum">Ø {dez(team.schnitt)} ★</b>

@@ -60,7 +60,6 @@ export function PunkteInfo() {
                 <Zeile icon="🪑" text="Als Erster im Wirtshaus eingecheckt" wp={`+${PTS.checkin}`} />
                 <Zeile icon="📍" text="Wirtshaus vorgschlagen (+1 extra, wenn’s besucht wird)" wp={`+${PTS.vorschlag}`} />
                 <Zeile icon="⭐" text="Eigene Bewertung zum Abend abgeben" wp={`+${PTS.bewertung}`} />
-                <Zeile icon="✍️" text="… mit am Text ausgschmückt" wp={`+${PTS.bewertungsText}`} />
                 <Zeile icon="✅" text={`Als Erster den Abend abgschlossen (ab ${ABSCHLUSS_SPERRE_STUNDEN} Std. nach Beginn)`} wp={`+${PTS.abschluss}`} />
                 <Zeile icon="📋" text="Organisiert, je nach Sterne-Schnitt vom Abend" wp={`0–${PTS.orgaMax}`} letzte />
               </div>

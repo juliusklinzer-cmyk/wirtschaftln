@@ -37,7 +37,7 @@ export async function generateMetadata(): Promise<Metadata> {
       ? { icon: `${c.logoUrl}?s=192`, apple: `${c.logoUrl}?s=180` }
       : muenchen
         ? { icon: '/brand/kindl-favicon.png', apple: '/brand/kindl-apple-icon.png' }
-        : { icon: '/brand/willi-256.png', apple: '/brand/willi-512.png' },
+        : { icon: '/brand/rauten-256.png', apple: '/brand/rauten-512.png' },
     // Link-Vorschau (WhatsApp & Co.): Wappen auf Navy statt schwarzem Nichts
     openGraph: {
       siteName: name,

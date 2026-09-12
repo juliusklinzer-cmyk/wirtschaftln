@@ -54,7 +54,7 @@ export default async function BeitretenPage({ searchParams }: { searchParams: Pr
       >
         {/* Wappen mit Konturrahmen, wie am Login */}
         <Image
-          src="/brand/willi.svg"
+          src="/brand/rauten-wappen.svg"
           alt=""
           width={160}
           height={160}

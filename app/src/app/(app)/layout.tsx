@@ -43,7 +43,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <main className="wn-scroll-still" style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', position: 'relative', overscrollBehavior: 'contain' }}>
         <AppBar
           appName={config.name}
-          logoSrc={config.logoUrl ? `${config.logoUrl}?s=128` : config.istGruender ? '/brand/shield-256.png' : '/brand/willi-256.png'}
+          logoSrc={config.logoUrl ? `${config.logoUrl}?s=128` : config.istGruender ? '/brand/shield-256.png' : '/brand/rauten-256.png'}
           name={anzeigeName(me)}
           photoUrl={me.photoUrl}
           isAdmin={me.role === 'admin'}

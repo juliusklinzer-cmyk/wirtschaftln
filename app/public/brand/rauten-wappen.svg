@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 640" width="512" height="640">
+  <!-- Plattform-Wappen: bayrische Rauten im Schild mit Goldrand (ohne Krone).
+       Für Login/Beitreten/Gründen. -->
+  <defs>
+    <pattern id="rauten" width="88" height="56" patternUnits="userSpaceOnUse" patternTransform="rotate(-20)">
+      <rect width="88" height="56" fill="#FFFFFF"/>
+      <polygon points="44,0 88,28 44,56 0,28" fill="#0F9BD7"/>
+    </pattern>
+    <clipPath id="schild">
+      <path d="M40 24 H472 V420 C472 520 380 596 256 616 C132 596 40 520 40 420 Z"/>
+    </clipPath>
+  </defs>
+  <!-- Goldrand mit dunkler Kontur -->
+  <path d="M22 6 H490 V420 C490 532 386 618 256 636 C126 618 22 532 22 420 Z" fill="#F2C230" stroke="#3A3A3A" stroke-width="8" stroke-linejoin="round"/>
+  <!-- Rauten -->
+  <g clip-path="url(#schild)">
+    <rect x="-100" y="-100" width="720" height="860" fill="url(#rauten)"/>
+  </g>
+  <path d="M40 24 H472 V420 C472 520 380 596 256 616 C132 596 40 520 40 420 Z" fill="none" stroke="#3A3A3A" stroke-width="6" stroke-linejoin="round"/>
+</svg>

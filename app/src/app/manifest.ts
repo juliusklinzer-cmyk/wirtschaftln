@@ -44,10 +44,10 @@ export default async function manifest(): Promise<MetadataRoute.Manifest> {
           { src: '/brand/kindl-maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
         ]
       : [
-          { src: '/brand/willi-192.png', sizes: '192x192', type: 'image/png' },
-          { src: '/brand/willi-256.png', sizes: '256x256', type: 'image/png' },
-          { src: '/brand/willi-512.png', sizes: '512x512', type: 'image/png' },
-          { src: '/brand/willi-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+          { src: '/brand/rauten-192.png', sizes: '192x192', type: 'image/png' },
+          { src: '/brand/rauten-256.png', sizes: '256x256', type: 'image/png' },
+          { src: '/brand/rauten-512.png', sizes: '512x512', type: 'image/png' },
+          { src: '/brand/rauten-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
         ],
   };
 }

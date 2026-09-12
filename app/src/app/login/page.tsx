@@ -34,7 +34,7 @@ export default async function LoginPage() {
       >
         {/* Wappen mit Konturrahmen: weißer Rand + Goldlinie folgen der Wappenform */}
         <Image
-          src="/brand/rauten-wappen.svg"
+          src="/brand/rauten-app.svg"
           alt=""
           width={188}
           height={188}

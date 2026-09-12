@@ -30,7 +30,7 @@ export default async function GruendenPage({ params }: { params: Promise<{ token
 
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '26px 24px 18px', textAlign: 'center' }}>
         <Image
-          src="/brand/rauten-wappen.svg"
+          src="/brand/rauten-app.svg"
           alt=""
           width={132}
           height={132}

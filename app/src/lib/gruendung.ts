@@ -137,6 +137,10 @@ export type GruendungsEingabe = {
   typ: string;
   stammhausName: string;
   stammhausAdresse: string;
+  stammhausBezirk: string;
+  stammhausTelefon: string;
+  stammhausLat: string;
+  stammhausLng: string;
   bierName: string;
   hoibePreis: string;
   code: string;
@@ -236,15 +240,25 @@ export async function stammtischGruenden(tokenRoh: string, e: GruendungsEingabe)
     })
     .run();
   if (stammhausId) {
-    let lat: number | null = null;
-    let lng: number | null = null;
-    if (stammhausAdresse) {
-      const c = await geocodeStadt(`${stammhausAdresse}`);
+    // Koordinaten aus der Google-Suche; ohne Treffer Adresse/Name geocoden
+    let lat: number | null = Number(e.stammhausLat) || null;
+    let lng: number | null = Number(e.stammhausLng) || null;
+    if (lat == null || lng == null) {
+      const c = await geocodeStadt(stammhausAdresse ? `${stammhausAdresse}` : `${stammhausName}, ${stadt}`);
       lat = c?.lat ?? null;
       lng = c?.lng ?? null;
     }
     db.insert(wirtshaeuser)
-      .values({ id: stammhausId, name: stammhausName, adresse: stammhausAdresse, bezirk: stadt, lat, lng, createdAt: nowIso() })
+      .values({
+        id: stammhausId,
+        name: stammhausName,
+        adresse: stammhausAdresse,
+        bezirk: e.stammhausBezirk.trim().slice(0, 60) || stadt,
+        telefon: e.stammhausTelefon.trim().slice(0, 40) || null,
+        lat,
+        lng,
+        createdAt: nowIso(),
+      })
       .run();
   }
   kontoAnlegen(email, slug, memberId);

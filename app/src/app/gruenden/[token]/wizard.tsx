@@ -3,6 +3,7 @@
 import { useActionState, useEffect, useState, useTransition } from 'react';
 import { Button, Input, SegmentedTabs } from '@/components/ds';
 import { LogoWahl } from '@/components/domain/LogoWahl';
+import { WirtshausSuche } from '@/components/domain/WirtshausSuche';
 import { gruenden, codeVorschlagFuer, codeIstFrei, type GruendungsState } from './actions';
 
 const SCHRITTE = ['Dei Konto', 'Euer Stammtisch', 'Gründungscode', 'Anlegen'] as const;
@@ -20,6 +21,7 @@ export function GruendungsWizard({ token }: { token: string }) {
   const [code, setCode] = useState('');
   const [codeFrei, setCodeFrei] = useState<boolean | null>(null);
   const [laedtCode, startCode] = useTransition();
+  const [lokalerFehler, setLokalerFehler] = useState<string | null>(null);
 
   useEffect(() => {
     if (state.schritt) setSchritt(state.schritt);
@@ -52,6 +54,15 @@ export function GruendungsWizard({ token }: { token: string }) {
         return;
       }
     }
+    // Stammhaus: Google-Treffer oder wenigstens a getippter Name
+    if (schritt === 2 && typ === 'stammhaus') {
+      const gname = (form.querySelector<HTMLInputElement>('input[name="stammhaus_name"]')?.value || form.querySelector<HTMLInputElement>('input[name="stammhaus_freitext"]')?.value || '').trim();
+      if (gname.length < 2) {
+        setLokalerFehler('Wia hoaßt euer Stammhaus? Such’s über Google oder tipp den Namen ein.');
+        return;
+      }
+    }
+    setLokalerFehler(null);
     setSchritt((s) => (s < 4 ? ((s + 1) as 2 | 3 | 4) : s));
   };
   const zurueck = () => setSchritt((s) => (s > 1 ? ((s - 1) as 1 | 2 | 3) : s));
@@ -118,10 +129,7 @@ export function GruendungsWizard({ token }: { token: string }) {
           </div>
         </div>
         {typ === 'stammhaus' && (
-          <>
-            <Input label="Euer Stammhaus" name="stammhausName" placeholder="z. B. Zum Goldenen Hirschen" required={typ === 'stammhaus'} maxLength={80} />
-            <Input label="Adresse vom Stammhaus (optional)" name="stammhausAdresse" placeholder="Straße, PLZ Ort" maxLength={200} />
-          </>
+          <WirtshausSuche namePrefix="stammhaus" bias={null} label="Euer Stammhaus (Google-Suche)" bekannte={[]} />
         )}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 120px', gap: 10 }}>
           <Input label="Euer Bier" name="bierName" placeholder="z. B. Weltenburger Hell" defaultValue="Helles" maxLength={60} />
@@ -159,6 +167,11 @@ export function GruendungsWizard({ token }: { token: string }) {
         </div>
       </div>
 
+      {lokalerFehler && (
+        <div style={{ padding: '10px 12px', background: 'var(--strafe-bg)', border: '1px solid var(--strafe)', borderRadius: 'var(--r-md)', fontSize: 13, fontWeight: 700, color: 'var(--strafe)' }}>
+          {lokalerFehler}
+        </div>
+      )}
       {state.fehler && (
         <div style={{ padding: '10px 12px', background: 'var(--strafe-bg)', border: '1px solid var(--strafe)', borderRadius: 'var(--r-md)', fontSize: 13, fontWeight: 700, color: 'var(--strafe)' }}>
           {state.fehler}

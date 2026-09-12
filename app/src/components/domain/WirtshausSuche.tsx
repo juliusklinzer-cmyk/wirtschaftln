@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { loadGoogleMaps } from '@/lib/google-maps';
 import { findeBekanntes, type BekanntesWirtshaus } from '@/lib/wirtshaus-abgleich';
 import { useTenantConfig } from '@/components/shell/TenantProvider';
-import { umkreisBounds } from '@/lib/tenant-config-public';
+import { umkreisBounds, type TenantGeo } from '@/lib/tenant-config-public';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -26,13 +26,19 @@ export type WirtshausTreffer = {
 export function WirtshausSuche({
   namePrefix = 'w',
   bekannte = [],
+  bias,
+  label = 'Wirtshaus',
 }: {
   namePrefix?: string;
+  /** Umkreis für die Google-Suche; undefined = Tenant-Config, null = ganz Deutschland (Gründungs-Wizard) */
+  bias?: TenantGeo | null;
+  label?: string;
   /** Alle bekannten Wirtshäuser (besucht/eingeplant/vorgeschlagen), Regel: koa Wirtshaus zweimal. */
   bekannte?: BekanntesWirtshaus[];
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
-  const { geo } = useTenantConfig();
+  const geoConfig = useTenantConfig().geo;
+  const geo = bias === undefined ? geoConfig : bias;
   const geoRef = useRef(geo);
   geoRef.current = geo;
   const [treffer, setTreffer] = useState<WirtshausTreffer | null>(null);
@@ -86,7 +92,7 @@ export function WirtshausSuche({
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-      <label style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink-700)' }}>Wirtshaus</label>
+      <label style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink-700)' }}>{label}</label>
       <input
         ref={inputRef}
         placeholder={status === 'fehler' ? 'Name eintippen (Google-Suche nicht verfügbar)' : 'Wirtshaus suchen, Google füllt den Rest aus…'}

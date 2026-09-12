@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { FotoZuschnitt } from '@/components/domain/FotoZuschnitt';
 
 /**
@@ -69,6 +69,7 @@ export function LogoWahl({ name, stammtischName, aktuell = null }: { name: strin
     <button
       key={key}
       type="button"
+      className="wn-press"
       title={titel}
       onClick={() => setWahl(key)}
       style={{
@@ -90,6 +91,7 @@ export function LogoWahl({ name, stammtischName, aktuell = null }: { name: strin
           <button
             key={m}
             type="button"
+            className="wn-press"
             onClick={() => setModus(m)}
             style={{
               flex: 1, padding: '9px 6px', borderRadius: 'var(--r-md)', cursor: 'pointer', fontFamily: 'var(--font-ui)', fontSize: 13, fontWeight: 800,
@@ -129,13 +131,24 @@ export function LogoWahl({ name, stammtischName, aktuell = null }: { name: strin
   );
 }
 
-/** Eigenes Bild über den Kreis-Zuschnitt, Ergebnis wandert per Hidden-Field-Beobachtung raus. */
+/**
+ * Eigenes Bild über den Kreis-Zuschnitt. FotoZuschnitt schreibt sein Ergebnis in
+ * ein Hidden-Field (_logoRoh); wir lesen es per Polling aus und nehmen dem Feld
+ * den Namen, damit das Bild NICHT doppelt (roh + gewählt) im Formular-Body landet.
+ */
 function EigenesBild({ onErgebnis }: { onErgebnis: (dataUrl: string) => void }) {
   const [tick, setTick] = useState(0);
+  const feld = useRef<HTMLInputElement | null>(null);
   useEffect(() => {
-    // FotoZuschnitt schreibt in ein Hidden-Field namens _logoRoh → abgreifen
-    const el = document.querySelector<HTMLInputElement>('input[name="_logoRoh"]');
-    if (el && el.value) onErgebnis(el.value);
+    if (!feld.current) {
+      const el = document.querySelector<HTMLInputElement>('input[name="_logoRoh"]');
+      if (el) {
+        feld.current = el;
+        el.removeAttribute('name');
+      }
+    }
+    const wert = feld.current?.value ?? '';
+    if (wert) onErgebnis(wert);
     const t = setTimeout(() => setTick((x) => x + 1), 500);
     return () => clearTimeout(t);
   }, [tick, onErgebnis]);

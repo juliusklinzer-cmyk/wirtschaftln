@@ -25,8 +25,11 @@ export async function stammtischSpeichern(_prev: StammtischState, formData: Form
   const stadt = feld('stadt', 60) || null;
   const jahrRoh = feld('gruendungsjahr', 4);
   const gruendungsjahr = jahrRoh ? Number(jahrRoh) : null;
-  if (gruendungsjahr !== null && (!Number.isInteger(gruendungsjahr) || gruendungsjahr < 1500 || gruendungsjahr > 2100)) {
-    return { error: 'Des Gründungsjahr schaut komisch aus.' };
+  if (gruendungsjahr !== null && (!Number.isInteger(gruendungsjahr) || gruendungsjahr < 1)) {
+    return { error: 'Des Gründungsjahr is koa Jahreszahl.' };
+  }
+  if (gruendungsjahr !== null && gruendungsjahr > new Date().getFullYear()) {
+    return { error: 'In der Zukunft gründen geht ned.' };
   }
   // Leerer Code = Aufnahme zu (fail-closed wie bisher)
   const gruendungscode = feld('gruendungscode', 40) || null;

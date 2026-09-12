@@ -34,17 +34,15 @@ export default async function LoginPage() {
       >
         {/* Wappen mit Konturrahmen: weißer Rand + Goldlinie folgen der Wappenform */}
         <Image
-          src="/brand/logo-verziert.png"
-          alt="Wirtschaftln Wappen"
+          src="/brand/willi.svg"
+          alt=""
           width={188}
           height={188}
           priority
           style={{
             height: 'clamp(140px, 24vh, 188px)',
             width: 'auto',
-            filter:
-              'drop-shadow(0 0 1px #fff) drop-shadow(0 0 1px #fff) drop-shadow(0 0 2px #fff) drop-shadow(0 0 2px #fff) ' +
-              'drop-shadow(0 0 1px #E6C684) drop-shadow(0 0 1.5px #D0AD66) drop-shadow(0 12px 28px rgba(0,0,0,0.45))',
+            filter: 'drop-shadow(0 10px 24px rgba(0,0,0,0.4))',
           }}
         />
         <div style={{ fontFamily: 'var(--font-fraktur)', fontSize: 40, color: 'var(--gold-bright)', lineHeight: 1, marginTop: 18 }}>

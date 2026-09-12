@@ -183,7 +183,8 @@ export async function stammtischGruenden(tokenRoh: string, e: GruendungsEingabe)
   const hoibePreisCents = Math.round(Number(e.hoibePreis.trim().replace(',', '.')) * 100);
   if (name.length < 2) return { ok: false, fehler: 'Der Stammtisch braucht an Namen.', schritt: 2 };
   if (stadt.length < 2) return { ok: false, fehler: 'In welcher Stadt seid’s dahoam?', schritt: 2 };
-  if (!Number.isInteger(jahr) || jahr < 1500 || jahr > new Date().getFullYear()) return { ok: false, fehler: 'Des Gründungsjahr schaut komisch aus.', schritt: 2 };
+  if (!Number.isInteger(jahr) || jahr < 1) return { ok: false, fehler: 'Des Gründungsjahr is koa Jahreszahl.', schritt: 2 };
+  if (jahr > new Date().getFullYear()) return { ok: false, fehler: 'In der Zukunft gründen geht ned.', schritt: 2 };
   if (typ === 'stammhaus' && stammhausName.length < 2) return { ok: false, fehler: 'Wia hoaßt euer Stammhaus?', schritt: 2 };
   if (!Number.isInteger(hoibePreisCents) || hoibePreisCents < 50 || hoibePreisCents > 5000) return { ok: false, fehler: 'Der Hoibe-Preis muss zwischen 0,50 € und 50 € liegen.', schritt: 2 };
 

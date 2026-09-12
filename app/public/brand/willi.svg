@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!-- Willi-Becher: Silhouette in Weiß mit Schaumkrone. Plattform-Wappen für
+       Login/Beitreten/Gründen und Fallback-Icon für Stammtische ohne Logo. -->
+  <g fill="#FFFFFF">
+    <!-- Glas: der klassische Becher, oben breit, unten a bisserl schmäler, mit Bauch -->
+    <path d="M144 186 C136 224 134 268 140 312 C145 350 154 396 166 432 L346 432 C358 396 367 350 372 312 C378 268 376 224 368 186 Z"/>
+    <!-- dicker Boden -->
+    <path d="M164 432 L348 432 L348 460 C348 472 338 480 326 480 L186 480 C174 480 164 472 164 460 Z"/>
+    <!-- Schaumkrone, geht über den Rand -->
+    <circle cx="176" cy="176" r="46"/>
+    <circle cx="232" cy="146" r="60"/>
+    <circle cx="298" cy="150" r="58"/>
+    <circle cx="346" cy="182" r="44"/>
+    <circle cx="256" cy="196" r="48"/>
+    <!-- a Blasn, die überläuft -->
+    <circle cx="388" cy="222" r="15"/>
+  </g>
+  <!-- Bierspiegel + Glaskante als feine Aussparungen, damit's a Glas bleibt und koa Klotz -->
+  <path d="M164 246 C158 280 158 314 166 350" fill="none" stroke="#0C2B5A" stroke-opacity="0.4" stroke-width="11" stroke-linecap="round"/>
+  <path d="M158 420 L354 420" fill="none" stroke="#0C2B5A" stroke-opacity="0.3" stroke-width="8" stroke-linecap="round"/>
+</svg>

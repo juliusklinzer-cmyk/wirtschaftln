@@ -3,6 +3,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { getCurrentMember } from '@/lib/session';
 import { BeitrittForm } from './beitritt-form';
+import { findGruppeByCode } from '@/lib/db/directory';
 
 export const metadata = {
   title: 'Gründungsmitglied werden · Wirtschaftln',
@@ -24,6 +25,9 @@ export default async function BeitretenPage({ searchParams }: { searchParams: Pr
   if (me) redirect('/');
   const { code } = await searchParams;
   const codeVorbelegt = typeof code === 'string' ? code.slice(0, 40) : '';
+  // Einladungs-Link: der Stammtisch steht scho fest → persönlich ansprechen
+  const eingeladen = codeVorbelegt ? findGruppeByCode(codeVorbelegt.trim()) : null;
+  const eingeladenZu = eingeladen && eingeladen.status === 'aktiv' ? eingeladen : null;
 
   return (
     <div
@@ -50,17 +54,15 @@ export default async function BeitretenPage({ searchParams }: { searchParams: Pr
       >
         {/* Wappen mit Konturrahmen, wie am Login */}
         <Image
-          src="/brand/logo-verziert.png"
-          alt="Wirtschaftln Wappen"
+          src="/brand/willi.svg"
+          alt=""
           width={160}
           height={160}
           priority
           style={{
             height: 'clamp(120px, 20vh, 160px)',
             width: 'auto',
-            filter:
-              'drop-shadow(0 0 1px #fff) drop-shadow(0 0 1px #fff) drop-shadow(0 0 2px #fff) drop-shadow(0 0 2px #fff) ' +
-              'drop-shadow(0 0 1px #E6C684) drop-shadow(0 0 1.5px #D0AD66) drop-shadow(0 12px 28px rgba(0,0,0,0.45))',
+            filter: 'drop-shadow(0 10px 24px rgba(0,0,0,0.4))',
           }}
         />
         <div style={{ fontFamily: 'var(--font-fraktur)', fontSize: 36, color: 'var(--gold-bright)', lineHeight: 1, marginTop: 16 }}>
@@ -77,7 +79,7 @@ export default async function BeitretenPage({ searchParams }: { searchParams: Pr
             marginTop: 8,
           }}
         >
-          Mit dem Code aus deiner Runde
+          {eingeladenZu ? [eingeladenZu.stadt, eingeladenZu.gruendungsjahr ? `seit ${eingeladenZu.gruendungsjahr}` : null].filter(Boolean).join(' · ') || 'Einladung' : 'Mit dem Code aus deiner Runde'}
         </div>
       </div>
 
@@ -92,10 +94,12 @@ export default async function BeitretenPage({ searchParams }: { searchParams: Pr
       >
         <div style={{ maxWidth: 400, margin: '0 auto' }}>
           <div style={{ fontSize: 19, fontWeight: 800, color: 'var(--ink-900)', marginBottom: 2 }}>
-            Servus, du gehörst dazua!
+            {eingeladenZu ? `Du bist eingeladen zum ${eingeladenZu.name}!` : 'Servus, du gehörst dazua!'}
           </div>
           <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--ink-500)', marginBottom: 16 }}>
-            Mit dem Gründungscode aus deiner Runde wirst’d Mitglied bei eurem Stammtisch.
+            {eingeladenZu
+              ? 'Der Gründungscode steht scho drin. Nur no Name und E-Mail, dann bist dabei.'
+              : 'Mit dem Gründungscode aus deiner Runde wirst’d Mitglied bei eurem Stammtisch.'}
           </div>
 
           <BeitrittForm codeVorbelegt={codeVorbelegt} />

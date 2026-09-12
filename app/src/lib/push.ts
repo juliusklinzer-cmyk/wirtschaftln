@@ -17,7 +17,8 @@ function konfiguriert(): boolean {
 
 async function senden(subs: Array<typeof pushSubscriptions.$inferSelect>, titel: string, text: string, url: string) {
   // Icon pro Stammtisch: Münchner Kindl nur mit München-Branding (Gründer)
-  const icon = tenantConfig().features.muenchenBranding ? '/brand/kindl-256.png' : '/brand/shield-256.png';
+  const c = tenantConfig();
+  const icon = c.features.muenchenBranding ? '/brand/kindl-256.png' : c.logoUrl ? `${c.logoUrl}?s=256` : '/brand/willi-256.png';
   const payload = JSON.stringify({ title: titel, body: text, url, icon });
   await Promise.allSettled(
     subs.map(async (s) => {

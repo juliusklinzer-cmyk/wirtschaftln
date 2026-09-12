@@ -1,43 +1,11 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
-  <!-- Willibecher, Umriss vom Foto nachgefahren (Augustiner 0,25 l), als
-       Strichzeichnung mit Tiefe: Rand als Ellipse, dicker Glasboden, zwei
-       Lichtkanten. Weiß auf Navy, ohne Logo. Plattform-Wappen + Fallback-Icon. -->
-  <defs>
-    <linearGradient id="glas" x1="0" y1="0" x2="1" y2="0">
-      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.22"/>
-      <stop offset="0.35" stop-color="#FFFFFF" stop-opacity="0.08"/>
-      <stop offset="0.7" stop-color="#FFFFFF" stop-opacity="0.10"/>
-      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.26"/>
-    </linearGradient>
-    <clipPath id="innen">
-      <path d="M169 41 L343 41 C346 58 348 76 348 93 C348 118 346 138 344.5 158 C342.5 184 340.5 208 338.5 233 C336 258 333.5 283 330.5 308 C329 334 327.5 358 326.5 383 C326.5 400 327 416 327 433 C327 446 328 456 328 462 C328 466 325 468 321 468 L202.5 468 C198.5 468 195.5 466 195.5 462 C195.5 456 195.5 446 195.5 433 C195.5 416 194 400 193 383 C192 358 188.5 334 185.5 308 C182.5 283 180 258 178 233 C176 208 172 184 170.5 158 C169 138 166 118 165.5 93 C165.5 76 167 58 169 41 Z"/>
-    </clipPath>
-  </defs>
-
-  <!-- Glaskörper: leicht heller als der Grund, an den Kanten a bisserl mehr Licht -->
+  <!-- Willibecher als flaches Piktogramm: Silhouette vom Foto nachgefahren
+       (Augustiner 0,25 l), einfarbig Weiß, ohne Reflexe. Ein schmaler Schlitz
+       über dem Boden markiert den dicken Glasboden. Plattform-Wappen + Fallback-Icon. -->
   <path
     d="M169 41 L343 41 C346 58 348 76 348 93 C348 118 346 138 344.5 158 C342.5 184 340.5 208 338.5 233 C336 258 333.5 283 330.5 308 C329 334 327.5 358 326.5 383 C326.5 400 327 416 327 433 C327 446 328 456 328 462 C328 466 325 468 321 468 L202.5 468 C198.5 468 195.5 466 195.5 462 C195.5 456 195.5 446 195.5 433 C195.5 416 194 400 193 383 C192 358 188.5 334 185.5 308 C182.5 283 180 258 178 233 C176 208 172 184 170.5 158 C169 138 166 118 165.5 93 C165.5 76 167 58 169 41 Z"
-    fill="url(#glas)"
+    fill="#FFFFFF" stroke="#FFFFFF" stroke-width="10" stroke-linejoin="round"
   />
-
-  <g clip-path="url(#innen)">
-    <!-- Dicker Glasboden: Band + Bodenwölbung -->
-    <rect x="180" y="418" width="160" height="60" fill="#FFFFFF" fill-opacity="0.28"/>
-    <ellipse cx="256" cy="420" rx="66" ry="11" fill="none" stroke="#FFFFFF" stroke-opacity="0.75" stroke-width="7"/>
-    <ellipse cx="256" cy="452" rx="52" ry="7" fill="none" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="5"/>
-    <!-- Lichtkanten: links breit, rechts schmal, wia am Foto -->
-    <path d="M191 96 C186 170 190 260 200 372" fill="none" stroke="#FFFFFF" stroke-opacity="0.55" stroke-width="12" stroke-linecap="round"/>
-    <path d="M206 110 C203 180 205 250 211 330" fill="none" stroke="#FFFFFF" stroke-opacity="0.22" stroke-width="7" stroke-linecap="round"/>
-    <path d="M330 104 C331 190 326 280 318 380" fill="none" stroke="#FFFFFF" stroke-opacity="0.32" stroke-width="7" stroke-linecap="round"/>
-  </g>
-
-  <!-- Rand: hintere Kante durchs Glas sichtbar, vordere Kante kräftig -->
-  <path d="M170 41 C190 26 322 26 342 41" fill="none" stroke="#FFFFFF" stroke-opacity="0.55" stroke-width="8" stroke-linecap="round"/>
-  <path d="M170 41 C190 56 322 56 342 41" fill="none" stroke="#FFFFFF" stroke-width="16" stroke-linecap="round"/>
-
-  <!-- Außenkontur -->
-  <path
-    d="M169 41 C167 58 165.5 76 165.5 93 C166 118 169 138 170.5 158 C172 184 176 208 178 233 C180 258 182.5 283 185.5 308 C188.5 334 192 358 193 383 C194 400 195.5 416 195.5 433 C195.5 446 195.5 456 195.5 462 C195.5 466 198.5 468 202.5 468 L321 468 C325 468 328 466 328 462 C328 456 327 446 327 433 C327 416 326.5 400 326.5 383 C327.5 358 329 334 330.5 308 C333.5 283 336 258 338.5 233 C340.5 208 342.5 184 344.5 158 C346 138 348 118 348 93 C348 76 346 58 343 41"
-    fill="none" stroke="#FFFFFF" stroke-width="18" stroke-linejoin="round" stroke-linecap="round"
-  />
+  <!-- Glasboden: schmaler Schlitz, der den dicken Boden andeutet -->
+  <path d="M197 422 L325 422" fill="none" stroke="#0C2B5A" stroke-width="7" stroke-linecap="round"/>
 </svg>

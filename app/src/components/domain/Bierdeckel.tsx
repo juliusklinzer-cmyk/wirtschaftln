@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { Avatar } from '@/components/ds';
-import { hoibenStricheln } from '@/app/(app)/termin/actions';
+import { hoibenStricheln, schnapsStricheln } from '@/app/(app)/termin/actions';
 import { deckelFuer } from '@/lib/bierdeckel';
 import { DeckelGrafik } from '@/components/domain/DeckelGrafik';
 
@@ -12,6 +12,7 @@ export type BierdeckelSpezl = {
   photoUrl: string | null;
   verein: string | null;
   hoiben: number;
+  schnaps?: number;
 };
 
 /** Stift-Schwarz wie auf'm echten Deckel, bewusst KEIN Design-Token, des is Tinte, ned UI. */
@@ -132,6 +133,8 @@ export function Bierdeckel({
   wirtshausName,
   biersorte = null,
   initialHoiben,
+  initialSchnaps = 0,
+  schnapsAn = false,
   spezln,
 }: {
   terminId: string;
@@ -139,11 +142,16 @@ export function Bierdeckel({
   /** Helles vom Wirtshaus → passender Deckel (Augustiner-Scan, Brauerei-Deckel oder neutral) */
   biersorte?: string | null;
   initialHoiben: number;
+  initialSchnaps?: number;
+  /** Feature schnaps: 🥃-Zeile unterm Deckel */
+  schnapsAn?: boolean;
   /** Die anderen am Tisch mit ihrem aktuellen Strich-Stand (nur > 0). */
   spezln: BierdeckelSpezl[];
 }) {
   const router = useRouter();
   const [hoiben, setHoiben] = useState(initialHoiben);
+  const [schnaps, setSchnaps] = useState(initialSchnaps);
+  const schnapsTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [status, setStatus] = useState<'still' | 'speichert' | 'gspeichert'>('still');
   const [fehler, setFehler] = useState<string | null>(null);
   const [, startTransition] = useTransition();
@@ -176,6 +184,28 @@ export function Bierdeckel({
     if (neu === hoiben) return;
     setHoiben(neu);
     speichern(neu);
+  };
+
+  // 🥃 Schnaps: eigener Zähler, gleiche Sammel-Logik
+  const schnapsAendern = (delta: number) => {
+    const neu = Math.max(0, Math.min(30, schnaps + delta));
+    if (neu === schnaps) return;
+    setSchnaps(neu);
+    if (schnapsTimer.current) clearTimeout(schnapsTimer.current);
+    setStatus('speichert');
+    schnapsTimer.current = setTimeout(() => {
+      startTransition(async () => {
+        const ergebnis = await schnapsStricheln(terminId, neu);
+        if (ergebnis.ok) {
+          setFehler(null);
+          setStatus('gspeichert');
+          router.refresh();
+        } else {
+          setStatus('still');
+          setFehler(ergebnis.meldung);
+        }
+      });
+    }, 600);
   };
 
   return (
@@ -219,6 +249,34 @@ export function Bierdeckel({
         )}
       </div>
 
+      {/* 🥃 Schnaps, wenn der Stammtisch schnapselt: eigener Zähler unterm Deckel */}
+      {schnapsAn && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', background: 'var(--weiss)', border: '1px solid var(--ink-100)', borderRadius: 'var(--r-pill)', boxShadow: 'var(--sh-sm)' }}>
+          <button
+            type="button"
+            className="wn-press"
+            onClick={() => schnapsAendern(-1)}
+            disabled={schnaps === 0}
+            aria-label="Oan Schnaps weniger"
+            style={{ width: 34, height: 34, borderRadius: '50%', border: '1.5px solid var(--ink-200)', background: 'var(--weiss)', fontSize: 18, fontWeight: 800, color: schnaps === 0 ? 'var(--ink-300)' : 'var(--ink-700)', cursor: schnaps === 0 ? 'default' : 'pointer' }}
+          >
+            −
+          </button>
+          <span className="wn-tnum" style={{ minWidth: 92, textAlign: 'center', fontSize: 16, fontWeight: 800, color: 'var(--gold-700)' }}>
+            🥃 <span key={schnaps} className="wn-hoiben-pop">{schnaps}</span> Schnaps
+          </span>
+          <button
+            type="button"
+            className="wn-press"
+            onClick={() => schnapsAendern(1)}
+            aria-label="A Schnaps dazu"
+            style={{ width: 34, height: 34, borderRadius: '50%', border: 'none', background: 'var(--grad-gold)', boxShadow: 'var(--sh-gold)', fontSize: 18, fontWeight: 800, color: 'var(--navy-900)', cursor: 'pointer' }}
+          >
+            +
+          </button>
+        </div>
+      )}
+
       {/* Korrektur + Speicher-Stand */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
         <button
@@ -254,7 +312,7 @@ export function Bierdeckel({
             Aa am Stricheln
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {[...spezln].sort((a, b) => b.hoiben - a.hoiben).map((s) => (
+            {[...spezln].sort((a, b) => b.hoiben - a.hoiben || (b.schnaps ?? 0) - (a.schnaps ?? 0)).map((s) => (
               <div key={s.name} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <Avatar src={s.photoUrl} name={s.name} size={28} verein={s.verein} />
                 <span style={{ flex: 1, minWidth: 0, fontSize: 13, fontWeight: 700, color: 'var(--ink-900)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -264,6 +322,11 @@ export function Bierdeckel({
                 <span className="wn-tnum" style={{ flex: 'none', width: 26, textAlign: 'right', fontSize: 13, fontWeight: 800, color: 'var(--gold-700)' }}>
                   {s.hoiben}
                 </span>
+                {schnapsAn && (
+                  <span className="wn-tnum" style={{ flex: 'none', fontSize: 12, fontWeight: 800, color: 'var(--ink-500)' }}>
+                    🥃 {s.schnaps ?? 0}
+                  </span>
+                )}
               </div>
             ))}
           </div>

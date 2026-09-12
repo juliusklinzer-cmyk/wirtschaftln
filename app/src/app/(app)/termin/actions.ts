@@ -341,6 +341,27 @@ export async function hoibenStricheln(terminId: string, hoiben: number): Promise
   return { ok: true, hoiben: wert };
 }
 
+/** 🥃 Schnaps stricheln (nur Stammtische mit Feature schnaps), gleiche Regeln wie die Hoibe. */
+export async function schnapsStricheln(terminId: string, schnaps: number): Promise<{ ok: true; schnaps: number } | { ok: false; meldung: string }> {
+  const me = await getCurrentMember();
+  if (!me) return { ok: false, meldung: 'Ned angmeldt, bitte neu einloggen.' };
+  if (!tenantConfig().features.schnaps) return { ok: false, meldung: 'Bei euch wird ned gschnapselt.' };
+  const termin = db.select().from(termine).where(eq(termine.id, terminId)).get();
+  if (!termin) return { ok: false, meldung: 'Der Termin is nimmer da.' };
+  if (!bierdeckelOffen(termin, nowIso())) {
+    return { ok: false, meldung: `Da Bierdeckel is zua, gstrichelt wird erst am Stammtisch-Abend ab ${termin.zeit || '19:00'} Uhr.` };
+  }
+  const wert = Math.max(0, Math.min(30, Math.round(Number(schnaps) || 0)));
+  const werte = { anwesend: true, schnaps: wert };
+  db.insert(besuche)
+    .values({ id: newId('b'), terminId, memberId: me.id, ...werte })
+    .onConflictDoUpdate({ target: [besuche.terminId, besuche.memberId], set: werte })
+    .run();
+  revalidatePath('/termin');
+  revalidatePath('/');
+  return { ok: true, schnaps: wert };
+}
+
 const STRAFE_GRUND_PREFIX = 'Zugesagt & nicht erschienen';
 
 /**
@@ -376,11 +397,13 @@ export async function besuchAbschliessen(terminId: string, formData: FormData) {
   for (const m of getAktiveMitglieder()) {
     const anwesend = dabeiIds.includes(m.id);
     const hoiben = anwesend ? Math.max(0, Number(formData.get(`hoiben_${m.id}`) ?? 0) || 0) : 0;
+    const schnaps = anwesend && tenantConfig().features.schnaps ? Math.max(0, Number(formData.get(`schnaps_${m.id}`) ?? 0) || 0) : 0;
     const brodn = anwesend && formData.get(`brodn_${m.id}`) === 'on';
     if (anwesend && formData.get(`runde_${m.id}`) === 'on') rundenIds.push(m.id);
     const werte = {
       anwesend,
       hoiben,
+      schnaps,
       kaiserschmarrn: anwesend && kaisiBestellt ? 1 : 0, // geteilt, jeder hat mitgegessen
       schweinsbraten: brodn ? 1 : 0,
       taxi: anwesend && formData.get(`taxi_${m.id}`) === 'on',

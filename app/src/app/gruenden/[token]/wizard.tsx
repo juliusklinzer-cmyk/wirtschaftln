@@ -1,7 +1,9 @@
 'use client';
 
 import { useActionState, useEffect, useState, useTransition } from 'react';
-import { Button, Input, SegmentedTabs } from '@/components/ds';
+import { Button, Input, SegmentedTabs, Switch } from '@/components/ds';
+import { BierWahl } from '@/components/domain/BierWahl';
+import { HELLE_WAHL, STANDARD_BIERSORTE } from '@/lib/biersorten';
 import { LogoWahl } from '@/components/domain/LogoWahl';
 import { WirtshausSuche } from '@/components/domain/WirtshausSuche';
 import { gruenden, codeVorschlagFuer, codeIstFrei, type GruendungsState } from './actions';
@@ -22,6 +24,8 @@ export function GruendungsWizard({ token }: { token: string }) {
   const [codeFrei, setCodeFrei] = useState<boolean | null>(null);
   const [laedtCode, startCode] = useTransition();
   const [lokalerFehler, setLokalerFehler] = useState<string | null>(null);
+  const [bier, setBier] = useState(STANDARD_BIERSORTE);
+  const [schnaps, setSchnaps] = useState(false);
 
   useEffect(() => {
     if (state.schritt) setSchritt(state.schritt);
@@ -131,9 +135,17 @@ export function GruendungsWizard({ token }: { token: string }) {
         {typ === 'stammhaus' && (
           <WirtshausSuche namePrefix="stammhaus" bias={null} label="Euer Stammhaus (Google-Suche)" bekannte={[]} />
         )}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 120px', gap: 10 }}>
-          <Input label="Euer Bier" name="bierName" placeholder="z. B. Weltenburger Hell" defaultValue="Helles" maxLength={60} />
-          <Input label="Preis a Hoibe (€)" name="hoibePreis" placeholder="3,70" defaultValue="3,70" inputMode="decimal" required hint="Maßeinheit für Strafen." />
+        <BierWahl label="Euer Bier" biere={HELLE_WAHL} value={bier} onChange={setBier} />
+        <input type="hidden" name="bierName" value={bier} />
+        <Input label="Preis a Hoibe (€)" name="hoibePreis" placeholder="3,70" defaultValue="3,70" inputMode="decimal" required hint="D’Maßeinheit für alle Strafen." />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', background: 'var(--pergament)', border: '1px solid var(--pergament-edge)', borderRadius: 'var(--r-md)' }}>
+          <span style={{ fontSize: 26, flex: 'none', filter: schnaps ? 'none' : 'grayscale(1) opacity(0.5)' }}>🥃</span>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--ink-900)' }}>Schnapselt ihr?</div>
+            <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink-500)', lineHeight: 1.4 }}>Dann gibt’s Schnaps am Bierdeckel, in der Statistik und den Schnapsler-Badge. Später änderbar.</div>
+          </div>
+          <input type="hidden" name="schnaps" value={schnaps ? 'on' : ''} />
+          <Switch checked={schnaps} onChange={setSchnaps} tone="gold" />
         </div>
       </div>
 

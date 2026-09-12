@@ -45,10 +45,10 @@ function abschlussVorbelegung(
   wirtshaus: { biersorte: string; weissbier: string | null } | null,
 ): AbschlussWerte {
   const rows: NonNullable<AbschlussWerte>['rows'] = {};
-  for (const id of zugesagtIds) rows[id] = { hoiben: 0, brodn: false, taxi: false, runde: false, abgsagt: false };
+  for (const id of zugesagtIds) rows[id] = { hoiben: 0, schnaps: 0, brodn: false, taxi: false, runde: false, abgsagt: false };
   for (const b of besucheLive) {
     if (!b.anwesend) continue;
-    rows[b.memberId] = { hoiben: b.hoiben, brodn: b.schweinsbraten > 0, taxi: b.taxi, runde: false, abgsagt: false };
+    rows[b.memberId] = { hoiben: b.hoiben, schnaps: b.schnaps, brodn: b.schweinsbraten > 0, taxi: b.taxi, runde: false, abgsagt: false };
   }
   return {
     rows,
@@ -68,13 +68,14 @@ function nachtragInitial(terminId: string): AbschlussWerte {
     if (b.anwesend) {
       rows[b.memberId] = {
         hoiben: b.hoiben,
+        schnaps: b.schnaps,
         brodn: b.schweinsbraten > 0,
         taxi: b.taxi,
         runde: kasseEintraege.some((k) => k.kind === 'runde' && k.memberId === b.memberId),
         abgsagt: false,
       };
     } else if (kasseEintraege.some((k) => k.kind === 'strafe' && k.memberId === b.memberId && k.grund.startsWith('Zugesagt'))) {
-      rows[b.memberId] = { hoiben: 0, brodn: false, taxi: false, runde: false, abgsagt: true };
+      rows[b.memberId] = { hoiben: 0, schnaps: 0, brodn: false, taxi: false, runde: false, abgsagt: true };
     }
   }
   return {
@@ -124,6 +125,7 @@ export default async function TerminPage() {
               />
             )}
             <NachtragKlappe
+              schnapsAn={tenantConfig().features.schnaps}
               titel={`Letzten Besuch${nachtragWirtshaus ? ` im ${nachtragWirtshaus.name}` : ''} nachtragen (${datumKurz(nachtrag.datum)}), no ${nachtragRestTage} ${nachtragRestTage === 1 ? 'Tag' : 'Tag’'} offen`}
               mitglieder={mitglieder.map((m) => ({ id: m.id, name: anzeigeName(m), photoUrl: m.photoUrl, verein: m.verein, zugesagt: false }))}
               action={besuchAbschliessen.bind(null, nachtrag.id)}
@@ -187,10 +189,10 @@ async function AktiverTermin({ terminId, meId, isAdmin }: { terminId: string; me
   const deckelOffen = bierdeckelOffen(termin, nowIso());
   const besucheLive = deckelOffen || termin.phase === 'heute' ? getBesucheFuerTermin(termin.id) : [];
   const deckelSpezln: BierdeckelSpezl[] = besucheLive
-    .filter((b) => b.anwesend && b.hoiben > 0 && b.memberId !== meId)
+    .filter((b) => b.anwesend && (b.hoiben > 0 || b.schnaps > 0) && b.memberId !== meId)
     .flatMap((b) => {
       const m = mitglieder.find((x) => x.id === b.memberId);
-      return m ? [{ name: anzeigeName(m), photoUrl: m.photoUrl, verein: m.verein, hoiben: b.hoiben }] : [];
+      return m ? [{ name: anzeigeName(m), photoUrl: m.photoUrl, verein: m.verein, hoiben: b.hoiben, schnaps: b.schnaps }] : [];
     });
 
   const phasenLabel = {
@@ -242,6 +244,8 @@ async function AktiverTermin({ terminId, meId, isAdmin }: { terminId: string; me
             wirtshausName={wirtshaus?.name ?? null}
             biersorte={wirtshaus?.biersorte ?? null}
             initialHoiben={besucheLive.find((b) => b.memberId === meId)?.hoiben ?? 0}
+            initialSchnaps={besucheLive.find((b) => b.memberId === meId)?.schnaps ?? 0}
+            schnapsAn={config.features.schnaps}
             spezln={deckelSpezln}
           />
           {/* Mei Bewertung, jeder für sich, scho am Abend (bis 7 Tag nach’m Abschluss) */}
@@ -449,6 +453,7 @@ async function AktiverTermin({ terminId, meId, isAdmin }: { terminId: string; me
                     zugesagt: alleVotes.some((v) => v.vote.memberId === m.id && v.vote.wert === 'zu'),
                   }))}
                   action={besuchAbschliessen.bind(null, termin.id)}
+                  schnapsAn={config.features.schnaps}
                   naechsterTermin={!termin.abgeschlossenVon}
                   initial={abschlussVorbelegung(
                     besucheLive,

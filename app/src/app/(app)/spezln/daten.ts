@@ -25,6 +25,7 @@ function statsBlock(s: MitgliedStats, aktuell: MitgliedStats[], vorher: Mitglied
   return {
     punkte: s.punkte,
     hoiben: s.hoiben,
+    schnaps: s.schnaps,
     abende: s.abende,
     wirtshaeuser: s.wirtshaeuser,
     organisiert: s.organisiert,

@@ -37,6 +37,8 @@ export default async function StammtischPage() {
             gruendungscode: gruppe.gruendungscode ?? '',
             hoibePreis: hoibePreisEuro(config.hoibePreisCents),
             logo: config.logo,
+            bierName: config.bierName,
+            schnaps: config.features.schnaps,
           }}
         />
       </Card>

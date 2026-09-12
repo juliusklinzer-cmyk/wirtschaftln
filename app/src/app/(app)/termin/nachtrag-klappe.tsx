@@ -10,11 +10,13 @@ import { AbschlussForm, type AbschlussWerte, type AbschlussMitglied } from './ab
  * läuft getrennt über „Mei Bewertung".
  */
 export function NachtragKlappe({
+  schnapsAn = false,
   titel,
   mitglieder,
   initial,
   action,
 }: {
+  schnapsAn?: boolean;
   titel: string;
   mitglieder: AbschlussMitglied[];
   initial: AbschlussWerte;
@@ -47,7 +49,7 @@ export function NachtragKlappe({
           <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink-500)', marginBottom: 12 }}>
             Hoibe, Runden, wer da war, wenn was fehlt, trag’s nach. Bewertet wird oben bei „Mei Bewertung“.
           </div>
-          <AbschlussForm mitglieder={mitglieder} action={speichern} initial={initial} submitLabel="Änderungen speichern" />
+          <AbschlussForm schnapsAn={schnapsAn} mitglieder={mitglieder} action={speichern} initial={initial} submitLabel="Änderungen speichern" />
         </div>
       </details>
       {danke && !offen && (

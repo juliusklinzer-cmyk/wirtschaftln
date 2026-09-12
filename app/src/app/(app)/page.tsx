@@ -56,7 +56,7 @@ export default async function HomePage() {
   const strafSumme = meineStrafen.reduce((sum, s) => sum + Math.abs(s.eintrag.betragCents), 0);
   const wackelt = (meineStats?.unentschuldigtStreak ?? 0) >= WACKELT_AB_UNENTSCHULDIGT;
   // Eigener Rang je Kennzahl, für die kleinen Kreise in „So stehst du da"
-  const meinRangIn = (feld: 'punkte' | 'hoiben' | 'wirtshaeuser') =>
+  const meinRangIn = (feld: 'punkte' | 'hoiben' | 'wirtshaeuser' | 'schnaps') =>
     [...stats].sort((a, b) => b[feld] - a[feld]).findIndex((s) => s.member.id === me.id) + 1;
 
   // Umfragen: offene (no ned abgstimmt) stehen prominent über „Deine Saison",
@@ -255,9 +255,10 @@ export default async function HomePage() {
 
       <SectionHeader eyebrow="Deine Saison" title="So stehst du da" fraktur style={{ marginTop: 8 }} />
       <Card>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: config.features.schnaps ? '1fr 1fr 1fr 1fr' : '1fr 1fr 1fr', gap: 10 }}>
           <StatBlock value={meineStats?.punkte ?? 0} label="Punkte" icon="🏆" rang={meinRangIn('punkte')} />
           <StatBlock value={meineStats?.hoiben ?? 0} label="Hoibe" icon="🍺" rang={meinRangIn('hoiben')} />
+          {config.features.schnaps && <StatBlock value={meineStats?.schnaps ?? 0} label="Schnaps" icon="🥃" rang={meinRangIn('schnaps')} />}
           <StatBlock value={meineStats?.wirtshaeuser ?? 0} label="Wirtshäuser" icon="🏠" rang={meinRangIn('wirtshaeuser')} />
         </div>
         {meineStats && meineStats.streak !== 0 && (

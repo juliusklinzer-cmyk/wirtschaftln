@@ -16,7 +16,7 @@ export type AbschlussMitglied = {
 };
 
 export type AbschlussWerte = {
-  rows: Record<string, { hoiben: number; brodn: boolean; taxi: boolean; runde: boolean; abgsagt: boolean }>;
+  rows: Record<string, { hoiben: number; schnaps?: number; brodn: boolean; taxi: boolean; runde: boolean; abgsagt: boolean }>;
   kaisiBestellt: boolean;
   biersorte: string;
   weissbier: string;
@@ -35,6 +35,7 @@ export function AbschlussForm({
   initial,
   submitLabel = 'Abschließen & ins Archiv',
   naechsterTermin = false,
+  schnapsAn = false,
 }: {
   mitglieder: AbschlussMitglied[];
   action: (formData: FormData) => Promise<void>;
@@ -42,15 +43,17 @@ export function AbschlussForm({
   submitLabel?: string;
   /** Beim ersten Abschluss: der Abschließer legt gleich den nächsten Stammtisch fest (Datum + Uhrzeit, Pflicht) */
   naechsterTermin?: boolean;
+  /** Feature schnaps: 🥃-Stepper je Spezl */
+  schnapsAn?: boolean;
 }) {
-  type Row = { hoiben: number; brodn: boolean; taxi: boolean; runde: boolean; abgsagt: boolean };
-  const leer: Row = { hoiben: 0, brodn: false, taxi: false, runde: false, abgsagt: false };
+  type Row = { hoiben: number; schnaps: number; brodn: boolean; taxi: boolean; runde: boolean; abgsagt: boolean };
+  const leer: Row = { hoiben: 0, schnaps: 0, brodn: false, taxi: false, runde: false, abgsagt: false };
 
   const [rows, setRows] = useState<Record<string, Row>>(() => {
     const r: Record<string, Row> = {};
     for (const m of mitglieder) {
       const init = initial?.rows[m.id];
-      if (init) r[m.id] = { ...init };
+      if (init) r[m.id] = { ...init, schnaps: init.schnaps ?? 0 };
       else if (m.zugesagt && !initial) r[m.id] = { ...leer };
     }
     return r;
@@ -76,6 +79,7 @@ export function AbschlussForm({
       }
       felder.push([`anwesend_${m.id}`, 'on']);
       felder.push([`hoiben_${m.id}`, String(r.hoiben)]);
+      if (schnapsAn) felder.push([`schnaps_${m.id}`, String(r.schnaps)]);
       if (r.brodn) felder.push([`brodn_${m.id}`, 'on']);
       if (r.taxi) felder.push([`taxi_${m.id}`, 'on']);
       if (r.runde) felder.push([`runde_${m.id}`, 'on']);
@@ -116,6 +120,7 @@ export function AbschlussForm({
                   <RundToggle an={r.brodn} onToggle={() => patch(m.id, { brodn: !r.brodn })} title="Schweinsbraten gegessen">🍖</RundToggle>
                   <RundToggle an={r.runde} onToggle={() => patch(m.id, { runde: !r.runde })} title="Hat a Runde gschmissen (Großbauer)">⭐</RundToggle>
                   <MiniStepper value={r.hoiben} onChange={(v) => patch(m.id, { hoiben: v })} />
+                  {schnapsAn && <MiniStepper value={r.schnaps} onChange={(v) => patch(m.id, { schnaps: v })} icon="🥃" />}
                 </>
               )}
             </div>
@@ -204,7 +209,7 @@ function RundToggle({ an, onToggle, title, children }: { an: boolean; onToggle: 
 }
 
 /** ± Zähler für Hoiben (Design: MiniStepper). */
-function MiniStepper({ value, onChange }: { value: number; onChange: (v: number) => void }) {
+function MiniStepper({ value, onChange, icon }: { value: number; onChange: (v: number) => void; /** Kennzeichen vor dem Zähler (z. B. 🥃), ohne = die Hoibe wie gehabt */ icon?: string }) {
   const btn: React.CSSProperties = {
     width: 28, height: 28, flex: 'none', borderRadius: '50%', border: '1.5px solid var(--ink-200)',
     background: 'var(--weiss)', cursor: 'pointer', fontSize: 16, fontWeight: 800, color: 'var(--navy)',
@@ -212,6 +217,7 @@ function MiniStepper({ value, onChange }: { value: number; onChange: (v: number)
   };
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+      {icon && <span style={{ fontSize: 14, lineHeight: 1 }}>{icon}</span>}
       <button type="button" className="wn-press" onClick={() => onChange(Math.max(0, value - 1))} aria-label="Weniger" style={btn}>−</button>
       <span className="wn-tnum" style={{ minWidth: 20, textAlign: 'center', fontSize: 16, fontWeight: 800, color: 'var(--gold-700)' }}>{value}</span>
       <button type="button" className="wn-press" onClick={() => onChange(Math.min(30, value + 1))} aria-label="Mehr" style={btn}>+</button>

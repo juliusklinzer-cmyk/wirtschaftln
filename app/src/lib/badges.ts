@@ -34,6 +34,8 @@ export const SAISON_BADGES: SaisonBadge[] = [
     geschichte: 'Bleibt nüchtern, fährt umanand und bringt alle hoam. Ohne den Taxler waar da hoibe Stammtisch no am Marienplatz gstrandet.' },
   { key: 'dieSau', slug: 'dieSau', icon: '🐷', name: 'Die Sau', tag: 'meiste Schweinsbraten', pflicht: null,
     geschichte: 'Respekt und a bisserl Sorge: de meisten Schweinsbraten der Saison. Kruste, Knödl, Soß, nix bleibt über. A Sau halt, im allerbesten Sinn.' },
+  { key: 'schnapsler', slug: 'schnapsler', icon: '🥃', name: 'Schnapsler', tag: 'meiste Schnaps', pflicht: null,
+    geschichte: 'Bier is a Grundnahrungsmittel, aber der Schnapsler geht an Schritt weiter: de meisten Stamperl der Saison. Zum Wohl, und morgen a Aspirin.' },
   { key: 'alterPeter', slug: 'alterPeter', icon: '⛪', name: 'Alter Peter', tag: 'höchste Serie', pflicht: null,
     geschichte: 'Wia der Turm überm Rindermarkt: steht und steht und steht. Die längste Serie, seit’s den Stammtisch gibt, bei Gleichstand entscheiden d’Hoibe.' },
 ];
@@ -57,13 +59,18 @@ export const SAISON_BADGES_GENERISCH: SaisonBadge[] = [
     geschichte: 'Bleibt nüchtern, fährt umanand und bringt alle hoam. Ohne den Taxler waar da hoibe Stammtisch gstrandet.' },
   { key: 'dieSau', slug: null, icon: '🐷', name: 'Bratenkönig', tag: 'meiste Schweinsbraten', pflicht: null,
     geschichte: 'Respekt und a bisserl Sorge: de meisten Schweinsbraten der Saison. Kruste, Knödl, Soß, nix bleibt über.' },
+  { key: 'schnapsler', slug: 'schnapsler', icon: '🥃', name: 'Schnapsler', tag: 'meiste Schnaps', pflicht: null,
+    geschichte: 'Bier is a Grundnahrungsmittel, aber der Schnapsler geht an Schritt weiter: de meisten Stamperl der Saison. Zum Wohl, und morgen a Aspirin.' },
   { key: 'alterPeter', slug: null, icon: '🔥', name: 'Dauerbrenner', tag: 'höchste Serie', pflicht: null,
     geschichte: 'Steht und steht und steht: die längste Serie, seit’s den Stammtisch gibt, bei Gleichstand entscheiden d’Hoibe.' },
 ];
 
 /** Das Badge-Set des gebundenen Stammtischs (Feature-Flag muenchenBadges). */
 export function saisonBadges(): SaisonBadge[] {
-  return tenantConfig().features.muenchenBadges ? SAISON_BADGES : SAISON_BADGES_GENERISCH;
+  const f = tenantConfig().features;
+  const set = f.muenchenBadges ? SAISON_BADGES : SAISON_BADGES_GENERISCH;
+  // Schnapsler gibt's nur, wo gschnapselt wird
+  return f.schnaps ? set : set.filter((b) => b.key !== 'schnapsler');
 }
 
 export type BadgeVergabe = SaisonBadge & { holderId: string };
@@ -91,6 +98,7 @@ export function saisonBadgesVergeben(stats: MitgliedStats[], meisterEderId: stri
     meisterEder: meisterEderId,
     taxler: stats.some((s) => s.taxi > 0) ? byMax((s) => s.taxi).member.id : null,
     dieSau: stats.some((s) => s.schweinsbraten > 0) ? byMax((s) => s.schweinsbraten).member.id : null,
+    schnapsler: stats.some((s) => s.schnaps > 0) ? byMax((s) => s.schnaps).member.id : null,
     alterPeter,
   };
   return saisonBadges().flatMap((b) => (holderIds[b.key] ? [{ ...b, holderId: holderIds[b.key]! }] : []));
@@ -175,6 +183,7 @@ export function wechselTexte(w: Wechsel, neuName: string): { anNeuen: string; an
     meisterEder: { neu: 'Du bist jetza da Eder ⭐, dei Wirtshaus is as beste!', alt: `${neuName} hat’s bessere Wirtshaus reserviert, da Eder is furt.` },
     taxler: { neu: 'Du bist jetza da Taxler 🚕, vergelt’s Gott fürs Hoamfahren!', alt: `${neuName} fährt jetza öfter, da Taxler is weg.` },
     dieSau: { neu: 'Du bist jetza Die Sau 🐷, neamd vertilgt mehr Schweinsbraten!', alt: `${neuName} frisst mehr Brodn wia du, Die Sau is furt.` },
+    schnapsler: { neu: 'Du bist jetza da Schnapsler 🥃, neamd kippt mehr Stamperl!', alt: `${neuName} hat di als Schnapsler abglöst, Prost.` },
     alterPeter: { neu: 'Du bist jetza da Alte Peter ⛪, die längste Serie überm ganzen Stammtisch!', alt: `${neuName} hat de längere Serie, da Alte Peter schaut jetzt auf eam.` },
     'amt:praesident': { neu: 'Du bist jetza da Präsident 👑, WP-Rang 1! Zahlt immer zuletzt, entscheidet final.', alt: `${neuName} hat di als Präsident abglöst, hol dir’n Rang zruck!` },
     'amt:schriftfuehrer': { neu: 'Du bist jetza da Schriftführer ✒️, du schließt am meisten ab!', alt: `${neuName} is jetza Schriftführer, schließ wieder öfter ab.` },

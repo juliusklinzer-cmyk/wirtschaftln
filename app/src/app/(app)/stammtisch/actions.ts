@@ -52,6 +52,11 @@ export async function stammtischSpeichern(_prev: StammtischState, formData: Form
     /* kaputtes JSON → frisch anfangen */
   }
   config.hoibePreisCents = hoibePreisCents;
+  const bierName = feld('bierName', 60);
+  if (bierName) config.bierName = bierName;
+  const features = (config.features && typeof config.features === 'object' ? config.features : {}) as Record<string, unknown>;
+  features.schnaps = feld('schnaps', 3) === 'on';
+  config.features = features;
   // Logo: nur ändern, wenn a neues gewählt wurde (leer = so lassen)
   const logoData = String(formData.get('logoData') ?? '');
   if (logoData && logoData !== config.logo) {

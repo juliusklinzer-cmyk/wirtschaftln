@@ -146,6 +146,8 @@ export type GruendungsEingabe = {
   code: string;
   /** Logo als Data-URL aus dem Logo-Wähler, leer = koa Logo */
   logoData: string;
+  /** Schnapselt ihr? → Feature schnaps */
+  schnaps: boolean;
 };
 
 export type GruendungsErgebnis = { ok: true; gruppeId: string } | { ok: false; fehler: string; schritt: 1 | 2 | 3 };
@@ -201,6 +203,7 @@ export async function stammtischGruenden(tokenRoh: string, e: GruendungsEingabe)
     geo: center ? { center, boundsKm: 40, suchSuffix: stadt } : null,
     ...(stammhausId ? { stammhausWirtshausId: stammhausId } : {}),
     ...(logo ? { logo } : {}),
+    ...(e.schnaps ? { features: { schnaps: true } } : {}),
   };
 
   const angelegt = gruppeGruendenMitToken(

@@ -308,6 +308,7 @@ function SpezlDetailB({
   const medal = MEDAILLE[rank];
   const stats = [
     { icon: '🍺', value: s.hoiben, label: 'Hoibe' },
+    ...(s.schnaps > 0 ? [{ icon: '🥃', value: s.schnaps, label: 'Schnaps' }] : []),
     { icon: '🎟️', value: s.abende, label: 'Abende' },
     { icon: '🏠', value: s.wirtshaeuser, label: 'Wirtshäuser' },
     { icon: '📋', value: s.organisiert, label: 'Organisiert' },

@@ -32,6 +32,8 @@ export type TenantFeatures = {
   wirtshausFotos: boolean;
   /** Münchner Kindl als App-Icon, Alpen-Panorama am Desktop */
   muenchenBranding: boolean;
+  /** Schnapselt ihr? → Schnaps am Bierdeckel, in der Statistik und der Schnapsler-Badge */
+  schnaps: boolean;
 };
 
 export type PublicTenantConfig = {
@@ -64,6 +66,7 @@ export const GRUENDER_FEATURES: TenantFeatures = {
   brauereiLogos: true,
   wirtshausFotos: true,
   muenchenBranding: true,
+  schnaps: false,
 };
 
 /** Neue Stammtische: die Münchner Sonderlocken bleiben aus. */
@@ -79,6 +82,7 @@ export const GENERISCHE_FEATURES: TenantFeatures = {
   brauereiLogos: true,
   wirtshausFotos: false,
   muenchenBranding: false,
+  schnaps: false,
 };
 
 export const MUENCHEN_GEO: TenantGeo = {

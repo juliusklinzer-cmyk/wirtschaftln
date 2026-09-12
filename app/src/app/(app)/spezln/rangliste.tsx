@@ -8,6 +8,7 @@ import { type SteckbriefDaten } from '@/components/domain/Steckbrief';
 export type StatsBlock = {
   punkte: number;
   hoiben: number;
+  schnaps: number;
   abende: number;
   wirtshaeuser: number;
   organisiert: number;

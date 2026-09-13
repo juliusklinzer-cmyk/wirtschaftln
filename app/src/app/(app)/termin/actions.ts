@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { anzeigeName } from '@/lib/namen';
 import { and, eq } from 'drizzle-orm';
-import { db, termine, votes, besuche, wirtshaeuser, kasse, pushSubscriptions, checkins } from '@/lib/db';
+import { db, termine, votes, besuche, wirtshaeuser, kasse, pushSubscriptions, checkins, currentTenant } from '@/lib/db';
 import { getCurrentMember } from '@/lib/session';
 import { getAktiveMitglieder, nachtragsfristOffen, getVergabeStand, getStats, getPraesidentId, getBekannteWirtshaeuser, getLetzterAbgeschlossenerTermin, getAktuellerTermin } from '@/lib/queries';
 import { findeBekanntes } from '@/lib/wirtshaus-abgleich';
@@ -360,6 +360,52 @@ export async function schnapsStricheln(terminId: string, schnaps: number): Promi
   revalidatePath('/termin');
   revalidatePath('/');
   return { ok: true, schnaps: wert };
+}
+
+/** Abend-Chips am Bierdeckel (Taxler, Brodn, Schmarrn) für den eigenen Besuchs-Eintrag. */
+export async function abendFlagsSetzen(terminId: string, flags: { taxi: boolean; brodn: boolean; kaisi: boolean }): Promise<{ ok: true } | { ok: false; meldung: string }> {
+  const me = await getCurrentMember();
+  if (!me) return { ok: false, meldung: 'Ned angmeldt, bitte neu einloggen.' };
+  const termin = db.select().from(termine).where(eq(termine.id, terminId)).get();
+  if (!termin) return { ok: false, meldung: 'Der Termin is nimmer da.' };
+  if (!bierdeckelOffen(termin, nowIso())) return { ok: false, meldung: 'Da Bierdeckel is zua.' };
+  const werte = { anwesend: true, taxi: !!flags?.taxi, schweinsbraten: flags?.brodn ? 1 : 0, kaiserschmarrn: flags?.kaisi ? 1 : 0 };
+  db.insert(besuche)
+    .values({ id: newId('b'), terminId, memberId: me.id, ...werte })
+    .onConflictDoUpdate({ target: [besuche.terminId, besuche.memberId], set: werte })
+    .run();
+  revalidatePath('/termin');
+  return { ok: true };
+}
+
+/**
+ * ⭐ Runde gschmissen (live am Tisch): a Bier- oder Schnaps-Runde für alle,
+ * die grad anwesend san — jeder kriegt oans am Deckel dazu, beim Spender
+ * zählt die Runde (runden_bier/runden_schnaps → Abschluss-Zettel, Kasse).
+ */
+export async function rundeSchmeissen(terminId: string, art: 'bier' | 'schnaps'): Promise<{ ok: true } | { ok: false; meldung: string }> {
+  const me = await getCurrentMember();
+  if (!me) return { ok: false, meldung: 'Ned angmeldt, bitte neu einloggen.' };
+  if (art !== 'bier' && art !== 'schnaps') return { ok: false, meldung: 'Bier oder Schnaps?' };
+  if (art === 'schnaps' && !tenantConfig().features.schnaps) return { ok: false, meldung: 'Bei euch wird ned gschnapselt.' };
+  const termin = db.select().from(termine).where(eq(termine.id, terminId)).get();
+  if (!termin) return { ok: false, meldung: 'Der Termin is nimmer da.' };
+  if (!bierdeckelOffen(termin, nowIso())) return { ok: false, meldung: 'Da Bierdeckel is zua.' };
+  // Spender is auf jeden Fall dabei
+  db.insert(besuche)
+    .values({ id: newId('b'), terminId, memberId: me.id, anwesend: true })
+    .onConflictDoUpdate({ target: [besuche.terminId, besuche.memberId], set: { anwesend: true } })
+    .run();
+  const tx = currentTenant().sqlite.transaction(() => {
+    const spalte = art === 'bier' ? 'hoiben' : 'schnaps';
+    currentTenant().sqlite.prepare(`UPDATE besuche SET ${spalte} = MIN(30, ${spalte} + 1) WHERE termin_id = ? AND anwesend = 1`).run(terminId);
+    const rspalte = art === 'bier' ? 'runden_bier' : 'runden_schnaps';
+    currentTenant().sqlite.prepare(`UPDATE besuche SET ${rspalte} = ${rspalte} + 1 WHERE termin_id = ? AND member_id = ?`).run(terminId, me.id);
+  });
+  tx();
+  revalidatePath('/termin');
+  revalidatePath('/');
+  return { ok: true };
 }
 
 const STRAFE_GRUND_PREFIX = 'Zugesagt & nicht erschienen';

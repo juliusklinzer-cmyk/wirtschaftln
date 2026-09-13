@@ -48,7 +48,7 @@ function abschlussVorbelegung(
   for (const id of zugesagtIds) rows[id] = { hoiben: 0, schnaps: 0, brodn: false, taxi: false, runde: false, abgsagt: false };
   for (const b of besucheLive) {
     if (!b.anwesend) continue;
-    rows[b.memberId] = { hoiben: b.hoiben, schnaps: b.schnaps, brodn: b.schweinsbraten > 0, taxi: b.taxi, runde: false, abgsagt: false };
+    rows[b.memberId] = { hoiben: b.hoiben, schnaps: b.schnaps, brodn: b.schweinsbraten > 0, taxi: b.taxi, runde: b.rundenBier + b.rundenSchnaps > 0, abgsagt: false };
   }
   return {
     rows,
@@ -94,10 +94,13 @@ export default async function TerminPage() {
   // Chronik: die letzten 6 besuchten Wirtshäuser als volle Archiv-Einträge
   // (Antippen öffnet dasselbe Detail wie im Archiv)
   const archivEintraege = ladeArchivEintraege(me.id);
+  const gesehen = new Set<string>();
   const chronik = getArchiv()
     .slice(0, 6)
     .map((a) => archivEintraege.find((e) => e.besuchtAm && e.id === a.wirtshaus.id))
-    .filter((e): e is NonNullable<typeof e> => !!e);
+    .filter((e): e is NonNullable<typeof e> => !!e)
+    // Stammhaus: jeder Abend is dasselbe Wirtshaus → nur einmal listen
+    .filter((e) => (gesehen.has(e.id) ? false : (gesehen.add(e.id), true)));
   const letzter = getLetzterAbgeschlossenerTermin();
   const nachtrag = letzter && nachtragsfristOffen(letzter.abgeschlossenAm) ? letzter : null;
   const nachtragWirtshaus = nachtrag ? getTerminMitWirtshaus(nachtrag).wirtshaus : null;
@@ -245,6 +248,10 @@ async function AktiverTermin({ terminId, meId, isAdmin }: { terminId: string; me
             biersorte={wirtshaus?.biersorte ?? null}
             initialHoiben={besucheLive.find((b) => b.memberId === meId)?.hoiben ?? 0}
             initialSchnaps={besucheLive.find((b) => b.memberId === meId)?.schnaps ?? 0}
+            initialFlags={(() => {
+              const b = besucheLive.find((x) => x.memberId === meId);
+              return { taxi: !!b?.taxi, brodn: (b?.schweinsbraten ?? 0) > 0, kaisi: (b?.kaiserschmarrn ?? 0) > 0, rundenBier: b?.rundenBier ?? 0, rundenSchnaps: b?.rundenSchnaps ?? 0 };
+            })()}
             schnapsAn={config.features.schnaps}
             spezln={deckelSpezln}
           />

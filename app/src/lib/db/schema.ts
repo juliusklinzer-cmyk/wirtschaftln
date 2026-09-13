@@ -126,6 +126,9 @@ export const besuche = sqliteTable(
     anwesend: integer('anwesend', { mode: 'boolean' }).notNull().default(true),
     hoiben: integer('hoiben').notNull().default(0),
     schnaps: integer('schnaps').notNull().default(0), // nur bei Stammtischen mit Feature schnaps
+    // Live am Abend gschmissene Runden (Bier/Schnaps), belegen den Abschluss-Zettel vor
+    rundenBier: integer('runden_bier').notNull().default(0),
+    rundenSchnaps: integer('runden_schnaps').notNull().default(0),
     kaiserschmarrn: integer('kaiserschmarrn').notNull().default(0),
     schweinsbraten: integer('schweinsbraten').notNull().default(0),
     taxi: integer('taxi', { mode: 'boolean' }).notNull().default(false), // hat gfahrn & Spezln mitgnommen

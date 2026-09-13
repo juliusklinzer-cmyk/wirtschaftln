@@ -25,6 +25,13 @@ export type AbendFlags = {
 
 /** Stift-Schwarz wie auf'm echten Deckel, bewusst KEIN Design-Token, des is Tinte, ned UI. */
 const TINTE = '#202226';
+const MITTE = 132;
+const RADIUS = 103;
+/** Plätze der Fünfer-Gruppen: Hoibe unten (links → rechts), Schnaps oben (links → rechts). */
+const HOIBE_WINKEL = [150, 126, 102, 78, 54, 30];
+const SCHNAPS_WINKEL = [212, 236, 260, 284, 308, 332];
+/** Kürzel „WB“ vor der Schnaps-Reihe, links am Rand. */
+const WB_WINKEL = 184;
 
 /**
  * Deterministisches „Zittern" (−1…1) je Strich & Merkmal, stabil über
@@ -35,20 +42,20 @@ function zitter(i: number, salz: number): number {
   return (x - Math.floor(x)) * 2 - 1;
 }
 
+const amRand = (winkel: number, r = RADIUS) => {
+  const rad = (winkel * Math.PI) / 180;
+  return { x: MITTE + r * Math.cos(rad), y: MITTE + r * Math.sin(rad) };
+};
+
 /**
  * Strichgruppen (Fünfer: 4 senkrecht, der 5. quer) im Bogen am Deckelrand
- * entlang. `winkel` gibt die Plätze der Gruppen vor: Hoibe laufen unten
- * (links unten → rechts unten), Schnaps oben (links oben → rechts oben).
- * `salz` trennt die Zitter-Muster der beiden Reihen.
+ * entlang. `salz` trennt die Zitter-Muster der beiden Reihen.
  */
-function Strichgruppen({ anzahl, winkel, salz, kennung }: { anzahl: number; winkel: number[]; salz: number; kennung?: string }) {
-  const RADIUS = 103;
+function Strichgruppen({ anzahl, winkel, salz }: { anzahl: number; winkel: number[]; salz: number }) {
   const gruppen: React.ReactNode[] = [];
   for (let g = 0; g * 5 < anzahl; g++) {
     const w = winkel[g % winkel.length];
-    const rad = (w * Math.PI) / 180;
-    const gx = 132 + RADIUS * Math.cos(rad);
-    const gy = 132 + RADIUS * Math.sin(rad);
+    const { x: gx, y: gy } = amRand(w);
     const wg = Math.min(1, (g * 5) / 18);
     const dreh = w - 90 + zitter(g + salz, 3) * (2 + 7 * wg);
     const striche: React.ReactNode[] = [];
@@ -90,41 +97,70 @@ function Strichgruppen({ anzahl, winkel, salz, kennung }: { anzahl: number; wink
       </g>,
     );
   }
+  return <>{gruppen}</>;
+}
+
+/**
+ * „WB“ (Williams Birne) mit'm Kugelschreiber hingschrieben: koa Schrift,
+ * sondern drei Stiftzüge (W in einem Zug, B-Stamm, B-Bäuche), tangential am
+ * linken Rand vor der Schnaps-Reihe, Schrift-Oberkante nach außen.
+ */
+function KuerzelWB() {
+  const { x, y } = amRand(WB_WINKEL, RADIUS - 2);
+  const zug: React.SVGProps<SVGPathElement> = {
+    stroke: TINTE, strokeWidth: 2.8, strokeLinecap: 'round', strokeLinejoin: 'round', fill: 'none', opacity: 0.9,
+  };
   return (
-    <>
-      {kennung && anzahl > 0 && (
-        // Handschriftliche Kennzeichnung vor der Reihe, tangential am Rand
-        <text
-          x={132 + (RADIUS - 2) * Math.cos((winkel[0] - 14) * Math.PI / 180)}
-          y={132 + (RADIUS - 2) * Math.sin((winkel[0] - 14) * Math.PI / 180)}
-          transform={`rotate(${winkel[0] - 14 + 90} ${132 + (RADIUS - 2) * Math.cos((winkel[0] - 14) * Math.PI / 180)} ${132 + (RADIUS - 2) * Math.sin((winkel[0] - 14) * Math.PI / 180)})`}
-          fill={TINTE}
-          opacity={0.9}
-          fontSize={11}
-          fontWeight={800}
-          fontStyle="italic"
-          textAnchor="middle"
-          style={{ fontFamily: 'var(--font-ui)', letterSpacing: '0.02em' }}
-        >
-          {kennung}
-        </text>
-      )}
-      {gruppen}
-    </>
+    <g transform={`translate(${x.toFixed(1)} ${y.toFixed(1)}) rotate(${WB_WINKEL + 90 + zitter(1, 21) * 3})`}>
+      <path d="M -20 -10 Q -18 1 -15 10 Q -13 2 -10 -3 Q -7 2 -5 10 Q -2 0 1 -10" {...zug} />
+      <path d="M 5.5 -10.5 Q 4.5 0 4 10.5" {...zug} />
+      <path d="M 5 -10 Q 18 -12 17 -2.5 Q 16.5 0.5 6 0 Q 20 -0.5 19 7 Q 18 11.5 4 10" {...zug} />
+    </g>
   );
 }
 
-/** Beide Reihen am Deckel: Hoibe unten, Schnaps oben (mit „Schnaps“-Kennung). */
-function KritzelStriche({ hoiben, schnaps }: { hoiben: number; schnaps: number }) {
+/**
+ * Handschriftlicher Stern (Pentagramm in einem Zug) für a gschmissene Runde,
+ * rechts am Rand gegenüber vom „WB“. Mehrere Sterne rücken nebeneinander.
+ */
+function Sterne({ anzahl }: { anzahl: number }) {
+  if (anzahl <= 0) return null;
+  const sterne: React.ReactNode[] = [];
+  for (let s = 0; s < anzahl; s++) {
+    const ring = Math.floor(s / 4);
+    const i = s % 4;
+    const n = Math.min(4, anzahl - ring * 4);
+    const winkel = (i - (n - 1) / 2) * 19;
+    const { x, y } = amRand(winkel, RADIUS - 2 - ring * 24);
+    const R = 13 + zitter(s, 31) * 1.4;
+    const pts = [0, 1, 2, 3, 4].map((k) => {
+      const a = ((-90 + 144 * k + zitter(s * 5 + k, 32) * 6) * Math.PI) / 180;
+      return { x: R * Math.cos(a) + zitter(s * 5 + k, 33) * 1.2, y: R * Math.sin(a) + zitter(s * 5 + k, 34) * 1.2 };
+    });
+    const ende = { x: pts[0].x + zitter(s, 35) * 2.5, y: pts[0].y + 1.5 + zitter(s, 36) * 2 };
+    const d = `M ${pts[0].x.toFixed(1)} ${pts[0].y.toFixed(1)} ${pts.slice(1).map((p) => `L ${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(' ')} L ${ende.x.toFixed(1)} ${ende.y.toFixed(1)}`;
+    sterne.push(
+      <g key={s} transform={`translate(${x.toFixed(1)} ${y.toFixed(1)}) rotate(${(zitter(s, 37) * 14).toFixed(1)})`}>
+        <path d={d} stroke={TINTE} strokeWidth={3 + zitter(s, 38) * 0.4} strokeLinecap="round" strokeLinejoin="round" fill="none" opacity={0.9} className={s === anzahl - 1 ? 'wn-stern-neu' : undefined} />
+      </g>,
+    );
+  }
+  return <>{sterne}</>;
+}
+
+/** Alles, was mit Tinte am Deckel steht: Hoibe unten, WB + Schnaps oben, Sterne rechts. */
+function Tinte({ hoiben, schnaps, sterne, schnapsAn }: { hoiben: number; schnaps: number; sterne: number; schnapsAn: boolean }) {
   return (
     <svg viewBox="0 0 264 264" fill="none" aria-hidden style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none', overflow: 'visible' }}>
-      <Strichgruppen anzahl={hoiben} winkel={[150, 126, 102, 78, 54, 30]} salz={0} />
-      <Strichgruppen anzahl={schnaps} winkel={[210, 234, 258, 282, 306, 330]} salz={7} kennung="Schnaps" />
+      <Strichgruppen anzahl={hoiben} winkel={HOIBE_WINKEL} salz={0} />
+      {schnapsAn && schnaps > 0 && <KuerzelWB />}
+      {schnapsAn && <Strichgruppen anzahl={schnaps} winkel={SCHNAPS_WINKEL} salz={7} />}
+      <Sterne anzahl={sterne} />
     </svg>
   );
 }
 
-/** Mini-Strichliste für d'Spezl-Zeilen („Aa am Stricheln"), gleiche Tinte, kompakt. */
+/** Mini-Strichliste für d'Spezl-Zeilen, gleiche Tinte, kompakt. */
 function MiniStrichliste({ anzahl }: { anzahl: number }) {
   const gruppen: number[] = [];
   for (let rest = anzahl; rest > 0; rest -= 5) gruppen.push(Math.min(5, rest));
@@ -148,26 +184,49 @@ function MiniStrichliste({ anzahl }: { anzahl: number }) {
   );
 }
 
-const chipStil = (an: boolean): React.CSSProperties => ({
-  display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 12px', borderRadius: 'var(--r-pill)',
-  border: an ? '1.5px solid var(--gold)' : '1.5px solid var(--ink-200)',
-  background: an ? 'var(--pergament)' : 'var(--weiss)', cursor: 'pointer',
-  fontFamily: 'var(--font-ui)', fontSize: 13, fontWeight: 800, color: an ? 'var(--gold-700)' : 'var(--ink-500)',
-  transition: 'background 160ms var(--ease-standard), border-color 160ms var(--ease-standard)',
-});
+/** Runde Marke mit Beschriftung drunter (grau bis aktiviert, dann Gold), wie der RundToggle im Abschluss-Zettel. */
+function Marke({ an, icon, label, title, onClick }: { an: boolean; icon: string; label: string; title: string; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      className="wn-press"
+      onClick={onClick}
+      title={title}
+      aria-pressed={an}
+      style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5, minWidth: 66, padding: 0, border: 'none', background: 'transparent', cursor: 'pointer', fontFamily: 'var(--font-ui)' }}
+    >
+      <span
+        style={{
+          width: 46, height: 46, borderRadius: '50%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 21, lineHeight: 1,
+          border: an ? 'none' : '1.5px solid var(--ink-200)',
+          background: an ? 'var(--grad-gold)' : 'var(--weiss)',
+          boxShadow: an ? 'var(--sh-gold)' : 'none',
+          filter: an ? 'none' : 'grayscale(1) opacity(0.55)',
+          transition: 'background 160ms var(--ease-standard), filter 160ms var(--ease-standard)',
+        }}
+      >
+        {icon}
+      </span>
+      <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: '0.02em', color: an ? 'var(--gold-700)' : 'var(--ink-500)', whiteSpace: 'nowrap' }}>
+        {label}
+      </span>
+    </button>
+  );
+}
+
+const TIPP_KEY = 'wn-deckel-tipp-gsehn';
 
 /**
- * Dei Bierdeckel, Strichliste wie im Wirtshaus. Am Stammtisch-Abend
- * (ab Termin-Uhrzeit bis zum Abschluss) strichelt jeder Spezl für sich:
- * aufn Deckel tippen = a Hoibe, der 🥃-Knopf am Deckel = a Schnaps (eigene
- * Reihe oben mit Kennung). Drunter d'Abend-Chips (Taxler, Brodn, Schmarrn,
- * Runde gschmissen → Bier oder Schnaps, landet bei allen am Tisch am Deckel).
- * Alles wandert in den eigenen Besuchs-Eintrag und belegt den Abschluss-
- * Zettel vor; Admin, Präsident und der Abschließer richten dort für alle.
+ * Dei Bierdeckel, Strichliste wie im Wirtshaus. Am Stammtisch-Abend strichelt
+ * jeder Spezl für sich, und zwar direkt am Deckel, ohne Knöpfe drauf:
+ * rechts tippen = a Strich dazu, links tippen = oaner weg; untere Hälfte
+ * Hoibe, obere Hälfte Schnaps (mit „WB“ als Kürzel, wenn der Stammtisch
+ * schnapselt). Am Deckel steht nur, was mit Tinte hingschrieben aussieht.
+ * Drunter d'Marken vom Abend (Taxler, Brodn, Schmarrn, Runde); a gschmissene
+ * Runde kriegt an Stern am Deckel und bei allen am Tisch an Strich.
  */
 export function Bierdeckel({
   terminId,
-  wirtshausName,
   biersorte = null,
   initialHoiben,
   initialSchnaps = 0,
@@ -176,14 +235,13 @@ export function Bierdeckel({
   spezln,
 }: {
   terminId: string;
-  wirtshausName: string | null;
   /** Helles vom Wirtshaus → passender Deckel (Augustiner-Scan, Brauerei-Deckel oder neutral) */
   biersorte?: string | null;
   initialHoiben: number;
   initialSchnaps?: number;
-  /** Feature schnaps: Schnaps-Reihe am Deckel + Schnaps-Runde */
+  /** Feature schnaps: obere Deckelhälfte zählt Schnaps, Schnaps-Runde möglich */
   schnapsAn?: boolean;
-  /** Eigene Abend-Chips (Taxler, Brodn, Schmarrn, Runden) */
+  /** Eigene Abend-Marken (Taxler, Brodn, Schmarrn, Runden) */
   initialFlags?: AbendFlags;
   /** Die anderen am Tisch mit ihrem aktuellen Strich-Stand (nur > 0). */
   spezln: BierdeckelSpezl[];
@@ -195,6 +253,7 @@ export function Bierdeckel({
   const [rundeWahl, setRundeWahl] = useState(false);
   const [status, setStatus] = useState<'still' | 'speichert' | 'gspeichert'>('still');
   const [fehler, setFehler] = useState<string | null>(null);
+  const [tipp, setTipp] = useState(false);
   const [, startTransition] = useTransition();
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const schnapsTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -210,6 +269,10 @@ export function Bierdeckel({
   useEffect(() => () => {
     if (timer.current) clearTimeout(timer.current);
     if (schnapsTimer.current) clearTimeout(schnapsTimer.current);
+  }, []);
+  // Einmaliger Tipp, wie der Deckel bedient wird (bis zum ersten Tippen)
+  useEffect(() => {
+    try { if (!localStorage.getItem(TIPP_KEY)) setTipp(true); } catch { /* egal */ }
   }, []);
 
   const melden = (ergebnis: { ok: true } | { ok: false; meldung: string }) => {
@@ -242,6 +305,27 @@ export function Bierdeckel({
     setStatus('speichert');
     schnapsTimer.current = setTimeout(() => startTransition(async () => melden(await schnapsStricheln(terminId, neu))), 600);
   };
+
+  /**
+   * Vier Zonen am Deckel: rechts dazu, links weg; oben Schnaps, unten Hoibe
+   * (ohne Schnaps-Feature zählt der ganze Deckel Hoibe). Tastatur-„Klick“
+   * (ohne Zeigerposition) = a Hoibe dazu.
+   */
+  const deckelTipp = (e: React.MouseEvent<HTMLButtonElement>) => {
+    if (tipp) {
+      setTipp(false);
+      try { localStorage.setItem(TIPP_KEY, '1'); } catch { /* egal */ }
+    }
+    const rect = e.currentTarget.getBoundingClientRect();
+    const tastatur = e.detail === 0;
+    const x = tastatur ? 1 : (e.clientX - rect.left) / rect.width;
+    const y = tastatur ? 1 : (e.clientY - rect.top) / rect.height;
+    const delta = x >= 0.5 ? 1 : -1;
+    try { navigator.vibrate?.(delta > 0 ? 10 : [6, 30, 6]); } catch { /* egal */ }
+    if (schnapsAn && y < 0.5) schnapsAendern(delta);
+    else hoibeAendern(delta);
+  };
+
   const flagUmschalten = (key: 'taxi' | 'brodn' | 'kaisi') => {
     const neu = { ...flags, [key]: !flags[key] };
     setFlags(neu);
@@ -265,127 +349,74 @@ export function Bierdeckel({
       <style>{`
         @keyframes wnStrichZiehen { to { stroke-dashoffset: 0; } }
         .wn-strich-neu { stroke-dasharray: 60; stroke-dashoffset: 60; animation: wnStrichZiehen 240ms cubic-bezier(0.32, 0.72, 0, 1) 40ms forwards; }
+        .wn-stern-neu { stroke-dasharray: 140; stroke-dashoffset: 140; animation: wnStrichZiehen 480ms cubic-bezier(0.32, 0.72, 0, 1) 40ms forwards; }
         @keyframes wnHoibenPop { 0% { transform: scale(0.6); } 60% { transform: scale(1.18); } 100% { transform: scale(1); } }
         .wn-hoiben-pop { display: inline-block; animation: wnHoibenPop 320ms cubic-bezier(0.34, 1.56, 0.64, 1); }
+        .wn-bierdeckel { transition: transform 160ms cubic-bezier(0.23, 1, 0.32, 1); outline: none; }
         .wn-bierdeckel:active { transform: scale(0.97); }
+        .wn-bierdeckel:focus-visible { outline: 3px solid var(--muc-blau); outline-offset: 6px; }
       `}</style>
 
-      {/* Der Deckel: antippen strichelt a Hoibe; der 🥃-Knopf strichelt a Schnaps (eigene Reihe oben) */}
+      {/* Der Deckel: nur Pappe + Tinte. Schatten liegt als eigener Kreis drunter
+          (koa CSS-Filter am Deckel, der hat am Augustiner-Scan an blauen Rand gmacht). */}
       <div style={{ position: 'relative', width: 264, height: 264 }}>
+        <div aria-hidden style={{ position: 'absolute', inset: '2.5%', borderRadius: '50%', boxShadow: '0 10px 22px rgba(30,28,24,0.28), 0 2px 5px rgba(30,28,24,0.16)' }} />
         <button
           type="button"
-          onClick={() => hoibeAendern(1)}
-          aria-label="A Hoibe dazustricheln"
+          onClick={deckelTipp}
+          aria-label={schnapsAn ? 'Bierdeckel: unten Hoibe, oben Schnaps; rechts dazu, links weg' : 'Bierdeckel: rechts a Hoibe dazu, links oane weg'}
           className="wn-bierdeckel"
           style={{
             width: 264, height: 264, position: 'relative', padding: 0, border: 'none',
             background: 'transparent', cursor: 'pointer', borderRadius: '50%',
-            filter: 'drop-shadow(0 6px 14px rgba(12,43,90,0.22))',
-            transition: 'transform var(--dur-fast) var(--ease-standard)',
-            WebkitTapHighlightColor: 'transparent',
+            WebkitTapHighlightColor: 'transparent', touchAction: 'manipulation',
           }}
         >
           <DeckelGrafik deckel={deckel} />
-          <KritzelStriche hoiben={hoiben} schnaps={schnapsAn ? schnaps : 0} />
+          <Tinte hoiben={hoiben} schnaps={schnaps} sterne={rundenGesamt} schnapsAn={schnapsAn} />
         </button>
-        {schnapsAn && (
-          <button
-            type="button"
-            className="wn-press"
-            onClick={(e) => { e.stopPropagation(); schnapsAendern(1); }}
-            aria-label="A Schnaps dazustricheln"
-            title="A Schnaps"
-            style={{
-              position: 'absolute', top: 2, right: 2, width: 46, height: 46, borderRadius: '50%', border: '2px solid var(--weiss)',
-              background: 'var(--grad-gold)', boxShadow: 'var(--sh-gold)', cursor: 'pointer', fontSize: 22, lineHeight: 1,
-              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-            }}
-          >
-            🥃
-          </button>
-        )}
       </div>
 
-      <div style={{ textAlign: 'center' }}>
-        <span className="wn-tnum" style={{ fontSize: 16, fontWeight: 800, color: 'var(--gold-700)' }}>
-          🍺 <span key={`h${hoiben}`} className="wn-hoiben-pop">{hoiben}</span> Hoibe
+      {/* Stand + Speicher-Rückmeldung, eine Zeile */}
+      <div className="wn-tnum" style={{ display: 'flex', alignItems: 'baseline', gap: 8, fontSize: 16, fontWeight: 800, color: 'var(--ink-700)' }}>
+        <span>
+          <span key={`h${hoiben}`} className="wn-hoiben-pop" style={{ color: 'var(--gold-700)' }}>{hoiben}</span> Hoibe
           {schnapsAn && (
             <>
-              {' '}· 🥃 <span key={`s${schnaps}`} className="wn-hoiben-pop">{schnaps}</span> Schnaps
+              {' '}· <span key={`s${schnaps}`} className="wn-hoiben-pop" style={{ color: 'var(--gold-700)' }}>{schnaps}</span> WB
             </>
           )}
-          {wirtshausName && <span style={{ fontWeight: 700, color: 'var(--ink-500)' }}> · {wirtshausName}</span>}
         </span>
-        {hoiben === 0 && schnaps === 0 && (
-          <div style={{ marginTop: 2, fontSize: 12, fontWeight: 600, color: 'var(--ink-500)' }}>
-            Aufn Deckel tippen, a Strich pro Hoibe{schnapsAn ? ', 🥃 fürn Schnaps' : ''}.
-          </div>
-        )}
-      </div>
-
-      {/* Korrektur + Speicher-Stand */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', justifyContent: 'center' }}>
-        <button
-          type="button"
-          className="wn-press"
-          onClick={() => hoibeAendern(-1)}
-          disabled={hoiben === 0}
-          style={{
-            border: '1.5px solid var(--ink-200)', background: 'var(--weiss)', borderRadius: 'var(--r-pill)',
-            padding: '7px 12px', fontFamily: 'var(--font-ui)', fontSize: 12, fontWeight: 800,
-            color: hoiben === 0 ? 'var(--ink-300)' : 'var(--ink-700)', cursor: hoiben === 0 ? 'default' : 'pointer',
-          }}
-        >
-          − Hoibe
-        </button>
-        {schnapsAn && (
-          <button
-            type="button"
-            className="wn-press"
-            onClick={() => schnapsAendern(-1)}
-            disabled={schnaps === 0}
-            style={{
-              border: '1.5px solid var(--ink-200)', background: 'var(--weiss)', borderRadius: 'var(--r-pill)',
-              padding: '7px 12px', fontFamily: 'var(--font-ui)', fontSize: 12, fontWeight: 800,
-              color: schnaps === 0 ? 'var(--ink-300)' : 'var(--ink-700)', cursor: schnaps === 0 ? 'default' : 'pointer',
-            }}
-          >
-            − Schnaps
-          </button>
-        )}
-        <span style={{ fontSize: 12, fontWeight: 700, color: status === 'gspeichert' ? 'var(--erfolg)' : 'var(--ink-500)', minWidth: 80 }}>
+        <span style={{ fontSize: 12, fontWeight: 700, color: status === 'gspeichert' ? 'var(--erfolg)' : 'var(--ink-500)', minWidth: 72 }}>
           {status === 'speichert' ? 'Speichert…' : status === 'gspeichert' ? '✓ Gspeichert' : ''}
         </span>
       </div>
+      {tipp && (
+        <div style={{ marginTop: -6, fontSize: 12, fontWeight: 600, color: 'var(--ink-500)', textAlign: 'center' }}>
+          Rechts tippen: a Strich dazu, links: oaner weg.{schnapsAn ? ' Unten Hoibe, oben Schnaps.' : ''}
+        </div>
+      )}
 
-      {/* Abend-Chips: was sonst no zum Abend ghört. Runde gschmissen → Bier oder Schnaps, kommt bei allen am Deckel dazu */}
-      <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'center' }}>
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center' }}>
-          <button type="button" className="wn-press" onClick={() => flagUmschalten('taxi')} style={chipStil(flags.taxi)} title="Mit'm Auto da & Spezln mitgnommen">
-            🚕 Taxler
-          </button>
-          <button type="button" className="wn-press" onClick={() => flagUmschalten('brodn')} style={chipStil(flags.brodn)} title="Schweinsbraten gegessen">
-            🍖 Brodn
-          </button>
-          <button type="button" className="wn-press" onClick={() => flagUmschalten('kaisi')} style={chipStil(flags.kaisi)} title="Kaiserschmarrn bestellt (wird eh geteilt)">
-            🥞 Schmarrn
-          </button>
-          <button type="button" className="wn-press" onClick={() => setRundeWahl((w) => !w)} style={chipStil(rundenGesamt > 0)} title="A Runde für alle am Tisch gschmissen">
-            ⭐ Runde{rundenGesamt > 0 ? ` ×${rundenGesamt}` : ''}
-          </button>
+      {/* Abend-Marken: Taxler, Brodn, Schmarrn, Runde (→ Stern am Deckel + Strich bei allen am Tisch) */}
+      <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'center' }}>
+        <div style={{ display: 'flex', justifyContent: 'center', gap: 10 }}>
+          <Marke an={flags.taxi} icon="🚕" label="Taxler" title="Mit'm Auto da & Spezln mitgnommen" onClick={() => flagUmschalten('taxi')} />
+          <Marke an={flags.brodn} icon="🍖" label="Brodn" title="Schweinsbraten gegessen" onClick={() => flagUmschalten('brodn')} />
+          <Marke an={flags.kaisi} icon="🥞" label="Schmarrn" title="Kaiserschmarrn bestellt (wird eh geteilt)" onClick={() => flagUmschalten('kaisi')} />
+          <Marke an={rundenGesamt > 0} icon="⭐" label={rundenGesamt > 0 ? `Runde ×${rundenGesamt}` : 'Runde'} title="A Runde für alle am Tisch gschmissen" onClick={() => setRundeWahl((w) => !w)} />
         </div>
         {rundeWahl && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px', background: 'var(--pergament)', border: '1px solid var(--pergament-edge)', borderRadius: 'var(--r-md)' }}>
-            <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink-700)' }}>Was hast gschmissen?</span>
-            <button type="button" className="wn-press" onClick={() => runde('bier')} style={{ ...chipStil(true), padding: '7px 12px' }}>🍺 Bier-Runde</button>
-            {schnapsAn && (
-              <button type="button" className="wn-press" onClick={() => runde('schnaps')} style={{ ...chipStil(true), padding: '7px 12px' }}>🥃 Schnaps-Runde</button>
-            )}
-          </div>
-        )}
-        {rundenGesamt > 0 && (
-          <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink-500)', textAlign: 'center' }}>
-            Deine Runde{rundenGesamt > 1 ? 'n' : ''} ({flags.rundenBier > 0 ? `${flags.rundenBier}× Bier` : ''}{flags.rundenBier > 0 && flags.rundenSchnaps > 0 ? ', ' : ''}{flags.rundenSchnaps > 0 ? `${flags.rundenSchnaps}× Schnaps` : ''}) steh{rundenGesamt > 1 ? 'n' : 't'} bei allen am Tisch am Deckel. Rausnehmen geht beim Abschluss-Zettel.
+          <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 8, padding: '12px 14px', background: 'var(--pergament)', border: '1px solid var(--pergament-edge)', borderRadius: 'var(--r-md)' }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink-700)' }}>
+              Runde gschmissen? Kommt bei allen am Tisch am Deckel dazu, rausnehmen geht nur beim Abschluss.
+            </div>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              <button type="button" className="wn-press" onClick={() => runde('bier')} style={wahlStil(true)}>🍺 Bier-Runde</button>
+              {schnapsAn && (
+                <button type="button" className="wn-press" onClick={() => runde('schnaps')} style={wahlStil(true)}>🥃 Schnaps-Runde</button>
+              )}
+              <button type="button" className="wn-press" onClick={() => setRundeWahl(false)} style={wahlStil(false)}>Doch ned</button>
+            </div>
           </div>
         )}
       </div>
@@ -395,15 +426,12 @@ export function Bierdeckel({
           {fehler}
         </div>
       )}
-      <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink-500)', textAlign: 'center' }}>
-        Jeder strichelt für sich; Admin, Präsident und wer abschließt richten’s beim Abschluss-Zettel für alle. 1 Hoibe = 1 WP.
-      </div>
 
       {/* De anderen am Tisch */}
       {spezln.length > 0 && (
-        <div style={{ width: '100%', marginTop: 4, background: 'var(--weiss)', border: '1px solid var(--ink-100)', borderRadius: 'var(--r-lg)', boxShadow: 'var(--sh-sm)', padding: '12px 14px' }}>
+        <div style={{ width: '100%', background: 'var(--weiss)', border: '1px solid var(--ink-100)', borderRadius: 'var(--r-lg)', boxShadow: 'var(--sh-sm)', padding: '12px 14px' }}>
           <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--ink-500)', marginBottom: 8 }}>
-            Aa am Stricheln
+            Am Tisch
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {[...spezln].sort((a, b) => b.hoiben - a.hoiben || (b.schnaps ?? 0) - (a.schnaps ?? 0)).map((s) => (
@@ -413,12 +441,12 @@ export function Bierdeckel({
                   {s.name}
                 </span>
                 <MiniStrichliste anzahl={s.hoiben} />
-                <span className="wn-tnum" style={{ flex: 'none', width: 26, textAlign: 'right', fontSize: 13, fontWeight: 800, color: 'var(--gold-700)' }}>
+                <span className="wn-tnum" style={{ flex: 'none', width: 22, textAlign: 'right', fontSize: 13, fontWeight: 800, color: 'var(--gold-700)' }}>
                   {s.hoiben}
                 </span>
                 {schnapsAn && (
-                  <span className="wn-tnum" style={{ flex: 'none', fontSize: 12, fontWeight: 800, color: 'var(--ink-500)' }}>
-                    🥃 {s.schnaps ?? 0}
+                  <span className="wn-tnum" style={{ flex: 'none', width: 40, textAlign: 'right', fontSize: 12, fontWeight: 800, color: 'var(--ink-500)' }}>
+                    {s.schnaps ?? 0} WB
                   </span>
                 )}
               </div>
@@ -429,3 +457,10 @@ export function Bierdeckel({
     </div>
   );
 }
+
+const wahlStil = (gold: boolean): React.CSSProperties => ({
+  display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 12px', borderRadius: 'var(--r-pill)',
+  border: gold ? '1.5px solid var(--gold)' : '1.5px solid var(--ink-200)',
+  background: gold ? 'var(--weiss)' : 'transparent', cursor: 'pointer',
+  fontFamily: 'var(--font-ui)', fontSize: 13, fontWeight: 800, color: gold ? 'var(--gold-700)' : 'var(--ink-500)',
+});

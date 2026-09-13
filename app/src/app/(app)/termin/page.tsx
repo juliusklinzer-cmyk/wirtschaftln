@@ -16,9 +16,9 @@ import {
   getWirtshausById,
 } from '@/lib/queries';
 import { datumLang, datumKurz } from '@/lib/format';
-import { PTS, rechtzeitigAbgestimmt, berlinTag, bierdeckelOffen, abschlussOffen, abschlussAb } from '@/lib/punkte';
+import { PTS, berlinTag, bierdeckelOffen, abschlussOffen, abschlussAb } from '@/lib/punkte';
 import { nowIso } from '@/lib/ids';
-import { Card, SectionHeader, Avatar, Badge, Button, Input, Icon } from '@/components/ds';
+import { Card, SectionHeader, Avatar, Badge, Button, Input, Icon, KlappenKopf } from '@/components/ds';
 import { VotePills } from '@/components/domain/VotePills';
 import { neuerTermin, wirtshausFestlegen, phaseSetzen, besuchAbschliessen, meineBewertung, orgaSchnappen } from './actions';
 import { OrgaSchnappen } from './orga-schnappen';
@@ -32,7 +32,6 @@ import { ladeArchivEintraege } from '@/lib/archiv-eintraege';
 import { WirtshausSuche } from '@/components/domain/WirtshausSuche';
 import { Bierdeckel, type BierdeckelSpezl } from '@/components/domain/Bierdeckel';
 import { tenantConfig } from '@/lib/tenant-config';
-import { KlappenKopf } from '@/components/ds';
 
 /**
  * Vorbelegung des Abschluss-Zettels am Abend selbst: Zugesagte stehen auf der
@@ -86,21 +85,35 @@ function nachtragInitial(terminId: string): AbschlussWerte {
   };
 }
 
+/** Eine Hinweiszeile, dezent, zentriert (die einzige Art Erklärtext auf dieser Seite). */
+function Hinweis({ children }: { children: React.ReactNode }) {
+  return (
+    <div style={{ textAlign: 'center', fontSize: 12, fontWeight: 600, color: 'var(--ink-500)', padding: '2px 8px' }}>
+      {children}
+    </div>
+  );
+}
+
+const klappeStil: React.CSSProperties = {
+  background: 'var(--weiss)', border: '1px solid var(--ink-100)',
+  borderRadius: 'var(--r-lg)', boxShadow: 'var(--sh-sm)', overflow: 'hidden',
+};
+
 export default async function TerminPage() {
   const me = (await getCurrentMember())!;
   erzwingeProfil(me);
   const termin = getAktuellerTermin();
   const mitglieder = getAktiveMitglieder();
-  // Chronik: die letzten 6 besuchten Wirtshäuser als volle Archiv-Einträge
-  // (Antippen öffnet dasselbe Detail wie im Archiv)
+  // Chronik: die letzten 6 Abende, je Abend eine Zeile mit Datum und Tages-Wertung
+  // (Antippen öffnet das Wirtshaus-Detail wie im Archiv; beim Stammhaus is es
+  // sechsmal dasselbe Wirtshaus, aber sechs verschiedene Abende)
   const archivEintraege = ladeArchivEintraege(me.id);
-  const gesehen = new Set<string>();
   const chronik = getArchiv()
     .slice(0, 6)
-    .map((a) => archivEintraege.find((e) => e.besuchtAm && e.id === a.wirtshaus.id))
-    .filter((e): e is NonNullable<typeof e> => !!e)
-    // Stammhaus: jeder Abend is dasselbe Wirtshaus → nur einmal listen
-    .filter((e) => (gesehen.has(e.id) ? false : (gesehen.add(e.id), true)));
+    .flatMap((a) => {
+      const e = archivEintraege.find((x) => x.besuchtAm && x.id === a.wirtshaus.id);
+      return e ? [{ ...e, besuchtAm: datumKurz(a.termin.datum), rating: a.rating }] : [];
+    });
   const letzter = getLetzterAbgeschlossenerTermin();
   const nachtrag = letzter && nachtragsfristOffen(letzter.abgeschlossenAm) ? letzter : null;
   const nachtragWirtshaus = nachtrag ? getTerminMitWirtshaus(nachtrag).wirtshaus : null;
@@ -118,10 +131,11 @@ export default async function TerminPage() {
         const daten = bewertungsDaten(getBesucheFuerTermin(nachtrag.id), me.id);
         return (
           <>
+            <SectionHeader eyebrow="Letzter Abend" title={`${nachtragWirtshaus?.name ?? 'Stammtisch'} · ${datumKurz(nachtrag.datum)}`} />
             {/* Mei Bewertung zum letzten Besuch, nur wer dabei war, derf werten */}
             {daten.mein?.anwesend && (
               <MeiBewertung
-                wirtshausName={nachtragWirtshaus?.name ?? null}
+                wirtshausName={null}
                 initial={daten.initial}
                 team={daten.team}
                 action={meineBewertung.bind(null, nachtrag.id)}
@@ -129,7 +143,7 @@ export default async function TerminPage() {
             )}
             <NachtragKlappe
               schnapsAn={tenantConfig().features.schnaps}
-              titel={`Letzten Besuch${nachtragWirtshaus ? ` im ${nachtragWirtshaus.name}` : ''} nachtragen (${datumKurz(nachtrag.datum)}), no ${nachtragRestTage} ${nachtragRestTage === 1 ? 'Tag' : 'Tag’'} offen`}
+              titel={`Nachtragen · no ${nachtragRestTage} ${nachtragRestTage === 1 ? 'Tag' : 'Tag’'}`}
               mitglieder={mitglieder.map((m) => ({ id: m.id, name: anzeigeName(m), photoUrl: m.photoUrl, verein: m.verein, zugesagt: false }))}
               action={besuchAbschliessen.bind(null, nachtrag.id)}
               initial={nachtragInitial(nachtrag.id)}
@@ -160,10 +174,7 @@ function NeuerTerminForm() {
           <Button type="submit" fullWidth>
             Termin anlegen
           </Button>
-          <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink-500)' }}>
-            An Organisator brauchts ned eintragen, den Posten schnappt sich danach wer mag („I regle das!“).
-            Nur wer grad organisiert hat, setzt aus. Beim Anlegen kriegen alle Spezln Push + Mail zur Abstimmung.
-          </div>
+          <Hinweis>Alle Spezln kriegen Bescheid, den Organisator-Posten schnappt sich danach wer mag.</Hinweis>
         </form>
       </Card>
     </>
@@ -173,24 +184,28 @@ function NeuerTerminForm() {
 /* ---------- Aktiver Termin: Phasen-Maschine ---------- */
 async function AktiverTermin({ terminId, meId, isAdmin }: { terminId: string; meId: string; isAdmin: boolean }) {
   const termin = getAktuellerTermin();
-  if (!termin) return null;
+  if (!termin || termin.id !== terminId) return null;
   const { wirtshaus, planer } = getTerminMitWirtshaus(termin);
   const alleVotes = getVotesFuerTermin(termin.id);
   const mitglieder = getAktiveMitglieder();
   const offene = getOffeneWirtshaeuser();
-  const meinVoteRow = alleVotes.find((v) => v.vote.memberId === meId)?.vote ?? null;
-  const meinVote = meinVoteRow?.wert ?? null;
+  const meinVote = alleVotes.find((v) => v.vote.memberId === meId)?.vote.wert ?? null;
+  const voteVon = (id: string) => alleVotes.find((x) => x.vote.memberId === id)?.vote.wert;
+  const zugesagt = mitglieder.filter((m) => voteVon(m.id) === 'zu');
   // Verwalten (Wirtshaus festlegen/ändern, Anmeldung schließen):
   // Organisator, aktueller Präsident oder Admin
   const darfVerwalten = isAdmin || termin.planerId === meId || meId === getPraesidentId();
   // Stammhaus-Typ: das Stammhaus is der Default, Reservieren is a Ein-Tap-Bestätigung
   const config = tenantConfig();
   const stammhaus = config.typ === 'stammhaus' && config.stammhausWirtshausId ? getWirtshausById(config.stammhausWirtshausId) : null;
+  const jetzt = nowIso();
+  const heuteTag = termin.datum === berlinTag(jetzt);
 
-  // Bierdeckel: am Stammtisch-Abend (ab Termin-Uhrzeit bis zum Abschluss)
-  // strichelt jeder seine eigenen Hoiben live, Stand aus den Besuchs-Einträgen.
-  const deckelOffen = bierdeckelOffen(termin, nowIso());
-  const besucheLive = deckelOffen || termin.phase === 'heute' ? getBesucheFuerTermin(termin.id) : [];
+  // Abend-Modus: ab Termin-Uhrzeit am Tag selbst (oder sobald d'Anmeldung
+  // gschlossen is) bis zum Abschluss. Dann is der Deckel das Wichtigste.
+  const abend = bierdeckelOffen(termin, jetzt);
+  const besucheLive = abend ? getBesucheFuerTermin(termin.id) : [];
+  const meinBesuch = besucheLive.find((b) => b.memberId === meId);
   const deckelSpezln: BierdeckelSpezl[] = besucheLive
     .filter((b) => b.anwesend && (b.hoiben > 0 || b.schnaps > 0) && b.memberId !== meId)
     .flatMap((b) => {
@@ -200,283 +215,275 @@ async function AktiverTermin({ terminId, meId, isAdmin }: { terminId: string; me
 
   const phasenLabel = {
     planung: 'In Planung',
-    reserviert: 'Reserviert',
+    reserviert: abend ? 'Heut’ is’ Stammtisch' : 'Reserviert',
     heute: 'Heut’ is’ Stammtisch',
     abgeschlossen: 'Abgeschlossen',
   }[termin.phase];
 
+  const naviUrl = wirtshaus
+    ? wirtshaus.lat != null && wirtshaus.lng != null
+      ? `https://www.google.com/maps/dir/?api=1&destination=${wirtshaus.lat},${wirtshaus.lng}`
+      : wirtshaus.adresse
+        ? `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(`${wirtshaus.name}, ${wirtshaus.adresse}`)}`
+        : null
+    : null;
+
+  const abstimmungsListe = (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+      {/* Man selbst immer oben, danach: Zugesagt → Vielleicht → Ausstehend → Abgesagt */}
+      {[...mitglieder]
+        .sort((a, b) => {
+          if (a.id === meId) return -1;
+          if (b.id === meId) return 1;
+          const prio = (id: string) => {
+            const w = voteVon(id);
+            return w === 'zu' ? 0 : w === 'vielleicht' ? 1 : !w ? 2 : 3;
+          };
+          return prio(a.id) - prio(b.id);
+        })
+        .map((m) => {
+          const v = voteVon(m.id);
+          const label = v === 'zu' ? 'Zugesagt' : v === 'vielleicht' ? 'Vielleicht' : v === 'ab' ? 'Abgesagt' : 'Keine Antwort';
+          const tone = v === 'zu' ? 'erfolg' : v === 'vielleicht' ? 'warnung' : v === 'ab' ? 'strafe' : 'neutral';
+          const ich = m.id === meId;
+          return (
+            <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: ich ? '6px 8px' : 0, background: ich ? 'var(--info-bg)' : 'transparent', borderRadius: ich ? 'var(--r-sm)' : 0 }}>
+              <Avatar src={m.photoUrl} name={m.name} size={32} present={v === 'zu'} verein={m.verein} />
+              <span style={{ flex: 1, minWidth: 0, fontSize: 14, fontWeight: 700, color: 'var(--ink-900)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {anzeigeName(m)}
+              </span>
+              <Badge tone={tone as 'erfolg' | 'warnung' | 'strafe' | 'neutral'}>{label}</Badge>
+            </div>
+          );
+        })}
+    </div>
+  );
+
+  const anmeldungSchliessen = darfVerwalten && termin.phase === 'reserviert' && heuteTag && (
+    <form action={phaseSetzen.bind(null, termin.id, 'heute')}>
+      <Button type="submit" fullWidth variant="secondary">
+        Anmeldung schließen
+      </Button>
+    </form>
+  );
+
   return (
     <>
+      {/* Kopfkarte: Datum, Phase, Wirtshaus, Adresse, Kalender + Navigation */}
       <Card tone="dark" framed pad={0} style={{ overflow: 'hidden' }}>
         <div className="wn-raute wn-raute--sm" style={{ height: 7 }} />
         <div style={{ padding: 20 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
             <div className="wn-eyebrow" style={{ color: 'var(--gold)' }}>{datumLang(termin.datum)} · {termin.zeit} Uhr</div>
-            <Badge tone={termin.phase === 'heute' ? 'gold' : 'blau'} solid>
+            <Badge tone={abend ? 'gold' : 'blau'} solid>
               {phasenLabel}
             </Badge>
           </div>
           <div style={{ fontFamily: 'var(--font-fraktur)', fontSize: 28, color: 'var(--pergament)', margin: '8px 0 2px' }}>
-            {wirtshaus ? wirtshaus.name : planer ? `organisiert von ${anzeigeName(planer)}` : 'Wer reglt’s? Orga is frei!'}
+            {wirtshaus ? wirtshaus.name : planer ? `${anzeigeName(planer)} reglt’s` : 'Wer reglt’s?'}
           </div>
           {wirtshaus?.adresse && (
             <div style={{ fontSize: 13, fontWeight: 600, color: 'rgba(246,240,226,0.75)', display: 'flex', alignItems: 'center', gap: 6 }}>
               <Icon name="pin" size={14} /> {wirtshaus.adresse}
             </div>
           )}
-          {termin.phase === 'reserviert' && (
-            <a
-              href={`/termin/${termin.id}/ics`}
-              style={{
-                display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 12,
-                fontSize: 13, fontWeight: 800, color: 'var(--gold-bright)', textDecoration: 'none',
-              }}
-            >
-              <Icon name="calendar" size={15} /> Zum Kalender
-            </a>
+          {wirtshaus && (
+            <div style={{ display: 'flex', gap: 8, marginTop: 14, flexWrap: 'wrap' }}>
+              {!abend && (
+                <a href={`/termin/${termin.id}/ics`} style={kopfLinkStil}>
+                  <Icon name="calendar" size={15} /> Kalender
+                </a>
+              )}
+              {naviUrl && (
+                <a href={naviUrl} target="_blank" rel="noopener noreferrer" style={kopfLinkStil}>
+                  <Icon name="richtung" size={15} /> Hinfahren
+                </a>
+              )}
+            </div>
           )}
         </div>
       </Card>
 
-      {/* Bierdeckel, am Stammtisch-Abend strichelt jeder seine eigenen Hoiben */}
-      {deckelOffen && (
+      {abend ? (
+        /* ---------- Abend: Deckel, Marken, Bewertung, Tisch, Abschluss ---------- */
         <>
           <SectionHeader eyebrow="Heit am Tisch" title="Dei Bierdeckel" fraktur />
           <Bierdeckel
             terminId={termin.id}
-            wirtshausName={wirtshaus?.name ?? null}
             biersorte={wirtshaus?.biersorte ?? null}
-            initialHoiben={besucheLive.find((b) => b.memberId === meId)?.hoiben ?? 0}
-            initialSchnaps={besucheLive.find((b) => b.memberId === meId)?.schnaps ?? 0}
-            initialFlags={(() => {
-              const b = besucheLive.find((x) => x.memberId === meId);
-              return { taxi: !!b?.taxi, brodn: (b?.schweinsbraten ?? 0) > 0, kaisi: (b?.kaiserschmarrn ?? 0) > 0, rundenBier: b?.rundenBier ?? 0, rundenSchnaps: b?.rundenSchnaps ?? 0 };
-            })()}
+            initialHoiben={meinBesuch?.hoiben ?? 0}
+            initialSchnaps={meinBesuch?.schnaps ?? 0}
+            initialFlags={{
+              taxi: !!meinBesuch?.taxi,
+              brodn: (meinBesuch?.schweinsbraten ?? 0) > 0,
+              kaisi: (meinBesuch?.kaiserschmarrn ?? 0) > 0,
+              rundenBier: meinBesuch?.rundenBier ?? 0,
+              rundenSchnaps: meinBesuch?.rundenSchnaps ?? 0,
+            }}
             schnapsAn={config.features.schnaps}
             spezln={deckelSpezln}
           />
+
           {/* Mei Bewertung, jeder für sich, scho am Abend (bis 7 Tag nach’m Abschluss) */}
           {(() => {
             const daten = bewertungsDaten(besucheLive, meId);
             return (
               <MeiBewertung
-                wirtshausName={wirtshaus?.name ?? null}
+                wirtshausName={null}
                 initial={daten.initial}
                 team={daten.team}
                 action={meineBewertung.bind(null, termin.id)}
               />
             );
           })()}
-        </>
-      )}
 
-      {/* Reservierung ändern, direkt unter der Termin-Karte, vor der Abstimmung.
-          Organisator, Präsident oder Admin; schließt sich nach dem Speichern und meldet Erfolg. */}
-      {termin.phase === 'reserviert' && darfVerwalten && (
-        <ReservierungAendern
-          action={wirtshausFestlegen.bind(null, termin.id)}
-          bekannte={getBekannteWirtshaeuser()}
-        />
-      )}
-
-      {/* Phase: Planung, zuerst schnappt sich wer d'Orga („I regle das!"),
-          dann legt der Organisator's Wirtshaus fest. Sperre: wer den letzten
-          Stammtisch organisiert hat, muss aussetzen. */}
-      {termin.phase === 'planung' && !termin.planerId && (
-        <OrgaSchnappen
-          action={orgaSchnappen.bind(null, termin.id)}
-          gesperrt={getLetzterAbgeschlossenerTermin()?.planerId === meId}
-        />
-      )}
-      {termin.phase === 'planung' && termin.planerId &&
-        (darfVerwalten ? (
-          <>
-            <SectionHeader eyebrow="Dei Aufgabe" title={stammhaus ? 'Reservieren' : 'Wirtshaus festlegen'} />
-            {stammhaus && (
-              <Card>
-                <form action={wirtshausFestlegen.bind(null, termin.id)} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                  <input type="hidden" name="vorhandenesWirtshausId" value={stammhaus.id} />
-                  <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink-700)' }}>
-                    Wia immer im <b>{stammhaus.name}</b>{stammhaus.adresse ? ` (${stammhaus.adresse})` : ''}?
-                  </div>
-                  <Button type="submit" fullWidth variant="gold">
-                    Passt, reserviert im {stammhaus.name}
-                  </Button>
-                  <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink-500)' }}>
-                    Beim Bestätigen kriegen alle Spezln a Push-Nachricht und a Mail.
-                  </div>
-                </form>
-              </Card>
-            )}
-            {stammhaus ? (
-              <details
-                style={{
-                  background: 'var(--weiss)', border: '1px solid var(--ink-100)',
-                  borderRadius: 'var(--r-lg)', boxShadow: 'var(--sh-sm)', overflow: 'hidden',
-                }}
-              >
-                <KlappenKopf>Ausflug: heit amoi wo anders</KlappenKopf>
-                <div style={{ padding: '4px 18px 18px' }}>
-                  <form action={wirtshausFestlegen.bind(null, termin.id)} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                    <WirtshausSuche bekannte={getBekannteWirtshaeuser()} />
-                    <Button type="submit" fullWidth variant="secondary">
-                      Ausflug eintragen
-                    </Button>
-                  </form>
+          {/* Anmeldung no offen (Uhrzeit is rum, aber koaner hat gschlossen): Liste als Klappe */}
+          {termin.phase === 'reserviert' && (
+            <>
+              <details style={klappeStil}>
+                <KlappenKopf chip={<Badge tone="erfolg">{zugesagt.length} zugesagt</Badge>}>Wer kommt?</KlappenKopf>
+                <div style={{ padding: '4px 18px 18px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+                  <VotePills terminId={termin.id} current={meinVote} terminDatum={termin.datum} />
+                  {abstimmungsListe}
                 </div>
               </details>
-            ) : (
-            <Card>
-              <form action={wirtshausFestlegen.bind(null, termin.id)} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                {offene.length > 0 && (
-                  <>
-                    <div>
-                      <label style={{ display: 'block', fontSize: 13, fontWeight: 700, color: 'var(--ink-700)', marginBottom: 6 }}>
-                        Gfundene Wirtshäuser (offen auf der Karte)
-                      </label>
-                      <select
-                        name="vorhandenesWirtshausId"
-                        defaultValue=""
-                        style={{
-                          width: '100%', padding: '12px 14px', border: '1.5px solid var(--ink-200)',
-                          borderRadius: 'var(--r-md)', fontFamily: 'var(--font-ui)', fontSize: 15,
-                          fontWeight: 500, color: 'var(--ink-900)', background: 'var(--weiss)',
-                        }}
-                      >
-                        <option value="">Neues Wirtshaus suchen…</option>
-                        {offene.map(({ wirtshaus, finder }) => (
-                          <option key={wirtshaus.id} value={wirtshaus.id}>
-                            {wirtshaus.name}
-                            {wirtshaus.bezirk ? ` (${wirtshaus.bezirk})` : ''}
-                            {finder ? ` · gfunden von ${anzeigeName(finder)}` : ''}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <div style={{ textAlign: 'center', fontSize: 11, fontWeight: 700, color: 'var(--ink-300)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
-                      oder
-                    </div>
-                  </>
-                )}
-                <WirtshausSuche bekannte={getBekannteWirtshaeuser()} />
-                <Button type="submit" fullWidth variant="gold">
-                  Reservierung eintragen
-                </Button>
-                <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink-500)' }}>
-                  Beim Eintragen kriegen alle Spezln a Push-Nachricht und a Mail.
-                </div>
-              </form>
-            </Card>
-            )}
-          </>
-        ) : (
-          <Card tone="parchment">
-            <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink-700)' }}>
-              {(planer ? anzeigeName(planer) : '—')} suacht no a Wirtshaus aus. Du kannst derweil scho abstimmen, ob’st Zeit hast.
-            </div>
-          </Card>
-        ))}
-
-      {/* Abstimmung (planung + reserviert) */}
-      {(termin.phase === 'planung' || termin.phase === 'reserviert') && (
-        <>
-          <SectionHeader eyebrow="Abstimmung" title="Hast du Zeit?" />
-          <Card>
-            <VotePills
-              terminId={termin.id}
-              current={meinVote}
-              terminDatum={termin.datum}
-            />
-            <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {/* Man selbst immer oben, danach: Zugesagt → Vielleicht → Ausstehend → Abgesagt */}
-              {[...mitglieder]
-                .sort((a, b) => {
-                  if (a.id === meId) return -1;
-                  if (b.id === meId) return 1;
-                  const prio = (id: string) => {
-                    const w = alleVotes.find((x) => x.vote.memberId === id)?.vote.wert;
-                    return w === 'zu' ? 0 : w === 'vielleicht' ? 1 : !w ? 2 : 3;
-                  };
-                  return prio(a.id) - prio(b.id);
-                })
-                .map((m) => {
-                  const v = alleVotes.find((x) => x.vote.memberId === m.id)?.vote.wert;
-                  const label = v === 'zu' ? 'Zugesagt' : v === 'vielleicht' ? 'Vielleicht' : v === 'ab' ? 'Abgesagt' : 'Keine Antwort';
-                  const tone = v === 'zu' ? 'erfolg' : v === 'vielleicht' ? 'warnung' : v === 'ab' ? 'strafe' : 'neutral';
-                  const ich = m.id === meId;
-                  return (
-                    <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: ich ? '6px 8px' : 0, background: ich ? 'var(--info-bg)' : 'transparent', borderRadius: ich ? 'var(--r-sm)' : 0 }}>
-                      <Avatar src={m.photoUrl} name={m.name} size={32} present={v === 'zu'} verein={m.verein} />
-                      <span style={{ flex: 1, fontSize: 14, fontWeight: 700, color: 'var(--ink-900)' }}>
-                        {anzeigeName(m)}
-                      </span>
-                      <Badge tone={tone as 'erfolg' | 'warnung' | 'strafe' | 'neutral'}>{label}</Badge>
-                    </div>
-                  );
-                })}
-            </div>
-          </Card>
-          {termin.phase === 'reserviert' && darfVerwalten && (
-            termin.datum === berlinTag(new Date().toISOString()) ? (
-              <form action={phaseSetzen.bind(null, termin.id, 'heute')}>
-                <Button type="submit" fullWidth variant="secondary">
-                  Heut’ is’ so weit, Anmeldung schließen
-                </Button>
-              </form>
-            ) : (
-              <div style={{ textAlign: 'center', fontSize: 12, fontWeight: 600, color: 'var(--ink-500)', padding: '4px 0' }}>
-                🔒 D’Anmeldung kannst erst am Stammtisch-Tag ({datumKurz(termin.datum)}) schließen.
-              </div>
-            )
+              {anmeldungSchliessen}
+            </>
           )}
 
-        </>
-      )}
-
-      {/* Phase: Heute, Besuch abschließen (nur Logistik, darf jeder; der Erste
-          kriegt +3 WP). Frühestens 2 Stunden nach Beginn, damit koaner den
-          Abend mittendrin zuamacht, bewertet wird eh jeder für sich. */}
-      {termin.phase === 'heute' && (
-        <>
-          <Card tone="parchment" pad={14}>
-            <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--gold-700)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
-              Anmeldung geschlossen
-            </div>
-            <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink-700)', marginTop: 4 }}>
-              Jeder gibt bei <b>„Mei Bewertung“</b> sei eigene Wertung ab (<b>+{PTS.bewertung} WP</b>), aus allen zusammen wird d’Tages-Wertung. Nach’m Abend schließt irgendwer vo eich no d’Logistik ab (wer da war, Hoibe, Runden), der Erste kriegt <b>+{PTS.abschluss} WP</b> (und wer am meisten abschließt, is’ Schriftführer).
-            </div>
-          </Card>
-
-          {abschlussOffen(termin, nowIso()) ? (
-            <>
-              <SectionHeader eyebrow="Zapfenstreich" title="Besuch abschließen" fraktur />
-              <Card>
+          {/* Zapfenstreich: Logistik abschließen (darf jeder, der Erste kriegt WP),
+              frühestens 2 Stunden nach Beginn, damit koaner mittendrin zuamacht. */}
+          {abschlussOffen(termin, jetzt) ? (
+            <details style={klappeStil}>
+              <KlappenKopf chip={<span className="wn-tnum" style={{ flex: 'none', fontSize: 12, fontWeight: 800, padding: '3px 10px', borderRadius: 999, background: 'var(--grad-gold)', color: 'var(--navy-900)' }}>+{PTS.abschluss} WP</span>}>
+                Besuch abschließen
+              </KlappenKopf>
+              <div style={{ padding: '4px 18px 18px' }}>
                 <AbschlussForm
                   mitglieder={mitglieder.map((m) => ({
                     id: m.id,
                     name: anzeigeName(m),
                     photoUrl: m.photoUrl,
                     verein: m.verein,
-                    zugesagt: alleVotes.some((v) => v.vote.memberId === m.id && v.vote.wert === 'zu'),
+                    zugesagt: voteVon(m.id) === 'zu',
                   }))}
                   action={besuchAbschliessen.bind(null, termin.id)}
                   schnapsAn={config.features.schnaps}
                   naechsterTermin={!termin.abgeschlossenVon}
-                  initial={abschlussVorbelegung(
-                    besucheLive,
-                    mitglieder.filter((m) => alleVotes.some((v) => v.vote.memberId === m.id && v.vote.wert === 'zu')).map((m) => m.id),
-                    wirtshaus,
-                  )}
+                  initial={abschlussVorbelegung(besucheLive, zugesagt.map((m) => m.id), wirtshaus)}
                 />
-              </Card>
-            </>
+              </div>
+            </details>
           ) : (
-            <div style={{ textAlign: 'center', fontSize: 12, fontWeight: 600, color: 'var(--ink-500)', padding: '4px 0' }}>
-              🔒 Abgschlossen wird erst, wenn der Abend rum is: ab {abschlussAb(termin)} Uhr. Bis dahin wird gstrichelt und bewertet.
-            </div>
+            <Hinweis>Abschließen geht ab {abschlussAb(termin)} Uhr.</Hinweis>
+          )}
+        </>
+      ) : (
+        /* ---------- Vorher: Orga, Reservierung, Abstimmung ---------- */
+        <>
+          {termin.phase === 'planung' && !termin.planerId && (
+            <OrgaSchnappen
+              action={orgaSchnappen.bind(null, termin.id)}
+              gesperrt={getLetzterAbgeschlossenerTermin()?.planerId === meId}
+            />
+          )}
+
+          {termin.phase === 'planung' && termin.planerId && (
+            darfVerwalten ? (
+              <>
+                <SectionHeader eyebrow="Dei Aufgabe" title="Reservieren" />
+                {stammhaus ? (
+                  <>
+                    <Card>
+                      <form action={wirtshausFestlegen.bind(null, termin.id)} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                        <input type="hidden" name="vorhandenesWirtshausId" value={stammhaus.id} />
+                        <Button type="submit" fullWidth variant="gold">
+                          Wia immer im {stammhaus.name}
+                        </Button>
+                        <Hinweis>Alle Spezln kriegen a Push und a Mail.</Hinweis>
+                      </form>
+                    </Card>
+                    <details style={klappeStil}>
+                      <KlappenKopf>Ausflug: heit amoi wo anders</KlappenKopf>
+                      <div style={{ padding: '4px 18px 18px' }}>
+                        <form action={wirtshausFestlegen.bind(null, termin.id)} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                          <WirtshausSuche bekannte={getBekannteWirtshaeuser()} />
+                          <Button type="submit" fullWidth variant="secondary">
+                            Ausflug eintragen
+                          </Button>
+                        </form>
+                      </div>
+                    </details>
+                  </>
+                ) : (
+                  <Card>
+                    <form action={wirtshausFestlegen.bind(null, termin.id)} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                      {offene.length > 0 && (
+                        <>
+                          <div>
+                            <label style={{ display: 'block', fontSize: 13, fontWeight: 700, color: 'var(--ink-700)', marginBottom: 6 }}>
+                              Offen auf der Karte
+                            </label>
+                            <select
+                              name="vorhandenesWirtshausId"
+                              defaultValue=""
+                              style={{
+                                width: '100%', padding: '12px 14px', border: '1.5px solid var(--ink-200)',
+                                borderRadius: 'var(--r-md)', fontFamily: 'var(--font-ui)', fontSize: 15,
+                                fontWeight: 500, color: 'var(--ink-900)', background: 'var(--weiss)',
+                              }}
+                            >
+                              <option value="">Neues Wirtshaus suchen…</option>
+                              {offene.map(({ wirtshaus: w, finder }) => (
+                                <option key={w.id} value={w.id}>
+                                  {w.name}
+                                  {w.bezirk ? ` (${w.bezirk})` : ''}
+                                  {finder ? ` · gfunden von ${anzeigeName(finder)}` : ''}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                          <div style={{ textAlign: 'center', fontSize: 11, fontWeight: 700, color: 'var(--ink-300)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+                            oder
+                          </div>
+                        </>
+                      )}
+                      <WirtshausSuche bekannte={getBekannteWirtshaeuser()} />
+                      <Button type="submit" fullWidth variant="gold">
+                        Reservierung eintragen
+                      </Button>
+                      <Hinweis>Alle Spezln kriegen a Push und a Mail.</Hinweis>
+                    </form>
+                  </Card>
+                )}
+              </>
+            ) : (
+              <Hinweis>{planer ? anzeigeName(planer) : 'Der Organisator'} suacht’s Wirtshaus aus.</Hinweis>
+            )
+          )}
+
+          {/* Abstimmung (planung + reserviert) */}
+          <SectionHeader eyebrow="Abstimmung" title="Hast du Zeit?" />
+          <Card>
+            <VotePills terminId={termin.id} current={meinVote} terminDatum={termin.datum} />
+            <div style={{ marginTop: 16 }}>{abstimmungsListe}</div>
+          </Card>
+          {anmeldungSchliessen}
+
+          {/* Reservierung ändern: selten, drum ganz unten als Klappe (Orga, Präsident, Admin) */}
+          {termin.phase === 'reserviert' && darfVerwalten && (
+            <ReservierungAendern
+              action={wirtshausFestlegen.bind(null, termin.id)}
+              bekannte={getBekannteWirtshaeuser()}
+            />
           )}
         </>
       )}
     </>
   );
 }
+
+const kopfLinkStil: React.CSSProperties = {
+  display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 12px', borderRadius: 'var(--r-pill)',
+  border: '1px solid rgba(246,240,226,0.28)', fontSize: 13, fontWeight: 800, color: 'var(--gold-bright)', textDecoration: 'none',
+};

@@ -39,7 +39,7 @@ export function ReservierungAendern({
           borderRadius: 'var(--r-lg)', boxShadow: 'var(--sh-sm)', overflow: 'hidden',
         }}
       >
-        <KlappenKopf>Reservierung ändern (anderes Wirtshaus)</KlappenKopf>
+        <KlappenKopf>Reservierung ändern</KlappenKopf>
         <div style={{ padding: '4px 18px 18px' }}>
           <form action={speichern} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             <WirtshausSuche bekannte={bekannte} />
@@ -47,7 +47,7 @@ export function ReservierungAendern({
               Wirtshaus ändern
             </Button>
             <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink-500)' }}>
-              Beim Ändern kriegen alle Spezln wieder a Push-Nachricht und a Mail mit dem neuen Wirtshaus.
+              Alle Spezln kriegen a Push und a Mail mit dem neuen Wirtshaus.
             </div>
           </form>
         </div>

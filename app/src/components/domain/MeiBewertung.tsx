@@ -36,6 +36,7 @@ export function MeiBewertung({
   team,
   action,
   variante = 'karte',
+  startOffen = false,
 }: {
   wirtshausName: string | null;
   initial: MeiBewertungWerte;
@@ -43,8 +44,10 @@ export function MeiBewertung({
   team: { schnitt: number; anzahl: number };
   action: (formData: FormData) => Promise<BewertungErgebnis>;
   variante?: 'karte' | 'eingebettet';
+  /** Klappe von Anfang an offen (Stammtisch-Abend, solang no ned bewertet is) */
+  startOffen?: boolean;
 }) {
-  const [offen, setOffen] = useState(false);
+  const [offen, setOffen] = useState(startOffen);
   const [meldung, setMeldung] = useState<{ ok: boolean; text: string } | null>(null);
   const [sterne, setSterne] = useState(initial.sterne ?? 3);
   const [kommentar, setKommentar] = useState(initial.kommentar);

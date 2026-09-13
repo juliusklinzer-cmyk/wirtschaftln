@@ -184,8 +184,7 @@ export function AbschlussForm({
         {submitLabel}
       </Button>
       <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink-500)', textAlign: 'center', marginTop: 8 }}>
-        Abschließen darf jeder, der Erste kriagt +{PTS.abschluss} WP. Nachtragen geht noch a Woch’.
-        Bewertet wird extra: jeder für sich bei „Mei Bewertung“.
+        Der Erste kriagt +{PTS.abschluss} WP, nachtragen geht no a Woch’.
       </div>
     </form>
   );

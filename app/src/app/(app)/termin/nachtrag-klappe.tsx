@@ -47,7 +47,7 @@ export function NachtragKlappe({
         <KlappenKopf>{titel}</KlappenKopf>
         <div style={{ padding: '4px 18px 18px' }}>
           <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink-500)', marginBottom: 12 }}>
-            Hoibe, Runden, wer da war, wenn was fehlt, trag’s nach. Bewertet wird oben bei „Mei Bewertung“.
+            Wer da war, Hoibe, Runden: wenn was fehlt, trag’s nach.
           </div>
           <AbschlussForm schnapsAn={schnapsAn} mitglieder={mitglieder} action={speichern} initial={initial} submitLabel="Änderungen speichern" />
         </div>

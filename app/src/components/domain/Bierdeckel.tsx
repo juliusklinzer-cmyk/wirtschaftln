@@ -352,14 +352,14 @@ export function Bierdeckel({
         .wn-stern-neu { stroke-dasharray: 140; stroke-dashoffset: 140; animation: wnStrichZiehen 480ms cubic-bezier(0.32, 0.72, 0, 1) 40ms forwards; }
         @keyframes wnHoibenPop { 0% { transform: scale(0.6); } 60% { transform: scale(1.18); } 100% { transform: scale(1); } }
         .wn-hoiben-pop { display: inline-block; animation: wnHoibenPop 320ms cubic-bezier(0.34, 1.56, 0.64, 1); }
-        .wn-bierdeckel { transition: transform 160ms cubic-bezier(0.23, 1, 0.32, 1); outline: none; }
-        .wn-bierdeckel:active { transform: scale(0.97); }
+        .wn-bierdeckel { outline: none; }
         .wn-bierdeckel:focus-visible { outline: 3px solid var(--muc-blau); outline-offset: 6px; }
       `}</style>
 
-      {/* Der Deckel: nur Pappe + Tinte. Schatten liegt als eigener Kreis drunter
-          (koa CSS-Filter am Deckel, der hat am Augustiner-Scan an blauen Rand gmacht). */}
-      <div style={{ position: 'relative', width: 264, height: 264 }}>
+      {/* Der Deckel: nur Pappe + Tinte, so breit wie der Bildschirm hergibt. Schatten liegt als
+          eigener Kreis drunter (koa CSS-Filter, der hat am Augustiner-Scan an blauen Rand gmacht);
+          koa Druck-Animation, a echter Deckel schrumpft ned, d'Rückmeldung is der neue Strich. */}
+      <div style={{ position: 'relative', width: 'min(100%, 340px)', aspectRatio: '1 / 1' }}>
         <div aria-hidden style={{ position: 'absolute', inset: '2.5%', borderRadius: '50%', boxShadow: '0 10px 22px rgba(30,28,24,0.28), 0 2px 5px rgba(30,28,24,0.16)' }} />
         <button
           type="button"
@@ -367,7 +367,7 @@ export function Bierdeckel({
           aria-label={schnapsAn ? 'Bierdeckel: unten Hoibe, oben Schnaps; rechts dazu, links weg' : 'Bierdeckel: rechts a Hoibe dazu, links oane weg'}
           className="wn-bierdeckel"
           style={{
-            width: 264, height: 264, position: 'relative', padding: 0, border: 'none',
+            width: '100%', height: '100%', display: 'block', position: 'relative', padding: 0, border: 'none',
             background: 'transparent', cursor: 'pointer', borderRadius: '50%',
             WebkitTapHighlightColor: 'transparent', touchAction: 'manipulation',
           }}

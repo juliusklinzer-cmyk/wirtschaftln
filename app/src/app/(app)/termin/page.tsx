@@ -370,6 +370,7 @@ async function AktiverTermin({ terminId, meId, isAdmin }: { terminId: string; me
                   action={besuchAbschliessen.bind(null, termin.id)}
                   schnapsAn={config.features.schnaps}
                   naechsterTermin={!termin.abgeschlossenVon}
+                  bewertung={{ memberId: meId, werte: bewertungsDaten(besucheLive, meId).initial }}
                   initial={abschlussVorbelegung(besucheLive, zugesagt.map((m) => m.id), wirtshaus)}
                 />
               </div>

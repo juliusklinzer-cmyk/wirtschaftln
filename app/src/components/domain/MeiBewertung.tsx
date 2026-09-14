@@ -256,7 +256,7 @@ function SpeichernKnopf({ schonBewertet }: { schonBewertet: boolean }) {
 }
 
 /** Aufklappbarer Kopf „hab i probiert" (wie der Kaisi-Toggle im Abschluss-Zettel). */
-function ProbiertKopf({
+export function ProbiertKopf({
   icon, titel, untertitel, an, onToggle,
 }: {
   icon: string; titel: string; untertitel: string; an: boolean; onToggle: () => void;
@@ -274,14 +274,14 @@ function ProbiertKopf({
   );
 }
 
-const textareaStyle: React.CSSProperties = {
+export const textareaStyle: React.CSSProperties = {
   width: '100%', boxSizing: 'border-box', border: '1.5px solid var(--ink-200)', borderRadius: 'var(--r-md)',
   padding: 12, fontFamily: 'var(--font-ui)', fontSize: 15, color: 'var(--ink-900)', resize: 'none', outline: 'none',
   background: 'var(--weiss)',
 };
 
 /** ± Stepper für eine Bewertung mit einer Kommastelle, startet bei 3,0 (Design: StarStepper). */
-function SterneStepper({ value, onChange }: { value: number; onChange: (v: number) => void }) {
+export function SterneStepper({ value, onChange }: { value: number; onChange: (v: number) => void }) {
   const clamp = (v: number) => Math.max(0, Math.min(5, Math.round(v * 10) / 10));
   const btn: React.CSSProperties = {
     width: 44, height: 44, flex: 'none', borderRadius: '50%', border: '1.5px solid var(--ink-200)',

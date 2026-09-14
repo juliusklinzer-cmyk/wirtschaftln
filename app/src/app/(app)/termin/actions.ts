@@ -460,6 +460,35 @@ export async function besuchAbschliessen(terminId: string, formData: FormData) {
       .run();
   }
 
+  // Wer abschließt, bewertet im selben Zug mit (Julius, 14.09.2026): koa extra
+  // „Mei Bewertung" mehr für den Abschließer, anpassen geht danach wia bei allen.
+  // Nur wenn er selber dabei war und Sterne mitgschickt hat.
+  if (formData.get('sterne') != null && dabeiIds.includes(me.id)) {
+    const zehntel = (name: string) => {
+      const v = Number(String(formData.get(name) ?? '').replace(',', '.'));
+      return Number.isFinite(v) && v > 0 ? Math.min(5, Math.round(v * 10) / 10) : null;
+    };
+    const text = (name: string) => String(formData.get(name) ?? '').trim().slice(0, 500) || null;
+    const sterne = zehntel('sterne');
+    if (sterne != null) {
+      const kaisi = formData.get('kaisiProbiert') === 'on';
+      const brodn = formData.get('brodnGessen') === 'on';
+      db.update(besuche)
+        .set({
+          sterne,
+          kommentar: text('kommentar'),
+          kaiserschmarrn: kaisi || kaisiBestellt ? 1 : 0,
+          kaiserSterne: kaisi ? zehntel('kaiserSterne') : null,
+          kaiserNotiz: kaisi ? text('kaiserNotiz') : null,
+          schweinsbraten: brodn ? 1 : 0,
+          brodnSterne: brodn ? zehntel('brodnSterne') : null,
+          brodnNotiz: brodn ? text('brodnNotiz') : null,
+        })
+        .where(and(eq(besuche.terminId, terminId), eq(besuche.memberId, me.id)))
+        .run();
+    }
+  }
+
   // Bier & Weißbier am Wirtshaus festhalten
   if (termin.wirtshausId) {
     const biersorte = String(formData.get('biersorte') ?? '').trim();

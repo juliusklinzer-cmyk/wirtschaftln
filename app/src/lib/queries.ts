@@ -182,6 +182,8 @@ export type MitgliedStats = {
   kaiserschmarrn: number;
   schweinsbraten: number;
   taxi: number;
+  /** Wie oft z’spät kemma (Vermerk vom Abschließer) */
+  zuSpaet: number;
   organisiert: number;
   abschluesse: number;
   runden: number;
@@ -290,6 +292,7 @@ export function getStats(optionen?: { abDatum?: string; bisDatum?: string; ohneT
     let kaiserschmarrn = 0;
     let schweinsbraten = 0;
     let taxi = 0;
+    let zuSpaet = 0;
     let organisiert = 0;
     let abschluesse = 0;
     let orgaSumme = 0;
@@ -322,6 +325,7 @@ export function getStats(optionen?: { abDatum?: string; bisDatum?: string; ohneT
           kaiserschmarrn += b!.kaiserschmarrn;
           schweinsbraten += b!.schweinsbraten;
           if (b!.taxi) taxi += 1;
+          if (b!.zuSpaet) zuSpaet += 1;
           abende += 1;
           if (b!.sterne != null) bewertungsBonus += PTS.bewertung;
           if (b!.kommentar?.trim()) textBonus += PTS.bewertungsText;
@@ -389,6 +393,7 @@ export function getStats(optionen?: { abDatum?: string; bisDatum?: string; ohneT
       schnaps,
       kaiserschmarrn,
       schweinsbraten,
+      zuSpaet,
       organisiert,
       streak,
       bestStreak,

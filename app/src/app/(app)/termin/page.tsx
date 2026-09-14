@@ -22,7 +22,8 @@ import { Card, SectionHeader, Avatar, Badge, Button, Input, Icon, KlappenKopf } 
 import { VotePills } from '@/components/domain/VotePills';
 import { neuerTermin, wirtshausFestlegen, phaseSetzen, besuchAbschliessen, meineBewertung, orgaSchnappen } from './actions';
 import { OrgaSchnappen } from './orga-schnappen';
-import { AbschlussForm, type AbschlussWerte } from './abschluss-form';
+import { type AbschlussWerte } from './abschluss-form';
+import { AbschlussZettel } from './abschluss-zettel';
 import { NachtragKlappe } from './nachtrag-klappe';
 import { MeiBewertung } from '@/components/domain/MeiBewertung';
 import { bewertungsDaten } from '@/lib/bewertungs-daten';
@@ -32,30 +33,6 @@ import { ladeArchivEintraege } from '@/lib/archiv-eintraege';
 import { WirtshausSuche } from '@/components/domain/WirtshausSuche';
 import { Bierdeckel, type BierdeckelSpezl } from '@/components/domain/Bierdeckel';
 import { tenantConfig } from '@/lib/tenant-config';
-
-/**
- * Vorbelegung des Abschluss-Zettels am Abend selbst: Zugesagte stehen auf der
- * Liste, und wer am Bierdeckel gstrichelt hat, bringt seine Hoiben (und wer
- * über den Deckel dazukam, seine Anwesenheit) schon mit.
- */
-function abschlussVorbelegung(
-  besucheLive: ReturnType<typeof getBesucheFuerTermin>,
-  zugesagtIds: string[],
-  wirtshaus: { biersorte: string; weissbier: string | null } | null,
-): AbschlussWerte {
-  const rows: NonNullable<AbschlussWerte>['rows'] = {};
-  for (const id of zugesagtIds) rows[id] = { hoiben: 0, schnaps: 0, brodn: false, taxi: false, runde: false, abgsagt: false };
-  for (const b of besucheLive) {
-    if (!b.anwesend) continue;
-    rows[b.memberId] = { hoiben: b.hoiben, schnaps: b.schnaps, brodn: b.schweinsbraten > 0, taxi: b.taxi, runde: b.rundenBier + b.rundenSchnaps > 0, abgsagt: false };
-  }
-  return {
-    rows,
-    kaisiBestellt: besucheLive.some((b) => b.kaiserschmarrn > 0),
-    biersorte: wirtshaus?.biersorte ?? 'Augustiner',
-    weissbier: wirtshaus?.weissbier ?? '',
-  };
-}
 
 /** Gespeicherten Stand des Abschlusses fürs Nachtragen wieder ins Formular laden. */
 function nachtragInitial(terminId: string): AbschlussWerte {
@@ -72,6 +49,7 @@ function nachtragInitial(terminId: string): AbschlussWerte {
         taxi: b.taxi,
         runde: kasseEintraege.some((k) => k.kind === 'runde' && k.memberId === b.memberId),
         abgsagt: false,
+        spaet: b.zuSpaet,
       };
     } else if (kasseEintraege.some((k) => k.kind === 'strafe' && k.memberId === b.memberId && k.grund.startsWith('Zugesagt'))) {
       rows[b.memberId] = { hoiben: 0, schnaps: 0, brodn: false, taxi: false, runde: false, abgsagt: true };
@@ -128,26 +106,55 @@ export default async function TerminPage() {
       {termin && <AktiverTermin terminId={termin.id} meId={me.id} isAdmin={me.role === 'admin'} />}
 
       {nachtrag && (() => {
-        const daten = bewertungsDaten(getBesucheFuerTermin(nachtrag.id), me.id);
+        const besucheLetzter = getBesucheFuerTermin(nachtrag.id);
+        const daten = bewertungsDaten(besucheLetzter, me.id);
+        const meinLetzter = besucheLetzter.find((b) => b.memberId === me.id);
+        const config = tenantConfig();
+        const darfNachtragen = me.role === 'admin' || me.id === getPraesidentId();
         return (
           <>
             <SectionHeader eyebrow="Letzter Abend" title={`${nachtragWirtshaus?.name ?? 'Stammtisch'} · ${datumKurz(nachtrag.datum)}`} />
-            {/* Mei Bewertung zum letzten Besuch, nur wer dabei war, derf werten */}
-            {daten.mein?.anwesend && (
-              <MeiBewertung
-                wirtshausName={null}
-                initial={daten.initial}
-                team={daten.team}
-                action={meineBewertung.bind(null, nachtrag.id)}
-              />
+            {/* Wer dabei war, richtet a Woch’ lang seine eigenen Sachen am Deckel (Hoibe, Marken) und seine Wertung */}
+            {meinLetzter?.anwesend && (
+              <>
+                <Bierdeckel
+                  terminId={nachtrag.id}
+                  biersorte={nachtragWirtshaus?.biersorte ?? null}
+                  initialHoiben={meinLetzter.hoiben}
+                  initialSchnaps={meinLetzter.schnaps}
+                  initialFlags={{
+                    taxi: meinLetzter.taxi,
+                    brodn: meinLetzter.schweinsbraten > 0,
+                    kaisi: meinLetzter.kaiserschmarrn > 0,
+                    rundenBier: meinLetzter.rundenBier,
+                    rundenSchnaps: meinLetzter.rundenSchnaps,
+                  }}
+                  schnapsAn={config.features.schnaps}
+                  rundenErlaubt={false}
+                  spezln={besucheLetzter
+                    .filter((b) => b.anwesend && (b.hoiben > 0 || b.schnaps > 0) && b.memberId !== me.id)
+                    .flatMap((b) => {
+                      const m = mitglieder.find((x) => x.id === b.memberId);
+                      return m ? [{ name: anzeigeName(m), photoUrl: m.photoUrl, verein: m.verein, hoiben: b.hoiben, schnaps: b.schnaps }] : [];
+                    })}
+                />
+                <MeiBewertung
+                  wirtshausName={null}
+                  initial={daten.initial}
+                  team={daten.team}
+                  action={meineBewertung.bind(null, nachtrag.id)}
+                />
+              </>
             )}
+            {darfNachtragen && (
             <NachtragKlappe
               schnapsAn={tenantConfig().features.schnaps}
-              titel={`Nachtragen · no ${nachtragRestTage} ${nachtragRestTage === 1 ? 'Tag' : 'Tag’'}`}
+              titel={`Für alle nachtragen · no ${nachtragRestTage} ${nachtragRestTage === 1 ? 'Tag' : 'Tag’'}`}
               mitglieder={mitglieder.map((m) => ({ id: m.id, name: anzeigeName(m), photoUrl: m.photoUrl, verein: m.verein, zugesagt: false }))}
               action={besuchAbschliessen.bind(null, nachtrag.id)}
               initial={nachtragInitial(nachtrag.id)}
             />
+            )}
           </>
         );
       })()}
@@ -359,19 +366,19 @@ async function AktiverTermin({ terminId, meId, isAdmin }: { terminId: string; me
                 Besuch abschließen
               </KlappenKopf>
               <div style={{ padding: '4px 18px 18px' }}>
-                <AbschlussForm
+                <AbschlussZettel
+                  meId={meId}
                   mitglieder={mitglieder.map((m) => ({
                     id: m.id,
                     name: anzeigeName(m),
                     photoUrl: m.photoUrl,
                     verein: m.verein,
                     zugesagt: voteVon(m.id) === 'zu',
+                    live: !!besucheLive.find((b) => b.memberId === m.id)?.anwesend,
                   }))}
-                  action={besuchAbschliessen.bind(null, termin.id)}
-                  schnapsAn={config.features.schnaps}
+                  meineWerte={bewertungsDaten(besucheLive, meId).initial}
                   naechsterTermin={!termin.abgeschlossenVon}
-                  bewertung={{ memberId: meId, werte: bewertungsDaten(besucheLive, meId).initial }}
-                  initial={abschlussVorbelegung(besucheLive, zugesagt.map((m) => m.id), wirtshaus)}
+                  action={besuchAbschliessen.bind(null, termin.id)}
                 />
               </div>
             </details>

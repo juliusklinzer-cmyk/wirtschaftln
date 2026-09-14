@@ -132,6 +132,7 @@ export const besuche = sqliteTable(
     kaiserschmarrn: integer('kaiserschmarrn').notNull().default(0),
     schweinsbraten: integer('schweinsbraten').notNull().default(0),
     taxi: integer('taxi', { mode: 'boolean' }).notNull().default(false), // hat gfahrn & Spezln mitgnommen
+    zuSpaet: integer('zu_spaet', { mode: 'boolean' }).notNull().default(false), // z’spät kemma (vermerkt der Abschließer)
     sterne: integer('sterne'), // 1–5, Bewertung des Wirtshauses
     kaiserSterne: integer('kaiser_sterne'), // 1–5, Kaiserschmarrn-Bewertung
     brodnSterne: integer('brodn_sterne'), // 1–5, Schweinsbraten-Bewertung

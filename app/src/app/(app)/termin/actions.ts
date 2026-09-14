@@ -322,13 +322,18 @@ export type BierdeckelErgebnis = { ok: true; hoiben: number } | { ok: false; mel
  * eigenen Besuchs-Eintrag, der Abschluss-Zettel übernimmt die Striche
  * dann als Vorbelegung. Jeder derf NUR für sich selber stricheln.
  */
+/** Deckel bedienbar: am Abend selbst, und zum Selber-Nachtragen bis 7 Tag nach'm Abschluss. */
+function deckelBedienbar(termin: { datum: string; zeit: string; phase: string; abgeschlossenAm: string | null }): boolean {
+  return bierdeckelOffen(termin, nowIso()) || (termin.phase === 'abgeschlossen' && nachtragsfristOffen(termin.abgeschlossenAm));
+}
+
 export async function hoibenStricheln(terminId: string, hoiben: number): Promise<BierdeckelErgebnis> {
   const me = await getCurrentMember();
   if (!me) return { ok: false, meldung: 'Ned angmeldt, bitte neu einloggen.' };
   const termin = db.select().from(termine).where(eq(termine.id, terminId)).get();
   if (!termin) return { ok: false, meldung: 'Der Termin is nimmer da.' };
-  if (!bierdeckelOffen(termin, nowIso())) {
-    return { ok: false, meldung: `Da Bierdeckel is zua, gstrichelt wird erst am Stammtisch-Abend ab ${termin.zeit || '19:00'} Uhr.` };
+  if (!deckelBedienbar(termin)) {
+    return { ok: false, meldung: `Da Bierdeckel is zua, gstrichelt wird am Stammtisch-Abend ab ${termin.zeit || '19:00'} Uhr und bis a Woch’ nach’m Abschluss.` };
   }
   const wert = Math.max(0, Math.min(30, Math.round(Number(hoiben) || 0)));
   const werte = { anwesend: true, hoiben: wert };
@@ -348,8 +353,8 @@ export async function schnapsStricheln(terminId: string, schnaps: number): Promi
   if (!tenantConfig().features.schnaps) return { ok: false, meldung: 'Bei euch wird ned gschnapselt.' };
   const termin = db.select().from(termine).where(eq(termine.id, terminId)).get();
   if (!termin) return { ok: false, meldung: 'Der Termin is nimmer da.' };
-  if (!bierdeckelOffen(termin, nowIso())) {
-    return { ok: false, meldung: `Da Bierdeckel is zua, gstrichelt wird erst am Stammtisch-Abend ab ${termin.zeit || '19:00'} Uhr.` };
+  if (!deckelBedienbar(termin)) {
+    return { ok: false, meldung: `Da Bierdeckel is zua, gstrichelt wird am Stammtisch-Abend ab ${termin.zeit || '19:00'} Uhr und bis a Woch’ nach’m Abschluss.` };
   }
   const wert = Math.max(0, Math.min(30, Math.round(Number(schnaps) || 0)));
   const werte = { anwesend: true, schnaps: wert };
@@ -432,28 +437,62 @@ export async function besuchAbschliessen(terminId: string, formData: FormData) {
   if (termin.phase === 'heute' && !abschlussOffen(termin, nowIso())) return;
 
   const gelistet = formData.getAll('memberId').map(String);
-  const kaisiBestellt = formData.get('kaisiBestellt') === 'on';
-  const dabeiIds = gelistet.filter((id) => formData.get(`anwesend_${id}`) === 'on');
-  const abgsagtIds = gelistet.filter((id) => formData.get(`abgsagt_${id}`) === 'on');
-  const rundenIds: string[] = [];
+  // Zwoa Zettel: der schlanke Abschluss-Zettel (modus=zettel: nur da / z’spät / ned da,
+  // alles andere kommt vom Deckel) und der volle Nachtrag-Zettel für Admin/Präsident.
+  const zettel = formData.get('modus') === 'zettel';
+  const statusVon = (id: string) => String(formData.get(`status_${id}`) ?? 'weg');
+  const kaisiBestellt = !zettel && formData.get('kaisiBestellt') === 'on';
+  const dabeiIds = zettel
+    ? gelistet.filter((id) => statusVon(id) === 'da' || statusVon(id) === 'spaet')
+    : gelistet.filter((id) => formData.get(`anwesend_${id}`) === 'on');
+  const abgsagtIds = zettel
+    ? gelistet.filter((id) => statusVon(id) === 'weg' && formData.get(`strafe_${id}`) === 'on')
+    : gelistet.filter((id) => formData.get(`abgsagt_${id}`) === 'on');
+  const vorhandene = new Map(db.select().from(besuche).where(eq(besuche.terminId, terminId)).all().map((b) => [b.memberId, b]));
+  // Runden je Spender (Anzahl), fürn Kasse-Eintrag weiter unten
+  const rundenJe = new Map<string, number>();
 
   // Für ALLE aktiven Mitglieder einen Besuchs-Eintrag schreiben (wichtig für die Serien):
   // gelistet-anwesend mit Werten, alle anderen als gefehlt. Die Bewertungs-Spalten
   // (sterne/kommentar/…) bleiben unangetastet, die gehören jedem selber.
   for (const m of getAktiveMitglieder()) {
     const anwesend = dabeiIds.includes(m.id);
-    const hoiben = anwesend ? Math.max(0, Number(formData.get(`hoiben_${m.id}`) ?? 0) || 0) : 0;
-    const schnaps = anwesend && tenantConfig().features.schnaps ? Math.max(0, Number(formData.get(`schnaps_${m.id}`) ?? 0) || 0) : 0;
-    const brodn = anwesend && formData.get(`brodn_${m.id}`) === 'on';
-    if (anwesend && formData.get(`runde_${m.id}`) === 'on') rundenIds.push(m.id);
-    const werte = {
-      anwesend,
-      hoiben,
-      schnaps,
-      kaiserschmarrn: anwesend && kaisiBestellt ? 1 : 0, // geteilt, jeder hat mitgegessen
-      schweinsbraten: brodn ? 1 : 0,
-      taxi: anwesend && formData.get(`taxi_${m.id}`) === 'on',
-    };
+    const alt = vorhandene.get(m.id);
+    const altRunden = (alt?.rundenBier ?? 0) + (alt?.rundenSchnaps ?? 0);
+    let werte;
+    if (zettel) {
+      // Schlanker Zettel: Hoibe, Schnaps, Marken und Runden bleiben, wia sie am Deckel stehen
+      werte = {
+        anwesend,
+        zuSpaet: anwesend && statusVon(m.id) === 'spaet',
+        hoiben: anwesend ? (alt?.hoiben ?? 0) : 0,
+        schnaps: anwesend ? (alt?.schnaps ?? 0) : 0,
+        kaiserschmarrn: anwesend ? (alt?.kaiserschmarrn ?? 0) : 0,
+        schweinsbraten: anwesend ? (alt?.schweinsbraten ?? 0) : 0,
+        taxi: anwesend && !!alt?.taxi,
+        rundenBier: anwesend ? (alt?.rundenBier ?? 0) : 0,
+        rundenSchnaps: anwesend ? (alt?.rundenSchnaps ?? 0) : 0,
+      };
+    } else {
+      const hoiben = anwesend ? Math.max(0, Number(formData.get(`hoiben_${m.id}`) ?? 0) || 0) : 0;
+      const schnaps = anwesend && tenantConfig().features.schnaps ? Math.max(0, Number(formData.get(`schnaps_${m.id}`) ?? 0) || 0) : 0;
+      const brodn = anwesend && formData.get(`brodn_${m.id}`) === 'on';
+      const runde = anwesend && formData.get(`runde_${m.id}`) === 'on';
+      werte = {
+        anwesend,
+        zuSpaet: anwesend && formData.get(`spaet_${m.id}`) === 'on',
+        hoiben,
+        schnaps,
+        kaiserschmarrn: anwesend && kaisiBestellt ? 1 : 0, // geteilt, jeder hat mitgegessen
+        schweinsbraten: brodn ? 1 : 0,
+        taxi: anwesend && formData.get(`taxi_${m.id}`) === 'on',
+        // Stern an: Deckel-Zähler bleiben (mind. 1 Runde), Stern aus: koa Runde
+        rundenBier: runde ? Math.max(altRunden > 0 ? (alt?.rundenBier ?? 0) : 1, altRunden > 0 ? 0 : 1) : 0,
+        rundenSchnaps: runde && altRunden > 0 ? (alt?.rundenSchnaps ?? 0) : 0,
+      };
+    }
+    const runden = werte.rundenBier + werte.rundenSchnaps;
+    if (anwesend && runden > 0) rundenJe.set(m.id, runden);
     db.insert(besuche)
       .values({ id: newId('b'), terminId, memberId: m.id, ...werte })
       .onConflictDoUpdate({ target: [besuche.terminId, besuche.memberId], set: werte })
@@ -506,14 +545,16 @@ export async function besuchAbschliessen(terminId: string, formData: FormData) {
   // (zählt für Großbauer + Runden-WP; zahlt sich am Tisch, fließt also NICHT in den Saldo)
   const rundenWert = dabeiIds.length * hoibePreisCents();
   db.delete(kasse).where(and(eq(kasse.terminId, terminId), eq(kasse.kind, 'runde'))).run();
-  for (const memberId of rundenIds) {
-    db.insert(kasse)
-      .values({
-        id: newId('k'), memberId, terminId,
-        grund: `Runde gschmissen im ${wirtshausName} 🍻 (${dabeiIds.length} × ${hoibePreisEuro()} €)`,
-        betragCents: rundenWert, kind: 'runde', status: 'beglichen', createdAt: nowIso(),
-      })
-      .run();
+  for (const [memberId, anzahl] of rundenJe) {
+    for (let i = 0; i < anzahl; i++) {
+      db.insert(kasse)
+        .values({
+          id: newId('k'), memberId, terminId,
+          grund: `${anzahl > 1 ? `${i + 1}. ` : ''}Runde gschmissen im ${wirtshausName} 🍻 (${dabeiIds.length} × ${hoibePreisEuro()} €)`,
+          betragCents: rundenWert, kind: 'runde', status: 'beglichen', createdAt: nowIso(),
+        })
+        .run();
+    }
   }
 
   // ❌ Zugesagt & nicht erschienen → offene Forderung: Runde = Teilnehmer × Kellerpreis.

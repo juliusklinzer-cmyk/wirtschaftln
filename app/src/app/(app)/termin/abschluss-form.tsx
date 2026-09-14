@@ -5,7 +5,8 @@ import { Avatar, Button, Input } from '@/components/ds';
 import { HELLE_WAHL, WEISSBIERE, STANDARD_BIERSORTE } from '@/lib/biersorten';
 import { PTS } from '@/lib/punkte';
 import { BierWahl } from '@/components/domain/BierWahl';
-import { SterneStepper, ProbiertKopf, textareaStyle, type MeiBewertungWerte } from '@/components/domain/MeiBewertung';
+import type { MeiBewertungWerte } from '@/components/domain/MeiBewertung';
+import { EigeneWertung } from './eigene-wertung';
 
 export type AbschlussMitglied = {
   id: string;
@@ -17,7 +18,7 @@ export type AbschlussMitglied = {
 };
 
 export type AbschlussWerte = {
-  rows: Record<string, { hoiben: number; schnaps?: number; brodn: boolean; taxi: boolean; runde: boolean; abgsagt: boolean }>;
+  rows: Record<string, { hoiben: number; schnaps?: number; brodn: boolean; taxi: boolean; runde: boolean; abgsagt: boolean; spaet?: boolean }>;
   kaisiBestellt: boolean;
   biersorte: string;
   weissbier: string;
@@ -50,14 +51,14 @@ export function AbschlussForm({
   /** Der Abschließer bewertet im selben Zug mit (nur beim Live-Abschluss): seine Kennung + bisherige Wertung */
   bewertung?: { memberId: string; werte: MeiBewertungWerte } | null;
 }) {
-  type Row = { hoiben: number; schnaps: number; brodn: boolean; taxi: boolean; runde: boolean; abgsagt: boolean };
-  const leer: Row = { hoiben: 0, schnaps: 0, brodn: false, taxi: false, runde: false, abgsagt: false };
+  type Row = { hoiben: number; schnaps: number; brodn: boolean; taxi: boolean; runde: boolean; abgsagt: boolean; spaet: boolean };
+  const leer: Row = { hoiben: 0, schnaps: 0, brodn: false, taxi: false, runde: false, abgsagt: false, spaet: false };
 
   const [rows, setRows] = useState<Record<string, Row>>(() => {
     const r: Record<string, Row> = {};
     for (const m of mitglieder) {
       const init = initial?.rows[m.id];
-      if (init) r[m.id] = { ...init, schnaps: init.schnaps ?? 0 };
+      if (init) r[m.id] = { ...init, schnaps: init.schnaps ?? 0, spaet: init.spaet ?? false };
       else if (m.zugesagt && !initial) r[m.id] = { ...leer };
     }
     return r;
@@ -65,14 +66,6 @@ export function AbschlussForm({
   const [kaisiBestellt, setKaisiBestellt] = useState(initial?.kaisiBestellt ?? false);
   const [biersorte, setBiersorte] = useState(initial?.biersorte ?? STANDARD_BIERSORTE);
   const [weissbier, setWeissbier] = useState(initial?.weissbier ?? '');
-  // Eigene Wertung vom Abschließer (vorbelegt, falls er scho bei „Mei Bewertung“ war)
-  const [sterne, setSterne] = useState(bewertung?.werte.sterne ?? 3);
-  const [kommentar, setKommentar] = useState(bewertung?.werte.kommentar ?? '');
-  const [kaisi, setKaisi] = useState(bewertung?.werte.kaisiProbiert ?? false);
-  const [kaiserSterne, setKaiserSterne] = useState(bewertung?.werte.kaiserSterne ?? 3);
-  const [kaiserNotiz, setKaiserNotiz] = useState(bewertung?.werte.kaiserNotiz ?? '');
-  const [brodnSterne, setBrodnSterne] = useState(bewertung?.werte.brodnSterne ?? 3);
-  const [brodnNotiz, setBrodnNotiz] = useState(bewertung?.werte.brodnNotiz ?? '');
 
   const gelistet = mitglieder.filter((m) => rows[m.id]);
   const dabei = gelistet.filter((m) => !rows[m.id].abgsagt);
@@ -82,7 +75,6 @@ export function AbschlussForm({
   // Bewertet wird nur, wenn der Abschließer selber auf der Liste steht (und ned als abgsagt)
   const ich = bewertung && rows[bewertung.memberId] && !rows[bewertung.memberId].abgsagt ? bewertung : null;
   const ichBrodn = ich ? rows[ich.memberId].brodn : false;
-  const schonBewertet = ich?.werte.sterne != null;
 
   const versteckteFelder = useMemo(() => {
     const felder: Array<[string, string]> = [];
@@ -99,17 +91,13 @@ export function AbschlussForm({
       if (r.brodn) felder.push([`brodn_${m.id}`, 'on']);
       if (r.taxi) felder.push([`taxi_${m.id}`, 'on']);
       if (r.runde) felder.push([`runde_${m.id}`, 'on']);
+      if (r.spaet) felder.push([`spaet_${m.id}`, 'on']);
     }
     if (kaisiBestellt) felder.push(['kaisiBestellt', 'on']);
     felder.push(['biersorte', biersorte]);
     felder.push(['weissbier', weissbier]);
-    if (ich) {
-      felder.push(['sterne', String(sterne)]);
-      if (kaisi) { felder.push(['kaisiProbiert', 'on']); felder.push(['kaiserSterne', String(kaiserSterne)]); }
-      if (ichBrodn) { felder.push(['brodnGessen', 'on']); felder.push(['brodnSterne', String(brodnSterne)]); }
-    }
     return felder;
-  }, [gelistet, rows, kaisiBestellt, biersorte, weissbier, ich, ichBrodn, sterne, kaisi, kaiserSterne, brodnSterne]);
+  }, [gelistet, rows, kaisiBestellt, biersorte, weissbier]);
 
   return (
     <form action={action} style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
@@ -140,6 +128,7 @@ export function AbschlussForm({
                   <RundToggle an={r.taxi} onToggle={() => patch(m.id, { taxi: !r.taxi })} title="Mit'm Auto da & Spezln mitgnommen (Taxler)">🚕</RundToggle>
                   <RundToggle an={r.brodn} onToggle={() => patch(m.id, { brodn: !r.brodn })} title="Schweinsbraten gegessen">🍖</RundToggle>
                   <RundToggle an={r.runde} onToggle={() => patch(m.id, { runde: !r.runde })} title="Hat a Runde gschmissen (Großbauer)">⭐</RundToggle>
+                  <RundToggle an={r.spaet} onToggle={() => patch(m.id, { spaet: !r.spaet })} title="Z’spät kemma">⏰</RundToggle>
                   <MiniStepper value={r.hoiben} onChange={(v) => patch(m.id, { hoiben: v })} />
                   {schnapsAn && <MiniStepper value={r.schnaps} onChange={(v) => patch(m.id, { schnaps: v })} icon="🥃" />}
                 </>
@@ -184,49 +173,10 @@ export function AbschlussForm({
         <BierWahl label="Welches Weißbier?" biere={WEISSBIERE} value={weissbier} onChange={setWeissbier} leerLabel="Koa Weißbier / wissen wir nimmer" />
       </div>
 
-      {/* Dei Wertung: der Abschließer bewertet gleich mit, koa zweiter Schritt (anpassen geht danach bei „Mei Bewertung“) */}
+      {/* Dei Wertung (Nachtrag durch Admin/Präsident: nur wenn er selber dabei war) */}
       {ich && (
-        <div style={{ marginTop: 18, padding: 14, border: '1.5px solid var(--ink-200)', borderRadius: 'var(--r-lg)', display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--ink-900)' }}>Dei Wertung</div>
-              <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--ink-500)' }}>
-                {schonBewertet ? 'Scho abgeben, hier kannst no anpassen.' : 'Wird mit’m Abschluss gspeichert, anpassen geht danach no a Woch’.'}
-              </div>
-            </div>
-            <span className="wn-tnum" style={{ flex: 'none', fontSize: 12, fontWeight: 800, padding: '3px 10px', borderRadius: 999, background: schonBewertet ? 'var(--erfolg-bg)' : 'var(--grad-gold)', color: schonBewertet ? 'var(--erfolg)' : 'var(--navy-900)' }}>
-              {schonBewertet ? '✓' : `+${PTS.bewertung} WP`}
-            </span>
-          </div>
-          <SterneStepper value={sterne} onChange={setSterne} />
-          <textarea
-            name="kommentar" value={kommentar} onChange={(e) => setKommentar(e.target.value)} rows={2}
-            placeholder="Wie war’s? Bedienung, Bier, Brotzeit…" style={textareaStyle}
-          />
-          <div style={{ border: '1.5px solid var(--ink-200)', borderRadius: 'var(--r-md)', overflow: 'hidden' }}>
-            <ProbiertKopf
-              icon="🥞" titel="Kaiserschmarrn probiert?" an={kaisi} onToggle={() => setKaisi(!kaisi)}
-              untertitel={kaisi ? 'Dei Kaisi-Wertung zählt in d’Kaisi-Rangliste.' : 'Mitgessen? Antippen und bewerten.'}
-            />
-            {kaisi && (
-              <div style={{ padding: '12px 14px 14px', borderTop: '1px solid var(--pergament-edge)', background: 'var(--pergament)' }}>
-                <SterneStepper value={kaiserSterne} onChange={setKaiserSterne} />
-                <textarea name="kaiserNotiz" value={kaiserNotiz} onChange={(e) => setKaiserNotiz(e.target.value)} rows={2} placeholder="Fluffig? Z’wenig Rosinen?" style={{ ...textareaStyle, marginTop: 12 }} />
-              </div>
-            )}
-          </div>
-          <div style={{ border: '1.5px solid var(--ink-200)', borderRadius: 'var(--r-md)', overflow: 'hidden' }}>
-            <ProbiertKopf
-              icon="🍖" titel="Brodn gessen?" an={ichBrodn} onToggle={() => patch(ich.memberId, { brodn: !ichBrodn })}
-              untertitel={ichBrodn ? 'Dei Brodn-Wertung zählt in d’Brodn-Rangliste.' : 'An Schweinsbraten ghabt? Antippen und bewerten.'}
-            />
-            {ichBrodn && (
-              <div style={{ padding: '12px 14px 14px', borderTop: '1px solid var(--pergament-edge)', background: 'var(--pergament)' }}>
-                <SterneStepper value={brodnSterne} onChange={setBrodnSterne} />
-                <textarea name="brodnNotiz" value={brodnNotiz} onChange={(e) => setBrodnNotiz(e.target.value)} rows={2} placeholder="Kruste? Knödel? Soß’?" style={{ ...textareaStyle, marginTop: 12 }} />
-              </div>
-            )}
-          </div>
+        <div style={{ marginTop: 18 }}>
+          <EigeneWertung werte={ich.werte} brodn={ichBrodn} onBrodn={(an) => patch(ich.memberId, { brodn: an })} />
         </div>
       )}
 

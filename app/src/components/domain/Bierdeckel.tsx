@@ -103,7 +103,8 @@ function Strichgruppen({ anzahl, winkel, salz }: { anzahl: number; winkel: numbe
 /**
  * „WB“ (Williams Birne) mit'm Kugelschreiber hingschrieben: koa Schrift,
  * sondern drei Stiftzüge (W in einem Zug, B-Stamm, B-Bäuche), tangential am
- * linken Rand vor der Schnaps-Reihe, Schrift-Oberkante nach außen.
+ * linken Rand vor der Schnaps-Reihe, Oberkante zur Mitte: an Deckel liest ma
+ * von außen (Julius, 14.09.2026).
  */
 function KuerzelWB() {
   const { x, y } = amRand(WB_WINKEL, RADIUS - 2);
@@ -111,7 +112,7 @@ function KuerzelWB() {
     stroke: TINTE, strokeWidth: 2.8, strokeLinecap: 'round', strokeLinejoin: 'round', fill: 'none', opacity: 0.9,
   };
   return (
-    <g transform={`translate(${x.toFixed(1)} ${y.toFixed(1)}) rotate(${WB_WINKEL + 90 + zitter(1, 21) * 3})`}>
+    <g transform={`translate(${x.toFixed(1)} ${y.toFixed(1)}) rotate(${WB_WINKEL - 90 + zitter(1, 21) * 3})`}>
       <path d="M -20 -10 Q -18 1 -15 10 Q -13 2 -10 -3 Q -7 2 -5 10 Q -2 0 1 -10" {...zug} />
       <path d="M 5.5 -10.5 Q 4.5 0 4 10.5" {...zug} />
       <path d="M 5 -10 Q 18 -12 17 -2.5 Q 16.5 0.5 6 0 Q 20 -0.5 19 7 Q 18 11.5 4 10" {...zug} />
@@ -233,6 +234,7 @@ export function Bierdeckel({
   schnapsAn = false,
   initialFlags,
   spezln,
+  rundenErlaubt = true,
 }: {
   terminId: string;
   /** Helles vom Wirtshaus → passender Deckel (Augustiner-Scan, Brauerei-Deckel oder neutral) */
@@ -245,6 +247,8 @@ export function Bierdeckel({
   initialFlags?: AbendFlags;
   /** Die anderen am Tisch mit ihrem aktuellen Strich-Stand (nur > 0). */
   spezln: BierdeckelSpezl[];
+  /** false = Deckel im Nachtrag (a Woch’ nach’m Abschluss): eigene Sachen richten ja, Runde schmeißen nimmer */
+  rundenErlaubt?: boolean;
 }) {
   const router = useRouter();
   const [hoiben, setHoiben] = useState(initialHoiben);
@@ -403,7 +407,9 @@ export function Bierdeckel({
           <Marke an={flags.taxi} icon="🚕" label="Taxler" title="Mit'm Auto da & Spezln mitgnommen" onClick={() => flagUmschalten('taxi')} />
           <Marke an={flags.brodn} icon="🍖" label="Brodn" title="Schweinsbraten gegessen" onClick={() => flagUmschalten('brodn')} />
           <Marke an={flags.kaisi} icon="🥞" label="Schmarrn" title="Kaiserschmarrn bestellt (wird eh geteilt)" onClick={() => flagUmschalten('kaisi')} />
-          <Marke an={rundenGesamt > 0} icon="⭐" label={rundenGesamt > 0 ? `Runde ×${rundenGesamt}` : 'Runde'} title="A Runde für alle am Tisch gschmissen" onClick={() => setRundeWahl((w) => !w)} />
+          {(rundenErlaubt || rundenGesamt > 0) && (
+            <Marke an={rundenGesamt > 0} icon="⭐" label={rundenGesamt > 0 ? `Runde ×${rundenGesamt}` : 'Runde'} title="A Runde für alle am Tisch gschmissen" onClick={() => rundenErlaubt && setRundeWahl((w) => !w)} />
+          )}
         </div>
         {rundeWahl && (
           <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 8, padding: '12px 14px', background: 'var(--pergament)', border: '1px solid var(--pergament-edge)', borderRadius: 'var(--r-md)' }}>

@@ -185,6 +185,24 @@ export function ladeRanglisteDaten(meId: string): {
       .sort((x, y) => y.saison - x.saison || y.gesamt - x.gesamt),
   };
 
+  // Gschaftler-Zähler: wer wia oft z’spät kemma is (koa Strafe, nur der Vermerk vom Abschließer)
+  const gschaftlerId = badges.find((b) => b.key === 'gschaftler')?.holderId ?? null;
+  const spaetZaehler: ZaehlerBlock = {
+    titel: 'D’Gschaftler-Rangliste',
+    hinweis: 'wer wia oft z’spät kemma is',
+    einheit: 'mal z’spät',
+    eintraege: statsAllzeit
+      .filter((a) => a.zuSpaet > 0)
+      .map((a) => ({
+        name: anzeigeName(a.member),
+        photoUrl: a.member.photoUrl,
+        saison: statsSaison.find((x) => x.member.id === a.member.id)?.zuSpaet ?? 0,
+        gesamt: a.zuSpaet,
+        aktiv: a.member.id === gschaftlerId,
+      }))
+      .sort((x, y) => y.saison - x.saison || y.gesamt - x.gesamt),
+  };
+
   const badgeInfos: Record<string, BadgeInfoDaten> = {};
   for (const b of saisonBadges()) {
     badgeInfos[b.key] = {
@@ -198,7 +216,7 @@ export function ladeRanglisteDaten(meId: string): {
       pflicht: b.pflicht,
       duties: null,
       hallOfFame: hallOfFameVon(b.key),
-      zaehler: b.key === 'moshammer' ? rundenZaehler : null,
+      zaehler: b.key === 'moshammer' ? rundenZaehler : b.key === 'gschaftler' ? spaetZaehler : null,
     };
   }
   for (const [key, titel] of [

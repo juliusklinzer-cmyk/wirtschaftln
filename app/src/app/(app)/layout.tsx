@@ -9,6 +9,7 @@ import { TabBar, TABS_STAMMHAUS, TABS_WANDERND } from '@/components/shell/TabBar
 import { DaniStreifen } from '@/components/domain/DaniModus';
 import { TenantProvider } from '@/components/shell/TenantProvider';
 import { publicTenantConfig } from '@/lib/tenant-config';
+import { ZiehenAktualisieren } from '@/components/shell/ZiehenAktualisieren';
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const me = await getCurrentMember();
@@ -41,6 +42,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       {/* Header scrollt MIT dem Inhalt weg (bewusst ned sticky, Julius 29.08.) —
           nur d'Tab-Leiste unten bleibt stehen */}
       <main className="wn-scroll-still" style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', position: 'relative', overscrollBehavior: 'contain' }}>
+        {/* Runterziehen zum Aktualisieren + weiße Überzieh-Deckung oberhalb vom Header */}
+        <ZiehenAktualisieren />
         <AppBar
           appName={config.name}
           logoSrc={config.logoUrl ? `${config.logoUrl}?s=128` : config.istGruender ? '/brand/shield-256.png' : '/brand/rauten-256.png'}

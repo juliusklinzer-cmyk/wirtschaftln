@@ -23,6 +23,8 @@ export async function wirtshausEntfernen(wirtshausId: string): Promise<{ ok: boo
   if (w.altbestand) return { ok: false, meldung: 'Chronik-Wirtshäuser bleiben stehen.' };
   const belegt = db.select().from(termine).where(eq(termine.wirtshausId, wirtshausId)).get();
   if (belegt) return { ok: false, meldung: 'Des Wirtshaus hängt scho an am Termin, do werd nix glöscht.' };
+  const fremdBewertet = db.select().from(wirtshausBewertungen).where(eq(wirtshausBewertungen.wirtshausId, wirtshausId)).all().some((b) => b.memberId !== me.id);
+  if (fremdBewertet && me.role !== 'admin') return { ok: false, meldung: 'Da hat scho wer anders bewertet, des bleibt im Lexikon.' };
   db.delete(wirtshaeuser).where(eq(wirtshaeuser.id, wirtshausId)).run();
   revalidatePath('/');
   revalidatePath('/termin');

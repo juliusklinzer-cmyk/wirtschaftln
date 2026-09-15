@@ -78,8 +78,10 @@ export function ladeArchivEintraege(meId: string): ArchivEintrag[] {
     }
   }
 
-  // „Gfundene" Wirtshäuser, offen, noch von koan Termin belegt
+  // Entdeckte Wirtshäuser, noch von koan Termin belegt. Wer scho dort war,
+  // bewertet freiwillig (ohne WP) → „vorbewertet“, eigener Pin auf der Karte.
   for (const { wirtshaus, finder } of getOffeneWirtshaeuser()) {
+    const nach = nachVon(wirtshaus.id);
     eintraege.push({
       id: wirtshaus.id,
       name: wirtshaus.name,
@@ -92,12 +94,14 @@ export function ladeArchivEintraege(meId: string): ArchivEintrag[] {
       organisator: null,
       gfundenVon: finder ? anzeigeName(finder) : null,
       gfundenVonId: wirtshaus.vorgeschlagenVon,
-      rating: 0,
-      kaiser: 0,
-      brodn: 0,
+      rating: blend(0, 0, nach.map((n) => n.bewertung.sterne)),
+      kaiser: blend(0, 0, nach.map((n) => n.bewertung.kaiserSterne).filter((s): s is number => s != null)),
+      brodn: blend(0, 0, nach.map((n) => n.bewertung.brodnSterne).filter((s): s is number => s != null)),
+      nachAnzahl: nach.length,
+      vorbewertet: nach.length > 0,
       hoiben: 0,
       teilnehmer: [],
-      hinweise: [],
+      hinweise: nachKommentare(wirtshaus.id),
       meineBewertung: meineVon(wirtshaus.id),
     });
   }

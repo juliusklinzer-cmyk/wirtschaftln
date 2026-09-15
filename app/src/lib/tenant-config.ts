@@ -50,7 +50,6 @@ export function parseTenantConfig(gruppe: Gruppe): TenantConfig {
   const gruender = gruppe.istGruender;
   const basisFeatures = gruender ? GRUENDER_FEATURES : GENERISCHE_FEATURES;
   const features: TenantFeatures = { ...basisFeatures, ...(c.features ?? {}) };
-  if (gruppe.typ === 'stammhaus' && c.features?.archivKarte === undefined) features.archivKarte = false;
   if (gruppe.typ === 'stammhaus' && c.features?.nieZweimal === undefined) features.nieZweimal = false;
   const logo = typeof c.logo === 'string' && c.logo.startsWith('data:image/') ? c.logo : null;
   const hoibe = Number(c.hoibePreisCents);

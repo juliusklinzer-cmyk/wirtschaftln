@@ -4,7 +4,7 @@ import { getPraesidentId } from '@/lib/queries';
 import { ArchivScreen } from '@/components/domain/ArchivScreen';
 import { tenantConfig } from '@/lib/tenant-config';
 
-export const metadata = { title: 'Archiv · Wirtschaftln' };
+export const metadata = { title: 'Wirtshäuser · Wirtschaftln' };
 
 export default async function KartePage() {
   const me = (await getCurrentMember())!;

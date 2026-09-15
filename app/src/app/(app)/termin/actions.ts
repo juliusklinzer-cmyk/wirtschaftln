@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { anzeigeName } from '@/lib/namen';
 import { and, eq } from 'drizzle-orm';
-import { db, termine, votes, besuche, wirtshaeuser, kasse, pushSubscriptions, checkins, currentTenant } from '@/lib/db';
+import { db, termine, votes, besuche, wirtshaeuser, kasse, pushSubscriptions, checkins, currentTenant, wirtshausBewertungen } from '@/lib/db';
 import { getCurrentMember } from '@/lib/session';
 import { getAktiveMitglieder, nachtragsfristOffen, getVergabeStand, getStats, getPraesidentId, getBekannteWirtshaeuser, getLetzterAbgeschlossenerTermin, getAktuellerTermin } from '@/lib/queries';
 import { findeBekanntes } from '@/lib/wirtshaus-abgleich';
@@ -142,7 +142,7 @@ async function wirtshausAusSuche(formData: FormData, vorgeschlagenVon: string | 
   return wid;
 }
 
-export type VorschlagErgebnis = { ok: true } | { ok: false; meldung: string };
+export type VorschlagErgebnis = { ok: true; neu: boolean; bewertet: boolean } | { ok: false; meldung: string };
 
 /**
  * „Wirtshaus gfunden", darf jeder: landet als offener Pin auf der Karte
@@ -159,18 +159,60 @@ export async function wirtshausVorschlagen(formData: FormData): Promise<Vorschla
   const name = String(formData.get('w_name') ?? '').trim() || String(formData.get('w_freitext') ?? '').trim();
   if (!name) return { ok: false, meldung: 'Koa Wirtshaus eingeben, such oans aus oder tipp an Namen.' };
   const bekannt = findeBekanntes(name, getBekannteWirtshaeuser());
+  // „I war scho da“: eigene Wertung gleich mit (freiwillig, ohne WP, wie die Nachbewertung)
+  const bewerten = formData.get('bewerten') === 'on';
   if (bekannt) {
+    // Scho entdeckt, aber i hab a Wertung dazu → nur die Wertung speichern
+    if (bekannt.art === 'vorgeschlagen' && bewerten) {
+      const w = db.select().from(wirtshaeuser).all().find((x) => x.name.trim().toLowerCase() === bekannt.name.trim().toLowerCase());
+      if (w && eigeneWertungSpeichern(w.id, me.id, formData)) {
+        revalidateAll();
+        return { ok: true, neu: false, bewertet: true };
+      }
+    }
     const meldung =
       bekannt.art === 'besucht'
-        ? `„${bekannt.name}“ steht scho in eurer Chronik, a Wirtshaus wird nie zweimal bsucht.`
+        ? `„${bekannt.name}“ steht scho in eurer Chronik${tenantConfig().features.nieZweimal ? ', a Wirtshaus wird nie zweimal bsucht' : ''}.`
         : bekannt.art === 'eingeplant'
           ? `„${bekannt.name}“ steht scho als nächster Stammtisch fest.`
-          : `„${bekannt.name}“ ${bekannt.von ? `hat ${bekannt.von} scho gfunden` : 'is scho vorgschlagen'}, steht als „Offen“ auf da Kartn.`;
+          : `„${bekannt.name}“ ${bekannt.von ? `hat ${bekannt.von} scho entdeckt` : 'is scho entdeckt'}, steht auf da Kartn.`;
     return { ok: false, meldung };
   }
-  await wirtshausAusSuche(formData, me.id);
+  const wid = await wirtshausAusSuche(formData, me.id);
+  const bewertet = !!wid && bewerten && eigeneWertungSpeichern(wid, me.id, formData);
   revalidateAll();
-  return { ok: true };
+  return { ok: true, neu: true, bewertet };
+}
+
+/**
+ * Freiwillige Wertung zu am Wirtshaus (Felder wie bei der Nachbewertung auf der
+ * Karte: sterne, kommentar, kaiserSterne/-Notiz, brodnSterne/-Notiz). Eine je
+ * Spezl & Wirtshaus, änderbar, bewusst OHNE WP. true = gspeichert.
+ */
+function eigeneWertungSpeichern(wirtshausId: string, memberId: string, formData: FormData): boolean {
+  const wert = (feld: string) => {
+    const v = Number(String(formData.get(feld) ?? '').replace(',', '.'));
+    return Number.isFinite(v) && v >= 1 && v <= 5 ? Math.round(v * 10) / 10 : null;
+  };
+  const notiz = (feld: string) => String(formData.get(feld) ?? '').trim().slice(0, 500) || null;
+  const sterne = wert('sterne');
+  if (sterne == null) return false;
+  const kaiserSterne = wert('kaiserSterne');
+  const brodnSterne = wert('brodnSterne');
+  const werte = {
+    sterne,
+    kaiserSterne,
+    brodnSterne,
+    kommentar: notiz('kommentar'),
+    kaiserNotiz: kaiserSterne != null ? notiz('kaiserNotiz') : null,
+    brodnNotiz: brodnSterne != null ? notiz('brodnNotiz') : null,
+    updatedAt: nowIso(),
+  };
+  db.insert(wirtshausBewertungen)
+    .values({ id: newId('wb'), wirtshausId, memberId, ...werte })
+    .onConflictDoUpdate({ target: [wirtshausBewertungen.wirtshausId, wirtshausBewertungen.memberId], set: werte })
+    .run();
+  return true;
 }
 
 export async function wirtshausFestlegen(terminId: string, formData: FormData) {

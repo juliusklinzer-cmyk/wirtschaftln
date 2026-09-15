@@ -17,8 +17,10 @@ export type KartenPin = {
   photoUrl: string | null;
   naechstes?: boolean;
   top3?: boolean;
-  /** „Gfunden", aber no ned besucht, hellgrauer Pin mit ❓ statt Bierkrug. */
+  /** Entdeckt, aber no ned besucht und no koane Wertung: hellgrauer Pin mit ❓ statt Bierkrug. */
   offen?: boolean;
+  /** Entdeckt und von Spezln bewertet (no koa Stammtisch dort): heller blauer Pin mit ★. */
+  vorbewertet?: boolean;
 };
 
 /**
@@ -33,7 +35,7 @@ function pinElement(pin: KartenPin, aktiv: boolean, onClick: () => void): HTMLBu
   const gold = pin.naechstes || pin.top3;
   const btn = document.createElement('button');
   btn.type = 'button';
-  btn.title = pin.offen ? `${pin.name} (no ned besucht)` : pin.name;
+  btn.title = pin.offen ? `${pin.name} (no ned besucht)` : pin.vorbewertet ? `${pin.name} (von Spezln bewertet)` : pin.name;
   btn.style.cssText = `border:none;background:transparent;cursor:pointer;padding:0;
     transform:translate(-50%,-100%);position:absolute;
     filter:drop-shadow(0 ${aktiv ? 4 : 1}px ${aktiv ? 6 : 2}px rgba(12,43,90,.${ruhig ? 15 : aktiv ? 4 : 3}));
@@ -43,6 +45,8 @@ function pinElement(pin: KartenPin, aktiv: boolean, onClick: () => void): HTMLBu
     ? 'linear-gradient(180deg,#E6C684 0%,#D0AD66 45%,#A6843E 100%)'
     : ruhig
       ? '#F3EEE1' // Pergament: zurückhaltend, klar als „no ned besucht" lesbar
+      : pin.vorbewertet && !aktiv
+        ? '#DCEBF7' // hellblau: bewertet, aber no koa Stammtisch dort
       : aktiv
         ? '#006AB3'
         : '#0C2B5A';
@@ -50,7 +54,7 @@ function pinElement(pin: KartenPin, aktiv: boolean, onClick: () => void): HTMLBu
     width:${size}px;height:${size}px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);
     transition:all .2s ease;
     box-shadow:0 ${ruhig ? 1 : 2}px ${ruhig ? 4 : 8}px rgba(12,43,90,.${ruhig ? 12 : 25});
-    border:${ruhig ? '1.5px solid rgba(12,43,90,0.28)' : '2px solid #fff'};
+    border:${ruhig ? '1.5px solid rgba(12,43,90,0.28)' : pin.vorbewertet && !aktiv ? '2px solid #006AB3' : '2px solid #fff'};
     background:${hintergrund};`;
   const icon = document.createElement('span');
   if (pin.offen) {
@@ -59,6 +63,9 @@ function pinElement(pin: KartenPin, aktiv: boolean, onClick: () => void): HTMLBu
       font-size:${aktiv ? 15 : 11}px;font-weight:800;line-height:1;
       color:${aktiv ? '#fff' : '#9AA6B5'};`;
     icon.textContent = '?';
+  } else if (pin.vorbewertet) {
+    icon.style.cssText = `transform:rotate(45deg);font-size:${aktiv ? 17 : 14}px;line-height:1;color:${aktiv ? '#E6C684' : '#B8860B'};`;
+    icon.textContent = '★';
   } else {
     icon.style.cssText = `transform:rotate(45deg);font-size:${aktiv ? 16 : 13}px;line-height:1;`;
     icon.textContent = pin.naechstes ? '📍' : '🍺';

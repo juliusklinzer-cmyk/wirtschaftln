@@ -308,8 +308,8 @@ export default async function HomePage() {
 
       <PushAktivieren />
 
-      {/* Wirtshaus gfunden, darf jeder: landet als offener Pin auf der Karte (beim Stammhaus-Typ ned). */}
-      {config.typ !== 'stammhaus' && (
+      {/* Wirtshaus entdeckt, darf jeder: landet als Pin auf der Karte, wer scho dort war, bewertet gleich mit. */}
+      {(
         <details
           style={{
             background: 'var(--weiss)', border: '1px solid var(--ink-100)',
@@ -323,7 +323,7 @@ export default async function HomePage() {
               </span>
             }
           >
-            Wirtshaus gfunden?
+            {config.typ === 'stammhaus' ? 'Wirtshaus fürs Lexikon?' : 'Wirtshaus gfunden?'}
           </KlappenKopf>
           <div style={{ padding: '4px 18px 18px' }}>
             <WirtshausGfunden bekannte={getBekannteWirtshaeuser()} />

@@ -15,8 +15,8 @@ export const TABS_WANDERND: TabDef[] = [
   { href: '/kasse', label: 'Kasse', icon: 'beer' },
 ];
 
-/** Stammhaus: immer dasselbe Wirtshaus, a Karte braucht's ned. */
-export const TABS_STAMMHAUS: TabDef[] = TABS_WANDERND.filter((t) => t.href !== '/karte');
+/** Stammhaus: immer dasselbe Wirtshaus, dafür a Wirtshaus-Lexikon (entdecken + bewerten). */
+export const TABS_STAMMHAUS: TabDef[] = TABS_WANDERND.map((t) => (t.href === '/karte' ? { ...t, label: 'Lexikon' } : t));
 
 export function TabBar({ tabs = TABS_WANDERND }: { tabs?: TabDef[] }) {
   const TABS = tabs;

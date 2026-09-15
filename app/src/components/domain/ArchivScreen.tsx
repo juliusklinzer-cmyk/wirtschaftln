@@ -45,6 +45,8 @@ export type ArchivEintrag = {
   altbestand?: boolean;
   /** Wie viele freiwillige Nachbewertungen im rating mitstecken. */
   nachAnzahl?: number;
+  /** Entdeckt und von Spezln bewertet, aber no koa Stammtisch dort (Lexikon-Eintrag). */
+  vorbewertet?: boolean;
   /** Eigene Nachbewertung des eingeloggten Spezl (null = noch keine). */
   meineBewertung?: {
     sterne: number;
@@ -127,9 +129,10 @@ export function ArchivScreen({
   const [detail, setDetail] = useState<{ e: ArchivEintrag; rank: number | null } | null>(null);
 
   // Altbestand zählt als besucht (Chronik), rankt aber nur mit Nachbewertungen (> 0 Sterne)
-  const besucht = eintraege.filter((e) => e.besuchtAm || e.altbestand);
+  const besucht = eintraege.filter((e) => e.besuchtAm || e.altbestand || e.vorbewertet);
   // Offene Vorschläge: no ned besucht, koa nächster Termin, koa Altbestand
   const offene = eintraege.filter((e) => !e.besuchtAm && !e.naechstes && !e.altbestand);
+  const nurEntdeckt = (e: ArchivEintrag) => !e.besuchtAm && !e.naechstes && !e.altbestand && !e.vorbewertet;
   // Top 3 nach Sternen → goldene Pins auf der Karte
   const top3Ids = new Set(
     [...besucht].sort((a, b) => b.rating - a.rating).slice(0, 3).filter((e) => e.rating > 0).map((e) => e.id),
@@ -145,7 +148,7 @@ export function ArchivScreen({
         { label: 'Sterne', value: 'rang' },
         { label: 'Schmarrn', value: 'kaiser' },
         { label: 'Brodn', value: 'brodn' },
-        { label: 'Offen', value: 'offen' },
+        { label: 'Entdeckt', value: 'offen' },
       ].filter((t) => !ohneKarte || (t.value !== 'karte' && t.value !== 'offen'))}
     />
   );
@@ -158,7 +161,7 @@ export function ArchivScreen({
     return (
       <div style={{ position: 'absolute', inset: 0, overflow: 'hidden' }}>
         <ArchivKarte
-          pins={eintraege.map((e) => ({ id: e.id, name: e.name, lat: e.lat, lng: e.lng, photoUrl: e.photoUrl, naechstes: e.naechstes, top3: top3Ids.has(e.id), offen: !e.besuchtAm && !e.naechstes && !e.altbestand }))}
+          pins={eintraege.map((e) => ({ id: e.id, name: e.name, lat: e.lat, lng: e.lng, photoUrl: e.photoUrl, naechstes: e.naechstes, top3: top3Ids.has(e.id), offen: nurEntdeckt(e), vorbewertet: !!e.vorbewertet && !e.besuchtAm && !e.naechstes }))}
           activeIdx={safeIdx}
           onPick={setIdx}
         />
@@ -181,8 +184,8 @@ export function ArchivScreen({
                   window.open(navigationsUrl({ name: aktiv.name, lat: aktiv.lat, lng: aktiv.lng }, ort), '_blank', 'noopener');
                   return;
                 }
-                // Besuchte & Altbestand → eigenes Detail mit Bewertungen
-                if (aktiv.besuchtAm || aktiv.altbestand) {
+                // Besuchte, Altbestand & vorbewertete → eigenes Detail mit Bewertungen
+                if (aktiv.besuchtAm || aktiv.altbestand || aktiv.vorbewertet) {
                   setDetail({ e: aktiv, rank: null });
                   return;
                 }
@@ -195,7 +198,7 @@ export function ArchivScreen({
         {detail && <DetailModal e={detail.e} rank={detail.rank} onClose={() => setDetail(null)} />}
         {eintraege.length === 0 && (
           <div style={{ position: 'absolute', left: 16, right: 16, bottom: 20, zIndex: 5, background: 'var(--weiss)', borderRadius: 'var(--r-lg)', padding: 16, boxShadow: 'var(--sh-lg)', textAlign: 'center', fontSize: 13, fontWeight: 600, color: 'var(--ink-500)' }}>
-            Sobald a Wirtshaus abgeschlossen is’, erscheint’s hier auf der Karte.
+            Wirtshäuser, die ihr entdeckt, bewertet oder bsucht, erscheinen hier auf der Karte.
           </div>
         )}
       </div>
@@ -217,20 +220,21 @@ export function ArchivScreen({
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '2px 2px 0' }}>
-          <span style={{ fontFamily: 'var(--font-fraktur)', fontSize: 22, color: 'var(--navy)', lineHeight: 1 }}>Offene Vorschläge</span>
+          <span style={{ fontFamily: 'var(--font-fraktur)', fontSize: 22, color: 'var(--navy)', lineHeight: 1 }}>Entdeckte Wirtshäuser</span>
           <span className="wn-tnum" style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink-500)' }}>({offene.length})</span>
         </div>
         <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink-500)', margin: '-8px 2px 0' }}>
-          Entfernen dürfen Admin, Präsident und der Finder selbst, der Vorschlags-WP geht dann wieder weg.
+          Wer scho dort war, bewertet im Detail. Entfernen dürfen Admin, Präsident und der Finder, solang koa anderer bewertet hat.
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {offene.map((e) => (
-            <OffenerVorschlag key={e.id} e={e} ich={ich} />
+            <OffenerVorschlag key={e.id} e={e} ich={ich} onOpen={() => setDetail({ e, rank: null })} />
           ))}
+          {detail && <DetailModal e={detail.e} rank={detail.rank} onClose={() => setDetail(null)} />}
           {offene.length === 0 && (
             <div style={{ textAlign: 'center', padding: '30px 16px', color: 'var(--ink-500)', fontSize: 14, fontWeight: 600 }}>
-              Koane offenen Vorschläge, wer a Wirtshaus gfunden hat, trägt’s auf der Heim-Seite ein.
+              No nix entdeckt, wer a Wirtshaus kennt, trägt’s auf der Heim-Seite ein.
             </div>
           )}
         </div>
@@ -349,8 +353,10 @@ function MapBottomCard({
             <Badge tone="blau" solid iconLeft="✓">Besucht</Badge>
           ) : e.altbestand ? (
             <Badge tone="blau" solid iconLeft="📜">Bsucht vor da App</Badge>
+          ) : e.vorbewertet ? (
+            <Badge tone="blau" iconLeft="★">Von Spezln bewertet</Badge>
           ) : (
-            <Badge tone="neutral" solid>Offen</Badge>
+            <Badge tone="neutral" solid>Entdeckt</Badge>
           )}
           <span className="wn-tnum" style={{ marginLeft: 'auto', fontSize: 11, fontWeight: 700, color: 'var(--ink-500)' }}>
             {idx + 1} / {count}
@@ -370,8 +376,8 @@ function MapBottomCard({
           <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink-500)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{e.bezirk}</span>
           {e.naechstes ? (
             <RichtungsKnopf ziel={{ name: e.name, lat: e.lat, lng: e.lng }} size={30} />
-          ) : !e.besuchtAm && !e.altbestand ? (
-            // Gfundenes Wirtshaus → in Google Maps anschauen
+          ) : !e.besuchtAm && !e.altbestand && !e.vorbewertet ? (
+            // Entdecktes Wirtshaus → in Google Maps anschauen
             <RichtungsKnopf ziel={{ name: e.name }} modus="ort" size={30} />
           ) : (
             e.rating > 0 && <Stars rating={e.rating} size={13} />
@@ -392,7 +398,7 @@ const navBtn: React.CSSProperties = {
 };
 
 /* ── Zeile im „Offen"-Tab: Vorschlag mit Finder + Zwei-Schritt-Entfernen ── */
-function OffenerVorschlag({ e, ich }: { e: ArchivEintrag; ich: { id: string; darfModerieren: boolean } }) {
+function OffenerVorschlag({ e, ich, onOpen }: { e: ArchivEintrag; ich: { id: string; darfModerieren: boolean }; onOpen: () => void }) {
   const brauereiLogos = useTenantConfig().features.brauereiLogos;
   const [nachfrage, setNachfrage] = useState(false);
   const [meldung, setMeldung] = useState<{ ok: boolean; text: string } | null>(null);
@@ -429,10 +435,10 @@ function OffenerVorschlag({ e, ich }: { e: ArchivEintrag; ich: { id: string; dar
             <img src={e.photoUrl} alt={e.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
           )}
         </div>
-        <div style={{ flex: 1, minWidth: 0 }}>
+        <div onClick={onOpen} style={{ flex: 1, minWidth: 0, cursor: 'pointer' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <span style={{ fontSize: 15, fontWeight: 800, color: 'var(--ink-900)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{e.name}</span>
-            <Badge tone="neutral" solid>Offen</Badge>
+            {e.vorbewertet ? <Badge tone="blau" iconLeft="★">{dez(e.rating)}</Badge> : <Badge tone="neutral" solid>Entdeckt</Badge>}
           </div>
           <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink-500)', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{e.bezirk}</div>
           {e.gfundenVon && (
@@ -548,6 +554,11 @@ function RankedCard({
             📜 Vor da App · zählt koane Punkte
           </div>
         )}
+        {e.vorbewertet && !e.besuchtAm && !e.altbestand && (
+          <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--muc-blau)', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            ★ Von Spezln bewertet · no koa Stammtisch dort
+          </div>
+        )}
       </div>
       <div style={{ flex: 'none', textAlign: 'right' }}>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 3, justifyContent: 'flex-end' }}>
@@ -582,6 +593,11 @@ export function DetailModal({ e, rank, onClose }: { e: ArchivEintrag; rank: numb
               Platz {rank}
             </div>
           )}
+          {!e.altbestand && !e.besuchtAm && !e.naechstes && (
+            <div style={{ position: 'absolute', top: rank ? 46 : 12, left: 12, display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--muc-blau)', color: '#fff', fontSize: 11, fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase', padding: '5px 11px', borderRadius: 'var(--r-pill)', boxShadow: 'var(--sh-sm)' }}>
+              {e.vorbewertet ? '★ Von Spezln bewertet' : 'Entdeckt'}
+            </div>
+          )}
           {e.altbestand && (
             <div style={{ position: 'absolute', top: rank ? 46 : 12, left: 12, display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--muc-blau)', color: '#fff', fontSize: 11, fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase', padding: '5px 11px', borderRadius: 'var(--r-pill)', boxShadow: 'var(--sh-sm)' }}>
               📜 Vor da App
@@ -612,13 +628,13 @@ export function DetailModal({ e, rank, onClose }: { e: ArchivEintrag; rank: numb
           </div>
           {(e.nachAnzahl ?? 0) > 0 && (
             <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink-500)', marginTop: 6, textAlign: 'center' }}>
-              Sterne inkl. {e.nachAnzahl} {e.nachAnzahl === 1 ? 'Nachbewertung' : 'Nachbewertungen'}
+              {e.besuchtAm ? 'Sterne inkl. ' : ''}{e.nachAnzahl} {e.nachAnzahl === 1 ? 'Bewertung' : 'Bewertungen'} von Spezln{e.besuchtAm ? '' : ', ohne WP'}
             </div>
           )}
 
           {/* Freiwillige Nachbewertung, NUR für Vor-der-App-Wirtshäuser (Chronik).
               Echte Besuche werden beim Abschluss + in der Nachtragsfrist bewertet, danach is fix. */}
-          {e.altbestand && <Nachbewertung wirtshausId={e.id} meine={e.meineBewertung} altbestand />}
+          {(e.altbestand || (!e.besuchtAm && !e.naechstes)) && <Nachbewertung wirtshausId={e.id} meine={e.meineBewertung} altbestand={!!e.altbestand} />}
 
           {/* Organisator */}
           {e.organisator && (
@@ -677,6 +693,13 @@ export function DetailModal({ e, rank, onClose }: { e: ArchivEintrag; rank: numb
 
           {e.besuchtAm && (
             <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink-500)', marginTop: 14, textAlign: 'center' }}>Besucht am {e.besuchtAm}</div>
+          )}
+          {!e.altbestand && !e.besuchtAm && !e.naechstes && (
+            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink-500)', marginTop: 14, textAlign: 'center' }}>
+              {e.gfundenVon ? `Entdeckt von ${e.gfundenVon}` : 'Entdeckt'} · no koa Stammtisch dort
+              <br />
+              <span style={{ fontSize: 11 }}>Wer scho dort war, bewertet hier; Punkte gibt’s dafür koane.</span>
+            </div>
           )}
           {e.altbestand && !e.besuchtAm && (
             <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink-500)', marginTop: 14, textAlign: 'center' }}>
@@ -809,9 +832,9 @@ function Nachbewertung({
       <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--ink-500)' }}>
         Deine Bewertung · freiwillig, ohne WP
       </div>
-      {altbestand && !meine && (
+      {!meine && (
         <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink-500)', marginTop: 4 }}>
-          Du warst da scho? Bewert den Klassiker aus der Erinnerung, a Schmarrn und Brodn, wenn’st di erinnerst.
+          {altbestand ? 'Du warst da scho? Bewert den Klassiker aus der Erinnerung, a Schmarrn und Brodn, wenn’st di erinnerst.' : 'Du warst da scho? Dann sag den Spezln, wia’s war, a Schmarrn und Brodn, wenn’st magst.'}
         </div>
       )}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginTop: 10 }}>

@@ -28,10 +28,12 @@ const TINTE = '#202226';
 const MITTE = 132;
 const RADIUS = 103;
 /** Plätze der Fünfer-Gruppen: Hoibe unten (links → rechts), Schnaps oben (links → rechts). */
-const HOIBE_WINKEL = [150, 126, 102, 78, 54, 30];
-const SCHNAPS_WINKEL = [212, 236, 260, 284, 308, 332];
+const HOIBE_WINKEL = [144, 122, 100, 78, 56, 34];
+const SCHNAPS_WINKEL = [214, 238, 262, 286, 310, 334];
 /** Kürzel „WB“ vor der Schnaps-Reihe, links am Rand. */
-const WB_WINKEL = 184;
+const WB_WINKEL = 190;
+/** Plus/Minus in Tinte, innen am Ring: rechts dazu, links weg; unten Hoibe, oben Schnaps. */
+const ZEICHEN_RADIUS = 76;
 
 /**
  * Deterministisches „Zittern" (−1…1) je Strich & Merkmal, stabil über
@@ -149,7 +151,34 @@ function Sterne({ anzahl }: { anzahl: number }) {
   return <>{sterne}</>;
 }
 
-/** Alles, was mit Tinte am Deckel steht: Hoibe unten, WB + Schnaps oben, Sterne rechts. */
+/**
+ * Handschriftliche Plus- und Minus-Zeichen als Wegweiser für die Tipp-Zonen
+ * (Julius, 15.09.2026): rechts „+“, links „−“, je einmal in der Hoibe-Hälfte
+ * unten und in der Schnaps-Hälfte oben. Gleiche Tinte, leicht zittrig.
+ */
+function PlusMinus({ schnapsAn }: { schnapsAn: boolean }) {
+  const zug: React.SVGProps<SVGPathElement> = { stroke: TINTE, strokeWidth: 3.4, strokeLinecap: 'round', fill: 'none', opacity: 0.88 };
+  const zeichen = (winkel: number, plus: boolean, salz: number) => {
+    const { x, y } = amRand(winkel, ZEICHEN_RADIUS);
+    const j = (s: number) => zitter(salz, s) * 1.2;
+    return (
+      <g key={salz} transform={`translate(${x.toFixed(1)} ${y.toFixed(1)}) rotate(${(zitter(salz, 41) * 8).toFixed(1)})`}>
+        <path d={`M -12 ${j(42).toFixed(1)} Q 0 ${(1.5 + j(43)).toFixed(1)} 12 ${j(44).toFixed(1)}`} {...zug} />
+        {plus && <path d={`M ${j(45).toFixed(1)} -12 Q ${(1.5 + j(46)).toFixed(1)} 0 ${j(47).toFixed(1)} 12`} {...zug} />}
+      </g>
+    );
+  };
+  return (
+    <>
+      {zeichen(schnapsAn ? 17 : 0, true, 51)}
+      {zeichen(schnapsAn ? 163 : 180, false, 52)}
+      {schnapsAn && zeichen(343, true, 53)}
+      {schnapsAn && zeichen(197, false, 54)}
+    </>
+  );
+}
+
+/** Alles, was mit Tinte am Deckel steht: Hoibe unten, WB + Schnaps oben, Sterne rechts, +/− als Wegweiser. */
 function Tinte({ hoiben, schnaps, sterne, schnapsAn }: { hoiben: number; schnaps: number; sterne: number; schnapsAn: boolean }) {
   return (
     <svg viewBox="0 0 264 264" fill="none" aria-hidden style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none', overflow: 'visible' }}>
@@ -157,6 +186,7 @@ function Tinte({ hoiben, schnaps, sterne, schnapsAn }: { hoiben: number; schnaps
       {schnapsAn && schnaps > 0 && <KuerzelWB />}
       {schnapsAn && <Strichgruppen anzahl={schnaps} winkel={SCHNAPS_WINKEL} salz={7} />}
       <Sterne anzahl={sterne} />
+      <PlusMinus schnapsAn={schnapsAn} />
     </svg>
   );
 }
@@ -223,7 +253,8 @@ const TIPP_KEY = 'wn-deckel-tipp-gsehn';
  * rechts tippen = a Strich dazu, links tippen = oaner weg; untere Hälfte
  * Hoibe, obere Hälfte Schnaps (mit „WB“ als Kürzel, wenn der Stammtisch
  * schnapselt). Am Deckel steht nur, was mit Tinte hingschrieben aussieht.
- * Drunter d'Marken vom Abend (Taxler, Brodn, Schmarrn, Runde); a gschmissene
+ * Drunter d'Marken vom Abend (Taxler, Runde; Brodn/Schmarrn kommen mit der
+ * Bewertung); a gschmissene
  * Runde kriegt an Stern am Deckel und bei allen am Tisch an Strich.
  */
 export function Bierdeckel({
@@ -397,7 +428,7 @@ export function Bierdeckel({
       </div>
       {tipp && (
         <div style={{ marginTop: -6, fontSize: 12, fontWeight: 600, color: 'var(--ink-500)', textAlign: 'center' }}>
-          Rechts tippen: a Strich dazu, links: oaner weg.{schnapsAn ? ' Unten Hoibe, oben Schnaps.' : ''}
+          Rechts (+) tippen: a Strich dazu, links (−): oaner weg.{schnapsAn ? ' Unten Hoibe, oben Schnaps.' : ''}
         </div>
       )}
 
@@ -405,8 +436,6 @@ export function Bierdeckel({
       <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'center' }}>
         <div style={{ display: 'flex', justifyContent: 'center', gap: 10 }}>
           <Marke an={flags.taxi} icon="🚕" label="Taxler" title="Mit'm Auto da & Spezln mitgnommen" onClick={() => flagUmschalten('taxi')} />
-          <Marke an={flags.brodn} icon="🍖" label="Brodn" title="Schweinsbraten gegessen" onClick={() => flagUmschalten('brodn')} />
-          <Marke an={flags.kaisi} icon="🥞" label="Schmarrn" title="Kaiserschmarrn bestellt (wird eh geteilt)" onClick={() => flagUmschalten('kaisi')} />
           {(rundenErlaubt || rundenGesamt > 0) && (
             <Marke an={rundenGesamt > 0} icon="⭐" label={rundenGesamt > 0 ? `Runde ×${rundenGesamt}` : 'Runde'} title="A Runde für alle am Tisch gschmissen" onClick={() => rundenErlaubt && setRundeWahl((w) => !w)} />
           )}

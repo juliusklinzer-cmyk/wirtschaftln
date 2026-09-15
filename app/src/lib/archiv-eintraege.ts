@@ -9,6 +9,7 @@ import {
 } from '@/lib/queries';
 import { datumKurz } from '@/lib/format';
 import type { ArchivEintrag } from '@/components/domain/ArchivScreen';
+import { tenantConfig } from '@/lib/tenant-config';
 
 /**
  * Baut die kompletten Archiv-Einträge (Karte, Ranglisten, Detail-Dialog) auf —
@@ -19,6 +20,8 @@ import type { ArchivEintrag } from '@/components/domain/ArchivScreen';
 export function ladeArchivEintraege(meId: string): ArchivEintrag[] {
   const archiv = getArchiv();
   const aktueller = getAktuellerTermin();
+  const config = tenantConfig();
+  const stammhausId = config.typ === 'stammhaus' ? config.stammhausWirtshausId : null;
 
   const nachbewertungen = getNachbewertungen();
   const nachVon = (wirtshausId: string) => nachbewertungen.filter((n) => n.bewertung.wirtshausId === wirtshausId);
@@ -56,7 +59,8 @@ export function ladeArchivEintraege(meId: string): ArchivEintrag[] {
   const eintraege: ArchivEintrag[] = [];
   if (aktueller && (aktueller.phase === 'reserviert' || aktueller.phase === 'heute')) {
     const { wirtshaus, planer } = getTerminMitWirtshaus(aktueller);
-    if (wirtshaus) {
+    // S’Stammhaus kriegt seinen eigenen goldenen Eintrag (unten), koan „Nächstes Mal“-Pin extra
+    if (wirtshaus && wirtshaus.id !== stammhausId) {
       eintraege.push({
         id: wirtshaus.id,
         name: wirtshaus.name,
@@ -106,7 +110,41 @@ export function ladeArchivEintraege(meId: string): ArchivEintrag[] {
     });
   }
 
+  // S’Stammhaus: ein Eintrag für alle Abende dort, immer golden und groß, ohne
+  // Sterne (des kennt jeder in- und auswendig, Julius 15.09.2026). Schmarrn/Brodn
+  // werden über alle Abende gemittelt, d’Hinweise gsammelt.
+  const stammhausAbende = archiv.filter((a) => a.wirtshaus.id === stammhausId);
+  if (stammhausId && stammhausAbende.length > 0) {
+    const s0 = stammhausAbende[0];
+    const mittel = (feld: 'kaiser' | 'brodn') => {
+      const summe = stammhausAbende.reduce((acc, a) => acc + a[feld] * a[`${feld}Anzahl` as 'kaiserAnzahl' | 'brodnAnzahl'], 0);
+      const n = stammhausAbende.reduce((acc, a) => acc + a[`${feld}Anzahl` as 'kaiserAnzahl' | 'brodnAnzahl'], 0);
+      return n > 0 ? summe / n : 0;
+    };
+    eintraege.push({
+      id: s0.wirtshaus.id,
+      name: s0.wirtshaus.name,
+      bezirk: s0.wirtshaus.bezirk,
+      lat: s0.wirtshaus.lat,
+      lng: s0.wirtshaus.lng,
+      photoUrl: s0.wirtshaus.photoUrl,
+      biersorte: s0.wirtshaus.biersorte,
+      besuchtAm: datumKurz(s0.termin.datum),
+      stammhaus: true,
+      organisator: null,
+      rating: 0,
+      kaiser: mittel('kaiser'),
+      brodn: mittel('brodn'),
+      nachAnzahl: 0,
+      hoiben: stammhausAbende.reduce((acc, a) => acc + a.hoiben, 0),
+      teilnehmer: [],
+      hinweise: stammhausAbende.flatMap((a) => a.hinweise.map((h) => ({ ...h, von: `${h.von} (${datumKurz(a.termin.datum)})` }))),
+      meineBewertung: null,
+    });
+  }
+
   for (const a of archiv) {
+    if (a.wirtshaus.id === stammhausId) continue;
     const nach = nachVon(a.wirtshaus.id);
     eintraege.push({
       id: a.wirtshaus.id,

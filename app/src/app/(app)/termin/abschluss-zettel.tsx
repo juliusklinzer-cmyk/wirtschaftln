@@ -32,12 +32,15 @@ export function AbschlussZettel({
   meineWerte,
   naechsterTermin,
   action,
+  ohneSterne = false,
 }: {
   mitglieder: ZettelMitglied[];
   meId: string;
   meineWerte: MeiBewertungWerte;
   naechsterTermin: boolean;
   action: (formData: FormData) => Promise<void>;
+  /** Stammhaus-Abend: koa Wirtshaus-Wertung */
+  ohneSterne?: boolean;
 }) {
   const [status, setStatus] = useState<Record<string, Status>>(() => {
     const s: Record<string, Status> = {};
@@ -99,7 +102,7 @@ export function AbschlussZettel({
 
       {ichDabei && (
         <div style={{ marginTop: 18 }}>
-          <EigeneWertung werte={meineWerte} brodn={meinBrodn} onBrodn={setMeinBrodn} />
+          <EigeneWertung werte={meineWerte} brodn={meinBrodn} onBrodn={setMeinBrodn} ohneSterne={ohneSterne} />
         </div>
       )}
 

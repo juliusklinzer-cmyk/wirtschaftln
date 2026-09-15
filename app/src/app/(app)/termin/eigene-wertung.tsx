@@ -16,11 +16,14 @@ export function EigeneWertung({
   werte,
   brodn,
   onBrodn,
+  ohneSterne = false,
 }: {
   werte: MeiBewertungWerte;
   /** Brodn-Zustand und Schalter, wenn der Zettel ihn selber führt; sonst führt ihn dieser Block */
   brodn?: boolean;
   onBrodn?: (an: boolean) => void;
+  /** Stammhaus-Abend: koa Wirtshaus-Wertung, nur Brodn/Schmarrn + a Wort */
+  ohneSterne?: boolean;
 }) {
   const [sterne, setSterne] = useState(werte.sterne ?? 3);
   const [kommentar, setKommentar] = useState(werte.kommentar);
@@ -32,11 +35,11 @@ export function EigeneWertung({
   const [brodnNotiz, setBrodnNotiz] = useState(werte.brodnNotiz);
   const brodnAn = brodn ?? brodnEigen;
   const brodnSetzen = (an: boolean) => (onBrodn ? onBrodn(an) : setBrodnEigen(an));
-  const schonBewertet = werte.sterne != null;
+  const schonBewertet = ohneSterne ? werte.kaisiProbiert || werte.brodnGessen || !!werte.kommentar : werte.sterne != null;
 
   return (
     <div style={{ padding: 14, border: '1.5px solid var(--ink-200)', borderRadius: 'var(--r-lg)', display: 'flex', flexDirection: 'column', gap: 12 }}>
-      <input type="hidden" name="sterne" value={String(sterne)} />
+      {ohneSterne ? <input type="hidden" name="abend" value="on" /> : <input type="hidden" name="sterne" value={String(sterne)} />}
       {kaisi && <input type="hidden" name="kaisiProbiert" value="on" />}
       {kaisi && <input type="hidden" name="kaiserSterne" value={String(kaiserSterne)} />}
       {brodnAn && <input type="hidden" name="brodnGessen" value="on" />}
@@ -44,16 +47,16 @@ export function EigeneWertung({
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--ink-900)' }}>Dei Wertung</div>
+          <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--ink-900)' }}>{ohneSterne ? 'Dei Abend' : 'Dei Wertung'}</div>
           <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--ink-500)' }}>
-            {schonBewertet ? 'Scho abgeben, hier kannst no anpassen.' : 'Wird mit’m Abschluss gspeichert, anpassen geht danach no a Woch’.'}
+            {ohneSterne ? 'Brodn? Schmarrn? A Wort zum Abend? S’Stammhaus selber bewert ma ned.' : schonBewertet ? 'Scho abgeben, hier kannst no anpassen.' : 'Wird mit’m Abschluss gspeichert, anpassen geht danach no a Woch’.'}
           </div>
         </div>
         <span className="wn-tnum" style={{ flex: 'none', fontSize: 12, fontWeight: 800, padding: '3px 10px', borderRadius: 999, background: schonBewertet ? 'var(--erfolg-bg)' : 'var(--grad-gold)', color: schonBewertet ? 'var(--erfolg)' : 'var(--navy-900)' }}>
-          {schonBewertet ? '✓' : `+${PTS.bewertung} WP`}
+          {schonBewertet ? '✓' : ohneSterne ? '·' : `+${PTS.bewertung} WP`}
         </span>
       </div>
-      <SterneStepper value={sterne} onChange={setSterne} />
+      {!ohneSterne && <SterneStepper value={sterne} onChange={setSterne} />}
       <textarea
         name="kommentar" value={kommentar} onChange={(e) => setKommentar(e.target.value)} rows={2}
         placeholder="Wie war’s? Bedienung, Bier, Brotzeit…" style={textareaStyle}

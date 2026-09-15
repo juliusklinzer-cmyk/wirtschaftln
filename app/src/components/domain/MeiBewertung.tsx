@@ -37,6 +37,7 @@ export function MeiBewertung({
   action,
   variante = 'karte',
   startOffen = false,
+  ohneSterne = false,
 }: {
   wirtshausName: string | null;
   initial: MeiBewertungWerte;
@@ -46,6 +47,8 @@ export function MeiBewertung({
   variante?: 'karte' | 'eingebettet';
   /** Klappe von Anfang an offen (Stammtisch-Abend, solang no ned bewertet is) */
   startOffen?: boolean;
+  /** Stammhaus-Abend: koa Wirtshaus-Wertung (des kennt jeder), nur Brodn/Schmarrn + a Wort zum Abend */
+  ohneSterne?: boolean;
 }) {
   const [offen, setOffen] = useState(startOffen);
   const [meldung, setMeldung] = useState<{ ok: boolean; text: string } | null>(null);
@@ -58,7 +61,7 @@ export function MeiBewertung({
   const [brodnSterne, setBrodnSterne] = useState(initial.brodnSterne ?? 3);
   const [brodnNotiz, setBrodnNotiz] = useState(initial.brodnNotiz);
 
-  const schonBewertet = initial.sterne != null;
+  const schonBewertet = ohneSterne ? initial.kaisiProbiert || initial.brodnGessen || !!initial.kommentar : initial.sterne != null;
   const eingebettet = variante === 'eingebettet';
 
   const speichern = async (formData: FormData) => {
@@ -67,10 +70,10 @@ export function MeiBewertung({
       setMeldung({ ok: false, text: ergebnis.meldung });
       return;
     }
-    const wp = (ergebnis.neuBewertet ? PTS.bewertung : 0) + (ergebnis.neuerText ? PTS.bewertungsText : 0);
+    const wp = ohneSterne ? 0 : (ergebnis.neuBewertet ? PTS.bewertung : 0) + (ergebnis.neuerText ? PTS.bewertungsText : 0);
     setMeldung({
       ok: true,
-      text: wp > 0 ? `Bewertung gspeichert: +${wp} WP. Vergelt’s Gott!` : '✓ Bewertung aktualisiert. Vergelt’s Gott!',
+      text: wp > 0 ? `Bewertung gspeichert: +${wp} WP. Vergelt’s Gott!` : ohneSterne ? '✓ Gspeichert, vergelt’s Gott!' : '✓ Bewertung aktualisiert. Vergelt’s Gott!',
     });
     setOffen(false);
   };
@@ -144,16 +147,20 @@ export function MeiBewertung({
                   color: schonBewertet ? 'var(--erfolg)' : 'var(--navy-900)',
                 }}
               >
-                {schonBewertet ? `${dez(initial.sterne ?? 0)} ★` : `+${PTS.bewertung} WP`}
+                {ohneSterne ? (schonBewertet ? '✓' : 'Brodn? Schmarrn?') : schonBewertet ? `${dez(initial.sterne ?? 0)} ★` : `+${PTS.bewertung} WP`}
               </span>
             }
           >
-            Mei Bewertung{wirtshausName ? ` · ${wirtshausName}` : ''}
+            {ohneSterne ? 'Mei Abend' : 'Mei Bewertung'}{wirtshausName ? ` · ${wirtshausName}` : ''}
           </KlappenKopf>
         )}
 
         <div style={{ padding: eingebettet ? '12px 0 0' : '4px 18px 18px' }}>
           <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink-500)', marginBottom: 12 }}>
+            {ohneSterne ? (
+              <>S’Stammhaus kennt jeder, des bewert ma ned. Sag nur, ob’st an Brodn oder an Schmarrn ghabt hast (zählt in d’Ranglisten), und a Wort zum Abend, wenn’st magst.</>
+            ) : (
+            <>
             Jeder bewertet für sich, aus allen Bewertungen wird d’Tages-Wertung.
             Dei Bewertung bringt <b>+{PTS.bewertung} WP</b>. A Text dazu hilft der Chronik, Punkte gibt’s dafür koane extra.
             {team.anzahl > 0 && (
@@ -162,18 +169,22 @@ export function MeiBewertung({
                 {' '}({team.anzahl} {team.anzahl === 1 ? 'Bewertung' : 'Bewertungen'}).
               </>
             )}
+            </>
+            )}
           </div>
 
           <form action={speichern} style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
-            <input type="hidden" name="sterne" value={String(sterne)} />
+            {ohneSterne ? <input type="hidden" name="abend" value="on" /> : <input type="hidden" name="sterne" value={String(sterne)} />}
             {kaisi && <input type="hidden" name="kaisiProbiert" value="on" />}
             {kaisi && <input type="hidden" name="kaiserSterne" value={String(kaiserSterne)} />}
             {brodn && <input type="hidden" name="brodnGessen" value="on" />}
             {brodn && <input type="hidden" name="brodnSterne" value={String(brodnSterne)} />}
 
-            <div style={{ marginBottom: 14 }}>
-              <SterneStepper value={sterne} onChange={setSterne} />
-            </div>
+            {!ohneSterne && (
+              <div style={{ marginBottom: 14 }}>
+                <SterneStepper value={sterne} onChange={setSterne} />
+              </div>
+            )}
             <textarea
               name="kommentar" value={kommentar} onChange={(e) => setKommentar(e.target.value)} rows={3}
               placeholder="Wie war’s? Bedienung, Bier, Brotzeit…" style={textareaStyle}

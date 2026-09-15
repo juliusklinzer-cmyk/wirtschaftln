@@ -544,19 +544,19 @@ export async function besuchAbschliessen(terminId: string, formData: FormData) {
   // Wer abschließt, bewertet im selben Zug mit (Julius, 14.09.2026): koa extra
   // „Mei Bewertung" mehr für den Abschließer, anpassen geht danach wia bei allen.
   // Nur wenn er selber dabei war und Sterne mitgschickt hat.
-  if (formData.get('sterne') != null && dabeiIds.includes(me.id)) {
+  if ((formData.get('sterne') != null || formData.get('abend') === 'on') && dabeiIds.includes(me.id)) {
     const zehntel = (name: string) => {
       const v = Number(String(formData.get(name) ?? '').replace(',', '.'));
       return Number.isFinite(v) && v > 0 ? Math.min(5, Math.round(v * 10) / 10) : null;
     };
     const text = (name: string) => String(formData.get(name) ?? '').trim().slice(0, 500) || null;
     const sterne = zehntel('sterne');
-    if (sterne != null) {
+    if (sterne != null || formData.get('abend') === 'on') {
       const kaisi = formData.get('kaisiProbiert') === 'on';
       const brodn = formData.get('brodnGessen') === 'on';
       db.update(besuche)
         .set({
-          sterne,
+          ...(sterne != null ? { sterne } : {}),
           kommentar: text('kommentar'),
           kaiserschmarrn: kaisi || kaisiBestellt ? 1 : 0,
           kaiserSterne: kaisi ? zehntel('kaiserSterne') : null,
@@ -796,12 +796,14 @@ export async function meineBewertung(terminId: string, formData: FormData): Prom
   };
   const text = (name: string) => String(formData.get(name) ?? '').trim().slice(0, 500) || null;
   const sterne = zehntel('sterne');
-  if (sterne == null) return { ok: false, meldung: 'Ohne Sterne koa Bewertung, dreh am Stepper.' };
+  // Stammhaus-Abend („Mei Abend“): koa Wirtshaus-Wertung, nur Brodn/Schmarrn + Wort
+  const nurAbend = sterne == null && formData.get('abend') === 'on';
+  if (sterne == null && !nurAbend) return { ok: false, meldung: 'Ohne Sterne koa Bewertung, dreh am Stepper.' };
   const kaisi = formData.get('kaisiProbiert') === 'on';
   const brodn = formData.get('brodnGessen') === 'on';
   const werte = {
     anwesend: true,
-    sterne,
+    ...(nurAbend ? {} : { sterne }),
     kommentar: text('kommentar'),
     // Kaisi/Brodn probiert → zählt auch als gegessen (belegt den Abschluss-Zettel vor)
     kaiserschmarrn: kaisi ? 1 : 0,

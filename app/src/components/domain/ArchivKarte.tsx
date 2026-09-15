@@ -21,6 +21,8 @@ export type KartenPin = {
   offen?: boolean;
   /** Entdeckt und von Spezln bewertet (no koa Stammtisch dort): heller blauer Pin mit ★. */
   vorbewertet?: boolean;
+  /** S’Stammhaus: immer golden und groß wia „Nächstes Mal“, mit 🏠. */
+  stammhaus?: boolean;
 };
 
 /**
@@ -31,15 +33,15 @@ export type KartenPin = {
  */
 function pinElement(pin: KartenPin, aktiv: boolean, onClick: () => void): HTMLButtonElement {
   const ruhig = !!pin.offen && !aktiv; // gfunden & gerade nicht ausgewählt
-  const size = aktiv ? 36 : ruhig ? 21 : 28;
-  const gold = pin.naechstes || pin.top3;
+  const size = aktiv || pin.stammhaus ? 36 : ruhig ? 21 : 28;
+  const gold = pin.naechstes || pin.top3 || pin.stammhaus;
   const btn = document.createElement('button');
   btn.type = 'button';
   btn.title = pin.offen ? `${pin.name} (no ned besucht)` : pin.vorbewertet ? `${pin.name} (von Spezln bewertet)` : pin.name;
   btn.style.cssText = `border:none;background:transparent;cursor:pointer;padding:0;
     transform:translate(-50%,-100%);position:absolute;
     filter:drop-shadow(0 ${aktiv ? 4 : 1}px ${aktiv ? 6 : 2}px rgba(12,43,90,.${ruhig ? 15 : aktiv ? 4 : 3}));
-    z-index:${pin.naechstes ? 6 : aktiv ? 5 : pin.offen ? 0 : 1};`;
+    z-index:${pin.naechstes || pin.stammhaus ? 6 : aktiv ? 5 : pin.offen ? 0 : 1};`;
   const tropfen = document.createElement('span');
   const hintergrund = gold
     ? 'linear-gradient(180deg,#E6C684 0%,#D0AD66 45%,#A6843E 100%)'
@@ -68,7 +70,7 @@ function pinElement(pin: KartenPin, aktiv: boolean, onClick: () => void): HTMLBu
     icon.textContent = '★';
   } else {
     icon.style.cssText = `transform:rotate(45deg);font-size:${aktiv ? 16 : 13}px;line-height:1;`;
-    icon.textContent = pin.naechstes ? '📍' : '🍺';
+    icon.textContent = pin.naechstes ? '📍' : pin.stammhaus ? '🏠' : '🍺';
   }
   tropfen.appendChild(icon);
   btn.appendChild(tropfen);

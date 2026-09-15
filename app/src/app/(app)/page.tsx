@@ -467,6 +467,7 @@ function LetzterStammtisch({ meId, stats }: { meId: string; stats: MitgliedStats
                 initial={bewertung.initial}
                 team={bewertung.team}
                 action={meineBewertung.bind(null, letzter.id)}
+                ohneSterne={tenantConfig().typ === 'stammhaus' && !!wirtshaus && wirtshaus.id === tenantConfig().stammhausWirtshausId}
               />
             </div>
           )}

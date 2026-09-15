@@ -86,7 +86,11 @@ export default async function TerminPage() {
   // (Antippen öffnet das Wirtshaus-Detail wie im Archiv; beim Stammhaus is es
   // sechsmal dasselbe Wirtshaus, aber sechs verschiedene Abende)
   const archivEintraege = ladeArchivEintraege(me.id);
+  const stammhausId = tenantConfig().typ === 'stammhaus' ? tenantConfig().stammhausWirtshausId : null;
+  const istStammhaus = (id: string | null | undefined) => !!stammhausId && id === stammhausId;
+  // Stammhaus-Abende stehen ned in der Chronik (immer dasselbe Haus, koa Wertung), nur d’Ausflüge
   const chronik = getArchiv()
+    .filter((a) => !istStammhaus(a.wirtshaus.id))
     .slice(0, 6)
     .flatMap((a) => {
       const e = archivEintraege.find((x) => x.besuchtAm && x.id === a.wirtshaus.id);
@@ -143,6 +147,7 @@ export default async function TerminPage() {
                   initial={daten.initial}
                   team={daten.team}
                   action={meineBewertung.bind(null, nachtrag.id)}
+                  ohneSterne={istStammhaus(nachtragWirtshaus?.id)}
                 />
               </>
             )}
@@ -340,6 +345,7 @@ async function AktiverTermin({ terminId, meId, isAdmin }: { terminId: string; me
                 initial={daten.initial}
                 team={daten.team}
                 action={meineBewertung.bind(null, termin.id)}
+                ohneSterne={!!stammhaus && wirtshaus?.id === stammhaus.id}
               />
             );
           })()}
@@ -379,6 +385,7 @@ async function AktiverTermin({ terminId, meId, isAdmin }: { terminId: string; me
                   meineWerte={bewertungsDaten(besucheLive, meId).initial}
                   naechsterTermin={!termin.abgeschlossenVon}
                   action={besuchAbschliessen.bind(null, termin.id)}
+                  ohneSterne={!!stammhaus && wirtshaus?.id === stammhaus.id}
                 />
               </div>
             </details>

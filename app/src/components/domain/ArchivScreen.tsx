@@ -47,6 +47,8 @@ export type ArchivEintrag = {
   nachAnzahl?: number;
   /** Entdeckt und von Spezln bewertet, aber no koa Stammtisch dort (Lexikon-Eintrag). */
   vorbewertet?: boolean;
+  /** S’Stammhaus vom Stammtisch: immer golden und groß, wird nie bewertet. */
+  stammhaus?: boolean;
   /** Eigene Nachbewertung des eingeloggten Spezl (null = noch keine). */
   meineBewertung?: {
     sterne: number;
@@ -161,7 +163,7 @@ export function ArchivScreen({
     return (
       <div style={{ position: 'absolute', inset: 0, overflow: 'hidden' }}>
         <ArchivKarte
-          pins={eintraege.map((e) => ({ id: e.id, name: e.name, lat: e.lat, lng: e.lng, photoUrl: e.photoUrl, naechstes: e.naechstes, top3: top3Ids.has(e.id), offen: nurEntdeckt(e), vorbewertet: !!e.vorbewertet && !e.besuchtAm && !e.naechstes }))}
+          pins={eintraege.map((e) => ({ id: e.id, name: e.name, lat: e.lat, lng: e.lng, photoUrl: e.photoUrl, naechstes: e.naechstes, top3: top3Ids.has(e.id), offen: nurEntdeckt(e), vorbewertet: !!e.vorbewertet && !e.besuchtAm && !e.naechstes, stammhaus: !!e.stammhaus }))}
           activeIdx={safeIdx}
           onPick={setIdx}
         />
@@ -244,9 +246,12 @@ export function ArchivScreen({
 
   /* ── STERNE / SCHMARRN / BRODN: Ranking vom Besten zum Schlechtesten ── */
   const mc = METRIKEN[view];
-  const ranked = besucht
-    .filter((e) => (e[mc.field as 'rating' | 'kaiser' | 'brodn'] || 0) > 0)
+  // S’Stammhaus steht in jeder Rangliste fix auf der 1, ohne Wertung (Julius, 15.09.2026)
+  const stammhausEintrag = eintraege.find((e) => e.stammhaus) ?? null;
+  const gewertet = besucht
+    .filter((e) => !e.stammhaus && (e[mc.field as 'rating' | 'kaiser' | 'brodn'] || 0) > 0)
     .sort((a, b) => (b[mc.field as 'rating' | 'kaiser' | 'brodn'] || 0) - (a[mc.field as 'rating' | 'kaiser' | 'brodn'] || 0));
+  const ranked = stammhausEintrag ? [stammhausEintrag, ...gewertet] : gewertet;
   const champ = ranked[0];
 
   return (
@@ -271,7 +276,7 @@ export function ArchivScreen({
           {!champ.photoUrl && <div style={{ height: 150, background: 'var(--grad-navy)' }} />}
           <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(7,25,58,0.05) 0%, rgba(7,25,58,0.85) 100%)' }} />
           <div style={{ position: 'absolute', top: 12, left: 12, display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--grad-gold)', color: 'var(--navy-900)', fontSize: 11, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', padding: '5px 12px', borderRadius: 'var(--r-pill)', boxShadow: 'var(--sh-sm)' }}>
-            {mc.champ}
+            {champ.stammhaus ? '🏠 Stammhaus' : mc.champ}
           </div>
           <div style={{ position: 'absolute', left: 14, right: 14, bottom: 12, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 10 }}>
             <div style={{ minWidth: 0 }}>
@@ -279,8 +284,14 @@ export function ArchivScreen({
               <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--pergament)', marginTop: 3 }}>{champ.bezirk}</div>
             </div>
             <div style={{ flex: 'none', display: 'flex', alignItems: 'baseline', gap: 3, color: '#fff' }}>
-              <span className="wn-tnum" style={{ fontSize: 30, fontWeight: 800, lineHeight: 1 }}>{dez(champ[mc.field as 'rating' | 'kaiser' | 'brodn'])}</span>
-              {mc.icon && <span style={{ fontSize: 20, color: 'var(--gold-bright)' }}>{mc.icon}</span>}
+              {champ.stammhaus ? (
+                <span style={{ fontSize: 13, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--gold-bright)' }}>Außer Konkurrenz</span>
+              ) : (
+                <>
+                  <span className="wn-tnum" style={{ fontSize: 30, fontWeight: 800, lineHeight: 1 }}>{dez(champ[mc.field as 'rating' | 'kaiser' | 'brodn'])}</span>
+                  {mc.icon && <span style={{ fontSize: 20, color: 'var(--gold-bright)' }}>{mc.icon}</span>}
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -335,7 +346,7 @@ function MapBottomCard({
       style={{
         display: 'flex', alignItems: 'stretch', background: 'var(--weiss)',
         borderRadius: 'var(--r-lg)', overflow: 'hidden',
-        border: e.naechstes ? '1.5px solid var(--gold)' : '1px solid var(--ink-100)',
+        border: e.naechstes || e.stammhaus ? '1.5px solid var(--gold)' : '1px solid var(--ink-100)',
         boxShadow: 'var(--sh-lg)',
       }}
     >
@@ -349,6 +360,8 @@ function MapBottomCard({
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           {e.naechstes ? (
             <Badge tone="gold" solid iconLeft="📍">Nächstes Mal</Badge>
+          ) : e.stammhaus ? (
+            <Badge tone="gold" solid iconLeft="🏠">Stammhaus</Badge>
           ) : e.besuchtAm ? (
             <Badge tone="blau" solid iconLeft="✓">Besucht</Badge>
           ) : e.altbestand ? (
@@ -561,11 +574,20 @@ function RankedCard({
         )}
       </div>
       <div style={{ flex: 'none', textAlign: 'right' }}>
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: 3, justifyContent: 'flex-end' }}>
-          <span className="wn-tnum" style={{ fontSize: 22, fontWeight: 800, color: 'var(--navy)', lineHeight: 1 }}>{dez(e[field])}</span>
-          {icon && <span style={{ fontSize: 16, color: 'var(--gold)' }}>{icon}</span>}
-        </div>
-        <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', color: 'var(--gold-700)', marginTop: 3 }}>{label}</div>
+        {e.stammhaus ? (
+          <>
+            <div style={{ fontSize: 22, lineHeight: 1 }}>🏠</div>
+            <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', color: 'var(--gold-700)', marginTop: 3 }}>Stammhaus</div>
+          </>
+        ) : (
+          <>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 3, justifyContent: 'flex-end' }}>
+              <span className="wn-tnum" style={{ fontSize: 22, fontWeight: 800, color: 'var(--navy)', lineHeight: 1 }}>{dez(e[field])}</span>
+              {icon && <span style={{ fontSize: 16, color: 'var(--gold)' }}>{icon}</span>}
+            </div>
+            <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', color: 'var(--gold-700)', marginTop: 3 }}>{label}</div>
+          </>
+        )}
       </div>
     </div>
   );
@@ -588,6 +610,11 @@ export function DetailModal({ e, rank, onClose }: { e: ArchivEintrag; rank: numb
           <button onClick={onClose} aria-label="Schließen" style={{ position: 'absolute', top: 10, right: 10, width: 30, height: 30, borderRadius: '50%', border: 'none', background: 'rgba(255,255,255,0.92)', color: 'var(--ink-700)', fontSize: 16, fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             ×
           </button>
+          {e.stammhaus && (
+            <div style={{ position: 'absolute', top: 12, left: 12, display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--grad-gold)', color: 'var(--navy-900)', fontSize: 11, fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase', padding: '5px 11px', borderRadius: 'var(--r-pill)', boxShadow: 'var(--sh-sm)' }}>
+              🏠 Stammhaus
+            </div>
+          )}
           {rank && (
             <div style={{ position: 'absolute', top: 12, left: 12, display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--grad-gold)', color: 'var(--navy-900)', fontSize: 11, fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase', padding: '5px 11px', borderRadius: 'var(--r-pill)', boxShadow: 'var(--sh-sm)' }}>
               Platz {rank}
@@ -692,7 +719,10 @@ export function DetailModal({ e, rank, onClose }: { e: ArchivEintrag; rank: numb
           )}
 
           {e.besuchtAm && (
-            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink-500)', marginTop: 14, textAlign: 'center' }}>Besucht am {e.besuchtAm}</div>
+            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink-500)', marginTop: 14, textAlign: 'center' }}>
+              {e.stammhaus ? `Euer Stammhaus · zuletzt am ${e.besuchtAm}` : `Besucht am ${e.besuchtAm}`}
+              {e.stammhaus && <><br /><span style={{ fontSize: 11 }}>S’Stammhaus wird ned bewertet, des kennt jeder. Schmarrn und Brodn zählen über alle Abende.</span></>}
+            </div>
           )}
           {!e.altbestand && !e.besuchtAm && !e.naechstes && (
             <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink-500)', marginTop: 14, textAlign: 'center' }}>

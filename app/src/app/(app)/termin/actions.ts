@@ -369,7 +369,7 @@ function deckelBedienbar(termin: { datum: string; zeit: string; phase: string; a
   return bierdeckelOffen(termin, nowIso()) || (termin.phase === 'abgeschlossen' && nachtragsfristOffen(termin.abgeschlossenAm));
 }
 
-export async function hoibenStricheln(terminId: string, hoiben: number): Promise<BierdeckelErgebnis> {
+export async function hoibenStricheln(terminId: string, hoiben: number, weissbier?: number): Promise<BierdeckelErgebnis> {
   const me = await getCurrentMember();
   if (!me) return { ok: false, meldung: 'Ned angmeldt, bitte neu einloggen.' };
   const termin = db.select().from(termine).where(eq(termine.id, terminId)).get();
@@ -378,7 +378,9 @@ export async function hoibenStricheln(terminId: string, hoiben: number): Promise
     return { ok: false, meldung: `Da Bierdeckel is zua, gstrichelt wird am Stammtisch-Abend ab ${termin.zeit || '19:00'} Uhr und bis a Woch’ nach’m Abschluss.` };
   }
   const wert = Math.max(0, Math.min(30, Math.round(Number(hoiben) || 0)));
-  const werte = { anwesend: true, hoiben: wert };
+  // Weißbier-Anteil (in hoiben enthalten), nie mehr als Hoibe insgesamt
+  const weisse = weissbier == null ? null : Math.max(0, Math.min(wert, Math.round(Number(weissbier) || 0)));
+  const werte = { anwesend: true, hoiben: wert, ...(weisse == null ? {} : { weissbier: weisse }) };
   db.insert(besuche)
     .values({ id: newId('b'), terminId, memberId: me.id, ...werte })
     .onConflictDoUpdate({ target: [besuche.terminId, besuche.memberId], set: werte })
@@ -508,6 +510,7 @@ export async function besuchAbschliessen(terminId: string, formData: FormData) {
         anwesend,
         zuSpaet: anwesend && statusVon(m.id) === 'spaet',
         hoiben: anwesend ? (alt?.hoiben ?? 0) : 0,
+        weissbier: anwesend ? (alt?.weissbier ?? 0) : 0,
         schnaps: anwesend ? (alt?.schnaps ?? 0) : 0,
         kaiserschmarrn: anwesend ? (alt?.kaiserschmarrn ?? 0) : 0,
         schweinsbraten: anwesend ? (alt?.schweinsbraten ?? 0) : 0,
@@ -524,6 +527,7 @@ export async function besuchAbschliessen(terminId: string, formData: FormData) {
         anwesend,
         zuSpaet: anwesend && formData.get(`spaet_${m.id}`) === 'on',
         hoiben,
+        weissbier: Math.min(hoiben, alt?.weissbier ?? 0),
         schnaps,
         kaiserschmarrn: anwesend && kaisiBestellt ? 1 : 0, // geteilt, jeder hat mitgegessen
         schweinsbraten: brodn ? 1 : 0,

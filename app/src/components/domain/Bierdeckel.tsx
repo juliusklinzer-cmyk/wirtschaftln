@@ -245,6 +245,50 @@ function Marke({ an, icon, label, title, onClick }: { an: boolean; icon: string;
   );
 }
 
+type Ziel = 'hoibe' | 'weisse' | 'schnaps';
+
+/** Ziele der Halte-und-Zieh-Geste, Winkel wia im SVG (90 = unten, 270 = oben, 180 = links). */
+function zieleFuer(schnapsAn: boolean): Array<{ key: Ziel; label: string; winkel: number }> {
+  return schnapsAn
+    ? [
+        { key: 'hoibe', label: 'Hoibe', winkel: 90 },
+        { key: 'schnaps', label: 'Schnaps', winkel: 270 },
+        { key: 'weisse', label: 'Weiße', winkel: 180 },
+      ]
+    : [
+        { key: 'hoibe', label: 'Hoibe', winkel: 90 },
+        { key: 'weisse', label: 'Weiße', winkel: 270 },
+      ];
+}
+
+/**
+ * Stift-Ton: a kurzer, gefilterter Rausch-Kratzer (~130 ms), wia a Kugelschreiber
+ * aufm Karton. Koa Datei, alles aus'm AudioContext, drum aa offline.
+ */
+function stiftTon(ctx: AudioContext | null) {
+  if (!ctx) return;
+  try {
+    const dauer = 0.14;
+    const puffer = ctx.createBuffer(1, Math.floor(ctx.sampleRate * dauer), ctx.sampleRate);
+    const daten = puffer.getChannelData(0);
+    for (let i = 0; i < daten.length; i++) daten[i] = (Math.random() * 2 - 1) * (1 - i / daten.length);
+    const quelle = ctx.createBufferSource();
+    quelle.buffer = puffer;
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.Q.value = 0.9;
+    filter.frequency.setValueAtTime(2600, ctx.currentTime);
+    filter.frequency.exponentialRampToValueAtTime(1300, ctx.currentTime + dauer);
+    const laut = ctx.createGain();
+    laut.gain.setValueAtTime(0.0001, ctx.currentTime);
+    laut.gain.exponentialRampToValueAtTime(0.32, ctx.currentTime + 0.012);
+    laut.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + dauer);
+    quelle.connect(filter).connect(laut).connect(ctx.destination);
+    quelle.start();
+    quelle.stop(ctx.currentTime + dauer);
+  } catch { /* koa Ton, aa guad */ }
+}
+
 const TIPP_KEY = 'wn-deckel-tipp-gsehn';
 
 /**
@@ -261,6 +305,7 @@ export function Bierdeckel({
   terminId,
   biersorte = null,
   initialHoiben,
+  initialWeissbier = 0,
   initialSchnaps = 0,
   schnapsAn = false,
   initialFlags,
@@ -271,6 +316,8 @@ export function Bierdeckel({
   /** Helles vom Wirtshaus → passender Deckel (Augustiner-Scan, Brauerei-Deckel oder neutral) */
   biersorte?: string | null;
   initialHoiben: number;
+  /** davon Weißbier (in initialHoiben enthalten) */
+  initialWeissbier?: number;
   initialSchnaps?: number;
   /** Feature schnaps: obere Deckelhälfte zählt Schnaps, Schnaps-Runde möglich */
   schnapsAn?: boolean;
@@ -283,7 +330,11 @@ export function Bierdeckel({
 }) {
   const router = useRouter();
   const [hoiben, setHoiben] = useState(initialHoiben);
+  const [weissbier, setWeissbier] = useState(initialWeissbier);
   const [schnaps, setSchnaps] = useState(initialSchnaps);
+  // Halte-und-Zieh-Geste: Deckel gedrückt halten → Ziele erscheinen, Richtung ziehen, am Rand raus = Strich
+  const [halten, setHalten] = useState(false);
+  const [ziel, setZiel] = useState<Ziel | null>(null);
   const [flags, setFlags] = useState<AbendFlags>(initialFlags ?? { taxi: false, brodn: false, kaisi: false, rundenBier: 0, rundenSchnaps: 0 });
   const [rundeWahl, setRundeWahl] = useState(false);
   const [status, setStatus] = useState<'still' | 'speichert' | 'gspeichert'>('still');
@@ -294,11 +345,16 @@ export function Bierdeckel({
   const schnapsTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Aktuellster Stand für die verzögerte Speicherung (schnelle Tipps hintereinander zählen alle)
   const hoibenRef = useRef(initialHoiben);
+  const weissbierRef = useRef(initialWeissbier);
   const schnapsRef = useRef(initialSchnaps);
   const deckel = deckelFuer(biersorte);
+  const deckelRef = useRef<HTMLButtonElement>(null);
+  const geste = useRef<{ pointerId: number | null; startX: number; startY: number; startZeit: number; timer: ReturnType<typeof setTimeout> | null; aktiv: boolean; bewegt: boolean; ziel: Ziel | null }>({ pointerId: null, startX: 0, startY: 0, startZeit: 0, timer: null, aktiv: false, bewegt: false, ziel: null });
+  const audio = useRef<AudioContext | null>(null);
 
   // Frischer Stand vom Server (z. B. nach einer Runde von wem anders) → übernehmen
   useEffect(() => { setHoiben(initialHoiben); hoibenRef.current = initialHoiben; }, [initialHoiben]);
+  useEffect(() => { setWeissbier(initialWeissbier); weissbierRef.current = initialWeissbier; }, [initialWeissbier]);
   useEffect(() => { setSchnaps(initialSchnaps); schnapsRef.current = initialSchnaps; }, [initialSchnaps]);
   useEffect(() => { if (initialFlags) setFlags(initialFlags); }, [initialFlags]);
   useEffect(() => () => {
@@ -322,14 +378,18 @@ export function Bierdeckel({
   };
 
   // Kurz sammeln, dann speichern, schnelles Nachstricheln hämmert so nicht den Server.
-  const hoibeAendern = (delta: number) => {
+  const hoibeAendern = (delta: number, weisse = false) => {
     const neu = Math.max(0, Math.min(30, hoibenRef.current + delta));
     if (neu === hoibenRef.current) return;
     hoibenRef.current = neu;
+    // Weißbier-Anteil: a Weiße dazu zählt mit, beim Wegnehmen nie mehr Weiße als Hoibe
+    weissbierRef.current = Math.max(0, Math.min(neu, weissbierRef.current + (weisse && delta > 0 ? 1 : 0)));
     setHoiben(neu);
+    setWeissbier(weissbierRef.current);
     if (timer.current) clearTimeout(timer.current);
     setStatus('speichert');
-    timer.current = setTimeout(() => startTransition(async () => melden(await hoibenStricheln(terminId, neu))), 600);
+    const weissbierNeu = weissbierRef.current;
+    timer.current = setTimeout(() => startTransition(async () => melden(await hoibenStricheln(terminId, neu, weissbierNeu))), 600);
   };
   const schnapsAendern = (delta: number) => {
     const neu = Math.max(0, Math.min(30, schnapsRef.current + delta));
@@ -341,25 +401,147 @@ export function Bierdeckel({
     schnapsTimer.current = setTimeout(() => startTransition(async () => melden(await schnapsStricheln(terminId, neu))), 600);
   };
 
+  const tippGsehn = () => {
+    if (!tipp) return;
+    setTipp(false);
+    try { localStorage.setItem(TIPP_KEY, '1'); } catch { /* egal */ }
+  };
+
+  /** Strich fürs Ziel: Hoibe / Weiße (aa a Hoibe) / Schnaps */
+  const strichSetzen = (z: Ziel) => {
+    if (z === 'schnaps') schnapsAendern(1);
+    else hoibeAendern(1, z === 'weisse');
+  };
+
   /**
-   * Vier Zonen am Deckel: rechts dazu, links weg; oben Schnaps, unten Hoibe
-   * (ohne Schnaps-Feature zählt der ganze Deckel Hoibe). Tastatur-„Klick“
-   * (ohne Zeigerposition) = a Hoibe dazu.
+   * Vier Zonen am Deckel (kurzer Tipp): rechts dazu, links weg; oben Schnaps,
+   * unten Hoibe (ohne Schnaps-Feature zählt der ganze Deckel Hoibe).
    */
-  const deckelTipp = (e: React.MouseEvent<HTMLButtonElement>) => {
-    if (tipp) {
-      setTipp(false);
-      try { localStorage.setItem(TIPP_KEY, '1'); } catch { /* egal */ }
-    }
-    const rect = e.currentTarget.getBoundingClientRect();
-    const tastatur = e.detail === 0;
-    const x = tastatur ? 1 : (e.clientX - rect.left) / rect.width;
-    const y = tastatur ? 1 : (e.clientY - rect.top) / rect.height;
+  const zonenTipp = (clientX: number, clientY: number) => {
+    const rect = deckelRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    const x = (clientX - rect.left) / rect.width;
+    const y = (clientY - rect.top) / rect.height;
     const delta = x >= 0.5 ? 1 : -1;
     try { navigator.vibrate?.(delta > 0 ? 10 : [6, 30, 6]); } catch { /* egal */ }
     if (schnapsAn && y < 0.5) schnapsAendern(delta);
     else hoibeAendern(delta);
   };
+
+  /** Welches Ziel liegt in der Zieh-Richtung? (Winkel wia im SVG: 0 rechts, 90 unten, 270 oben) */
+  const zielFuer = (clientX: number, clientY: number): { ziel: Ziel | null; draussen: boolean } => {
+    const rect = deckelRef.current?.getBoundingClientRect();
+    if (!rect) return { ziel: null, draussen: false };
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
+    const dx = clientX - cx;
+    const dy = clientY - cy;
+    const abstand = Math.hypot(dx, dy) / (rect.width / 2);
+    if (abstand < 0.22) return { ziel: null, draussen: false };
+    const winkel = ((Math.atan2(dy, dx) * 180) / Math.PI + 360) % 360;
+    const ziele = zieleFuer(schnapsAn);
+    let best: Ziel | null = null;
+    let bestDiff = 999;
+    for (const z of ziele) {
+      const diff = Math.min(Math.abs(winkel - z.winkel), 360 - Math.abs(winkel - z.winkel));
+      if (diff < bestDiff) { bestDiff = diff; best = z.key; }
+    }
+    return { ziel: bestDiff <= 58 ? best : null, draussen: abstand >= 0.97 };
+  };
+
+  const gesteEnde = () => {
+    const g = geste.current;
+    if (g.timer) { clearTimeout(g.timer); g.timer = null; }
+    if (g.pointerId != null) {
+      try { deckelRef.current?.releasePointerCapture(g.pointerId); } catch { /* egal */ }
+    }
+    g.pointerId = null;
+    g.aktiv = false;
+    g.ziel = null;
+    setHalten(false);
+    setZiel(null);
+  };
+
+  const zeigerRunter = (e: React.PointerEvent<HTMLButtonElement>) => {
+    const g = geste.current;
+    if (g.pointerId != null) return; // Multi-Touch: der erste Finger zählt
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    tippGsehn();
+    g.pointerId = e.pointerId;
+    g.startX = e.clientX;
+    g.startY = e.clientY;
+    g.startZeit = performance.now();
+    g.bewegt = false;
+    g.aktiv = false;
+    g.ziel = null;
+    try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* egal */ }
+    audioBereit();
+    // Halten: nach 260 ms ohne Bewegung wird der Deckel unscharf und d'Ziele kommen
+    g.timer = setTimeout(() => {
+      g.timer = null;
+      if (g.pointerId == null || g.bewegt) return;
+      g.aktiv = true;
+      setHalten(true);
+      try { navigator.vibrate?.(8); } catch { /* egal */ }
+    }, 260);
+  };
+
+  const zeigerBewegt = (e: React.PointerEvent<HTMLButtonElement>) => {
+    const g = geste.current;
+    if (e.pointerId !== g.pointerId) return;
+    if (!g.aktiv) {
+      // Vor dem Halten: a bisserl Bewegung is Scrollen, koa Tipp und koa Halten mehr
+      if (Math.hypot(e.clientX - g.startX, e.clientY - g.startY) > 10) {
+        g.bewegt = true;
+        if (g.timer) { clearTimeout(g.timer); g.timer = null; }
+      }
+      return;
+    }
+    const { ziel: z, draussen } = zielFuer(e.clientX, e.clientY);
+    if (z !== g.ziel) { g.ziel = z; setZiel(z); }
+    // Über den Rand raus in Richtung Ziel → Strich, Stift-Ton, fertig
+    if (draussen && z) {
+      strichSetzen(z);
+      stiftTon(audio.current);
+      try { navigator.vibrate?.(12); } catch { /* egal */ }
+      gesteEnde();
+    }
+  };
+
+  const zeigerHoch = (e: React.PointerEvent<HTMLButtonElement>) => {
+    const g = geste.current;
+    if (e.pointerId !== g.pointerId) return;
+    const kurz = !g.aktiv && !g.bewegt && performance.now() - g.startZeit < 400;
+    gesteEnde();
+    if (kurz) zonenTipp(e.clientX, e.clientY);
+  };
+
+  const zeigerWeg = (e: React.PointerEvent<HTMLButtonElement>) => {
+    if (e.pointerId !== geste.current.pointerId) return;
+    gesteEnde();
+  };
+
+  // Solang gehalten wird, derf der Finger den Bildschirm ned scrollen (touchmove abfangen,
+  // ned-passiv). Vorher bleibt Scrollen erlaubt, drum koa touch-action: none.
+  useEffect(() => {
+    const el = deckelRef.current;
+    if (!el) return;
+    const halt = (ev: TouchEvent) => { if (geste.current.aktiv && ev.cancelable) ev.preventDefault(); };
+    el.addEventListener('touchmove', halt, { passive: false });
+    return () => el.removeEventListener('touchmove', halt);
+  }, []);
+
+  const audioBereit = () => {
+    try {
+      if (!audio.current) {
+        const Ctx = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+        if (Ctx) audio.current = new Ctx();
+      }
+      if (audio.current?.state === 'suspended') void audio.current.resume();
+    } catch { /* koa Ton, aa guad */ }
+  };
+
+  const bewegungReduziert = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
   const flagUmschalten = (key: 'taxi' | 'brodn' | 'kaisi') => {
     const neu = { ...flags, [key]: !flags[key] };
@@ -394,21 +576,58 @@ export function Bierdeckel({
       {/* Der Deckel: nur Pappe + Tinte, so breit wie der Bildschirm hergibt. Schatten liegt als
           eigener Kreis drunter (koa CSS-Filter, der hat am Augustiner-Scan an blauen Rand gmacht);
           koa Druck-Animation, a echter Deckel schrumpft ned, d'Rückmeldung is der neue Strich. */}
-      <div style={{ position: 'relative', width: 'min(100%, 340px)', aspectRatio: '1 / 1' }}>
+      <div style={{ position: 'relative', width: 'min(calc(100% + 16px), 420px)', aspectRatio: '1 / 1', marginInline: -8 }}>
         <div aria-hidden style={{ position: 'absolute', inset: '2.5%', borderRadius: '50%', boxShadow: '0 10px 22px rgba(30,28,24,0.28), 0 2px 5px rgba(30,28,24,0.16)' }} />
         <button
+          ref={deckelRef}
           type="button"
-          onClick={deckelTipp}
-          aria-label={schnapsAn ? 'Bierdeckel: unten Hoibe, oben Schnaps; rechts dazu, links weg' : 'Bierdeckel: rechts a Hoibe dazu, links oane weg'}
+          onPointerDown={zeigerRunter}
+          onPointerMove={zeigerBewegt}
+          onPointerUp={zeigerHoch}
+          onPointerCancel={zeigerWeg}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); hoibeAendern(1); } }}
+          aria-label={schnapsAn ? 'Bierdeckel: unten Hoibe, oben Schnaps; rechts dazu, links weg. Halten und ziehen für Hoibe, Weiße oder Schnaps.' : 'Bierdeckel: rechts a Hoibe dazu, links oane weg. Halten und ziehen für Hoibe oder Weiße.'}
           className="wn-bierdeckel"
           style={{
             width: '100%', height: '100%', display: 'block', position: 'relative', padding: 0, border: 'none',
             background: 'transparent', cursor: 'pointer', borderRadius: '50%',
-            WebkitTapHighlightColor: 'transparent', touchAction: 'manipulation',
+            WebkitTapHighlightColor: 'transparent', touchAction: 'manipulation', userSelect: 'none', WebkitUserSelect: 'none',
           }}
         >
-          <DeckelGrafik deckel={deckel} />
-          <Tinte hoiben={hoiben} schnaps={schnaps} sterne={rundenGesamt} schnapsAn={schnapsAn} />
+          {/* Beim Halten wird der Deckel unscharf und a bisserl kleiner (Blur kaschiert den Wechsel, Emil), d'Ziele liegen scharf drüber */}
+          <div style={{
+            position: 'absolute', inset: 0, borderRadius: '50%',
+            filter: halten && !bewegungReduziert ? 'blur(2.5px)' : 'none',
+            transform: halten && !bewegungReduziert ? 'scale(0.985)' : 'scale(1)',
+            transition: 'filter 180ms cubic-bezier(0.23, 1, 0.32, 1), transform 180ms cubic-bezier(0.23, 1, 0.32, 1)',
+          }}>
+            <DeckelGrafik deckel={deckel} />
+            <Tinte hoiben={hoiben} schnaps={schnaps} sterne={rundenGesamt} schnapsAn={schnapsAn} />
+          </div>
+          {zieleFuer(schnapsAn).map((z, i) => {
+            const rad = (z.winkel * Math.PI) / 180;
+            const an = ziel === z.key;
+            return (
+              <span
+                key={z.key}
+                aria-hidden
+                style={{
+                  position: 'absolute', left: `${50 + 40 * Math.cos(rad)}%`, top: `${50 + 40 * Math.sin(rad)}%`,
+                  transform: `translate(-50%, -50%) scale(${halten ? (an ? 1.08 : 1) : 0.94})`,
+                  opacity: halten ? 1 : 0,
+                  transition: `transform 160ms cubic-bezier(0.23, 1, 0.32, 1) ${halten ? i * 40 : 0}ms, opacity 140ms ease ${halten ? i * 40 : 0}ms, background 120ms ease, border-color 120ms ease`,
+                  padding: '7px 13px', borderRadius: 'var(--r-pill)',
+                  background: an ? 'var(--grad-gold)' : 'rgba(246,240,226,0.94)',
+                  border: an ? '1.5px solid var(--gold-700)' : '1.5px solid rgba(32,34,38,0.35)',
+                  boxShadow: an ? 'var(--sh-gold)' : '0 2px 8px rgba(30,28,24,0.18)',
+                  fontFamily: 'var(--font-ui)', fontSize: 14, fontWeight: 800, letterSpacing: '0.01em',
+                  color: an ? 'var(--navy-900)' : TINTE, whiteSpace: 'nowrap', pointerEvents: 'none',
+                }}
+              >
+                {z.label}
+              </span>
+            );
+          })}
         </button>
       </div>
 
@@ -416,6 +635,7 @@ export function Bierdeckel({
       <div className="wn-tnum" style={{ display: 'flex', alignItems: 'baseline', gap: 8, fontSize: 16, fontWeight: 800, color: 'var(--ink-700)' }}>
         <span>
           <span key={`h${hoiben}`} className="wn-hoiben-pop" style={{ color: 'var(--gold-700)' }}>{hoiben}</span> Hoibe
+          {weissbier > 0 && <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink-500)' }}> (davon <span key={`w${weissbier}`} className="wn-hoiben-pop">{weissbier}</span> Weiße)</span>}
           {schnapsAn && (
             <>
               {' '}· <span key={`s${schnaps}`} className="wn-hoiben-pop" style={{ color: 'var(--gold-700)' }}>{schnaps}</span> WB
@@ -428,7 +648,7 @@ export function Bierdeckel({
       </div>
       {tipp && (
         <div style={{ marginTop: -6, fontSize: 12, fontWeight: 600, color: 'var(--ink-500)', textAlign: 'center' }}>
-          Rechts (+) tippen: a Strich dazu, links (−): oaner weg.{schnapsAn ? ' Unten Hoibe, oben Schnaps.' : ''}
+          Rechts (+) tippen: a Strich dazu, links (−): oaner weg.{schnapsAn ? ' Unten Hoibe, oben Schnaps.' : ''} Oder halten und zum Ziel ziehen.
         </div>
       )}
 

@@ -17,7 +17,8 @@ export function DeckelGrafik({ deckel }: { deckel: Deckel }) {
         src="/bierdeckel.webp"
         alt=""
         draggable={false}
-        style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', userSelect: 'none', pointerEvents: 'none' }}
+        // Kreis-Maske knapp innerhalb vom Scan-Rand: der hat an hellen, halbdurchsichtigen Saum (weißer Schein)
+        style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', userSelect: 'none', pointerEvents: 'none', clipPath: 'circle(47.6% at 50% 50%)' }}
       />
     );
   }

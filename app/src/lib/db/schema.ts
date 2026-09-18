@@ -125,6 +125,8 @@ export const besuche = sqliteTable(
     memberId: text('member_id').notNull().references(() => members.id, { onDelete: 'cascade' }),
     anwesend: integer('anwesend', { mode: 'boolean' }).notNull().default(true),
     hoiben: integer('hoiben').notNull().default(0),
+    // davon Weißbier (a Weiße is aa a Hoibe: zählt in hoiben mit, hier nur der Anteil)
+    weissbier: integer('weissbier').notNull().default(0),
     schnaps: integer('schnaps').notNull().default(0), // nur bei Stammtischen mit Feature schnaps
     // Live am Abend gschmissene Runden (Bier/Schnaps), belegen den Abschluss-Zettel vor
     rundenBier: integer('runden_bier').notNull().default(0),

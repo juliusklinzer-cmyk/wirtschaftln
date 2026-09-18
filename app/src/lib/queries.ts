@@ -177,6 +177,8 @@ export type MitgliedStats = {
   hoiben: number;
   /** 🥃 nur bei Stammtischen mit Feature schnaps (sonst 0) */
   schnaps: number;
+  /** davon Weißbier (in hoiben enthalten) */
+  weissbier: number;
   abende: number;
   wirtshaeuser: number;
   kaiserschmarrn: number;
@@ -288,6 +290,7 @@ export function getStats(optionen?: { abDatum?: string; bisDatum?: string; ohneT
   return alleMitglieder.map((member) => {
     let hoiben = 0;
     let schnaps = 0;
+    let weissbier = 0;
     let abende = 0;
     let kaiserschmarrn = 0;
     let schweinsbraten = 0;
@@ -322,6 +325,7 @@ export function getStats(optionen?: { abDatum?: string; bisDatum?: string; ohneT
         if (zaehlt) {
           hoiben += b!.hoiben;
           schnaps += b!.schnaps;
+          weissbier += b!.weissbier;
           kaiserschmarrn += b!.kaiserschmarrn;
           schweinsbraten += b!.schweinsbraten;
           if (b!.taxi) taxi += 1;
@@ -391,6 +395,7 @@ export function getStats(optionen?: { abDatum?: string; bisDatum?: string; ohneT
       ...komponenten,
       wirtshaeuser: besuchteWirtshaeuser.size,
       schnaps,
+      weissbier,
       kaiserschmarrn,
       schweinsbraten,
       zuSpaet,

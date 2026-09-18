@@ -125,6 +125,7 @@ export default async function TerminPage() {
                   terminId={nachtrag.id}
                   biersorte={nachtragWirtshaus?.biersorte ?? null}
                   initialHoiben={meinLetzter.hoiben}
+                  initialWeissbier={meinLetzter.weissbier}
                   initialSchnaps={meinLetzter.schnaps}
                   initialFlags={{
                     taxi: meinLetzter.taxi,
@@ -324,6 +325,7 @@ async function AktiverTermin({ terminId, meId, isAdmin }: { terminId: string; me
             terminId={termin.id}
             biersorte={wirtshaus?.biersorte ?? null}
             initialHoiben={meinBesuch?.hoiben ?? 0}
+            initialWeissbier={meinBesuch?.weissbier ?? 0}
             initialSchnaps={meinBesuch?.schnaps ?? 0}
             initialFlags={{
               taxi: !!meinBesuch?.taxi,

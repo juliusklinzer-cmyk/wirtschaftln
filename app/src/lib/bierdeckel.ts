@@ -48,6 +48,16 @@ const MARKEN: Record<string, { name: string; farbe: string }> = {
   'neumarkter-lammsbraeu': { name: 'Neumarkter Lammsbräu', farbe: '#2E7D32' },
 };
 
+/**
+ * Wo der runde Deckel im quadratischen Feld wirklich liegt (Prozent): der
+ * Augustiner-Scan sitzt a bisserl hoch und hat oben an weißen Saum, drum
+ * Kreis knapp innerhalb. Schatten und Maske richten sich danach, sonst
+ * schaut unterm Deckel a heller Ring raus.
+ */
+export function deckelKreis(deckel: Deckel): { cx: number; cy: number; r: number } {
+  return deckel.art === 'augustiner' ? { cx: 50, cy: 49.2, r: 47.2 } : { cx: 50, cy: 50, r: 49.4 };
+}
+
 export function deckelFuer(biersorte: string | null | undefined): Deckel {
   const logo = bierLogo(biersorte ?? null);
   if (!logo) return { art: 'neutral', name: biersorte?.trim() || null };

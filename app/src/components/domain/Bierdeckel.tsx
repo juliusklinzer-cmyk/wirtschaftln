@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { Avatar } from '@/components/ds';
 import { hoibenStricheln, schnapsStricheln, abendFlagsSetzen, rundeSchmeissen } from '@/app/(app)/termin/actions';
-import { deckelFuer } from '@/lib/bierdeckel';
+import { deckelFuer, deckelKreis } from '@/lib/bierdeckel';
 import { DeckelGrafik } from '@/components/domain/DeckelGrafik';
 
 export type BierdeckelSpezl = {
@@ -32,8 +32,6 @@ const HOIBE_WINKEL = [144, 122, 100, 78, 56, 34];
 const SCHNAPS_WINKEL = [214, 238, 262, 286, 310, 334];
 /** Kürzel „WB“ vor der Schnaps-Reihe, links am Rand. */
 const WB_WINKEL = 190;
-/** Plus/Minus in Tinte, innen am Ring: rechts dazu, links weg; unten Hoibe, oben Schnaps. */
-const ZEICHEN_RADIUS = 76;
 
 /**
  * Deterministisches „Zittern" (−1…1) je Strich & Merkmal, stabil über
@@ -151,33 +149,6 @@ function Sterne({ anzahl }: { anzahl: number }) {
   return <>{sterne}</>;
 }
 
-/**
- * Handschriftliche Plus- und Minus-Zeichen als Wegweiser für die Tipp-Zonen
- * (Julius, 15.09.2026): rechts „+“, links „−“, je einmal in der Hoibe-Hälfte
- * unten und in der Schnaps-Hälfte oben. Gleiche Tinte, leicht zittrig.
- */
-function PlusMinus({ schnapsAn }: { schnapsAn: boolean }) {
-  const zug: React.SVGProps<SVGPathElement> = { stroke: TINTE, strokeWidth: 3.4, strokeLinecap: 'round', fill: 'none', opacity: 0.88 };
-  const zeichen = (winkel: number, plus: boolean, salz: number) => {
-    const { x, y } = amRand(winkel, ZEICHEN_RADIUS);
-    const j = (s: number) => zitter(salz, s) * 1.2;
-    return (
-      <g key={salz} transform={`translate(${x.toFixed(1)} ${y.toFixed(1)}) rotate(${(zitter(salz, 41) * 8).toFixed(1)})`}>
-        <path d={`M -12 ${j(42).toFixed(1)} Q 0 ${(1.5 + j(43)).toFixed(1)} 12 ${j(44).toFixed(1)}`} {...zug} />
-        {plus && <path d={`M ${j(45).toFixed(1)} -12 Q ${(1.5 + j(46)).toFixed(1)} 0 ${j(47).toFixed(1)} 12`} {...zug} />}
-      </g>
-    );
-  };
-  return (
-    <>
-      {zeichen(schnapsAn ? 17 : 0, true, 51)}
-      {zeichen(schnapsAn ? 163 : 180, false, 52)}
-      {schnapsAn && zeichen(343, true, 53)}
-      {schnapsAn && zeichen(197, false, 54)}
-    </>
-  );
-}
-
 /** Alles, was mit Tinte am Deckel steht: Hoibe unten, WB + Schnaps oben, Sterne rechts, +/− als Wegweiser. */
 function Tinte({ hoiben, schnaps, sterne, schnapsAn }: { hoiben: number; schnaps: number; sterne: number; schnapsAn: boolean }) {
   return (
@@ -186,7 +157,6 @@ function Tinte({ hoiben, schnaps, sterne, schnapsAn }: { hoiben: number; schnaps
       {schnapsAn && schnaps > 0 && <KuerzelWB />}
       {schnapsAn && <Strichgruppen anzahl={schnaps} winkel={SCHNAPS_WINKEL} salz={7} />}
       <Sterne anzahl={sterne} />
-      <PlusMinus schnapsAn={schnapsAn} />
     </svg>
   );
 }
@@ -249,16 +219,13 @@ type Ziel = 'hoibe' | 'weisse' | 'schnaps';
 
 /** Ziele der Halte-und-Zieh-Geste, Winkel wia im SVG (90 = unten, 270 = oben, 180 = links). */
 function zieleFuer(schnapsAn: boolean): Array<{ key: Ziel; label: string; winkel: number }> {
-  return schnapsAn
-    ? [
-        { key: 'hoibe', label: 'Hoibe', winkel: 90 },
-        { key: 'schnaps', label: 'Schnaps', winkel: 270 },
-        { key: 'weisse', label: 'Weiße', winkel: 180 },
-      ]
-    : [
-        { key: 'hoibe', label: 'Hoibe', winkel: 90 },
-        { key: 'weisse', label: 'Weiße', winkel: 270 },
-      ];
+  // Nur wo's mehrere Getränke gibt (Schnaps-Stammtische) lohnt sich d’Geste; sonst bleibt's beim Tippen (Julius, 18.09.2026)
+  if (!schnapsAn) return [];
+  return [
+    { key: 'hoibe', label: 'Hoibe', winkel: 90 },
+    { key: 'schnaps', label: 'Schnaps', winkel: 270 },
+    { key: 'weisse', label: 'Weiße', winkel: 180 },
+  ];
 }
 
 /**
@@ -348,6 +315,7 @@ export function Bierdeckel({
   const weissbierRef = useRef(initialWeissbier);
   const schnapsRef = useRef(initialSchnaps);
   const deckel = deckelFuer(biersorte);
+  const kreis = deckelKreis(deckel);
   const deckelRef = useRef<HTMLButtonElement>(null);
   const geste = useRef<{ pointerId: number | null; startX: number; startY: number; startZeit: number; timer: ReturnType<typeof setTimeout> | null; aktiv: boolean; bewegt: boolean; ziel: Ziel | null }>({ pointerId: null, startX: 0, startY: 0, startZeit: 0, timer: null, aktiv: false, bewegt: false, ziel: null });
   const audio = useRef<AudioContext | null>(null);
@@ -429,15 +397,16 @@ export function Bierdeckel({
   };
 
   /** Welches Ziel liegt in der Zieh-Richtung? (Winkel wia im SVG: 0 rechts, 90 unten, 270 oben) */
-  const zielFuer = (clientX: number, clientY: number): { ziel: Ziel | null; draussen: boolean } => {
+  const zielFuer = (clientX: number, clientY: number): { ziel: Ziel | null; draussen: boolean; entschieden: boolean } => {
     const rect = deckelRef.current?.getBoundingClientRect();
-    if (!rect) return { ziel: null, draussen: false };
+    if (!rect) return { ziel: null, draussen: false, entschieden: false };
     const cx = rect.left + rect.width / 2;
     const cy = rect.top + rect.height / 2;
     const dx = clientX - cx;
     const dy = clientY - cy;
-    const abstand = Math.hypot(dx, dy) / (rect.width / 2);
-    if (abstand < 0.22) return { ziel: null, draussen: false };
+    // Abstand relativ zum echten Deckelrand (Kreis kann a bisserl kleiner sein als das Feld)
+    const abstand = Math.hypot(dx, dy) / (rect.width * kreis.r / 100);
+    if (abstand < 0.22) return { ziel: null, draussen: false, entschieden: false };
     const winkel = ((Math.atan2(dy, dx) * 180) / Math.PI + 360) % 360;
     const ziele = zieleFuer(schnapsAn);
     let best: Ziel | null = null;
@@ -446,7 +415,7 @@ export function Bierdeckel({
       const diff = Math.min(Math.abs(winkel - z.winkel), 360 - Math.abs(winkel - z.winkel));
       if (diff < bestDiff) { bestDiff = diff; best = z.key; }
     }
-    return { ziel: bestDiff <= 58 ? best : null, draussen: abstand >= 0.97 };
+    return { ziel: bestDiff <= 58 ? best : null, draussen: abstand >= 0.96, entschieden: abstand >= 0.55 };
   };
 
   const gesteEnde = () => {
@@ -476,7 +445,8 @@ export function Bierdeckel({
     g.ziel = null;
     try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* egal */ }
     audioBereit();
-    // Halten: nach 260 ms ohne Bewegung wird der Deckel unscharf und d'Ziele kommen
+    // Halten: nach 260 ms ohne Bewegung wird der Deckel unscharf und d'Ziele kommen (nur mit mehreren Getränken)
+    if (zieleFuer(schnapsAn).length === 0) return;
     g.timer = setTimeout(() => {
       g.timer = null;
       if (g.pointerId == null || g.bewegt) return;
@@ -512,8 +482,15 @@ export function Bierdeckel({
     const g = geste.current;
     if (e.pointerId !== g.pointerId) return;
     const kurz = !g.aktiv && !g.bewegt && performance.now() - g.startZeit < 400;
+    // Beim Halten losgelassen: wenn der Daumen scho deutlich Richtung Ziel gezogen war, zählt's aa
+    const zug = g.aktiv ? zielFuer(e.clientX, e.clientY) : null;
     gesteEnde();
-    if (kurz) zonenTipp(e.clientX, e.clientY);
+    if (kurz) { zonenTipp(e.clientX, e.clientY); return; }
+    if (zug?.ziel && zug.entschieden) {
+      strichSetzen(zug.ziel);
+      stiftTon(audio.current);
+      try { navigator.vibrate?.(12); } catch { /* egal */ }
+    }
   };
 
   const zeigerWeg = (e: React.PointerEvent<HTMLButtonElement>) => {
@@ -577,7 +554,8 @@ export function Bierdeckel({
           eigener Kreis drunter (koa CSS-Filter, der hat am Augustiner-Scan an blauen Rand gmacht);
           koa Druck-Animation, a echter Deckel schrumpft ned, d'Rückmeldung is der neue Strich. */}
       <div style={{ position: 'relative', width: 'min(calc(100% + 16px), 420px)', aspectRatio: '1 / 1', marginInline: -8 }}>
-        <div aria-hidden style={{ position: 'absolute', inset: '2.5%', borderRadius: '50%', boxShadow: '0 10px 22px rgba(30,28,24,0.28), 0 2px 5px rgba(30,28,24,0.16)' }} />
+        {/* Schatten genau unterm echten Deckelkreis (sonst schaut a heller Ring raus, wo der Scan kleiner is als das Feld) */}
+        <div aria-hidden style={{ position: 'absolute', left: `${kreis.cx - kreis.r}%`, top: `${kreis.cy - kreis.r}%`, width: `${2 * kreis.r}%`, height: `${2 * kreis.r}%`, borderRadius: '50%', boxShadow: '0 10px 22px rgba(30,28,24,0.28), 0 2px 5px rgba(30,28,24,0.16)' }} />
         <button
           ref={deckelRef}
           type="button"
@@ -648,7 +626,7 @@ export function Bierdeckel({
       </div>
       {tipp && (
         <div style={{ marginTop: -6, fontSize: 12, fontWeight: 600, color: 'var(--ink-500)', textAlign: 'center' }}>
-          Rechts (+) tippen: a Strich dazu, links (−): oaner weg.{schnapsAn ? ' Unten Hoibe, oben Schnaps.' : ''} Oder halten und zum Ziel ziehen.
+          Rechts tippen: a Strich dazu, links: oaner weg.{schnapsAn ? ' Unten Hoibe, oben Schnaps. Oder halten und zum Ziel ziehen.' : ''}
         </div>
       )}
 

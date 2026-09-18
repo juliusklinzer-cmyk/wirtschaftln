@@ -1,6 +1,6 @@
 'use client';
 
-import type { Deckel } from '@/lib/bierdeckel';
+import { deckelKreis, type Deckel } from '@/lib/bierdeckel';
 
 /**
  * Der Deckel selbst (264×264): beim Augustiner unser echter Scan, sonst a
@@ -11,6 +11,7 @@ import type { Deckel } from '@/lib/bierdeckel';
  */
 export function DeckelGrafik({ deckel }: { deckel: Deckel }) {
   if (deckel.art === 'augustiner') {
+    const k = deckelKreis(deckel);
     return (
       // eslint-disable-next-line @next/next/no-img-element
       <img
@@ -18,7 +19,7 @@ export function DeckelGrafik({ deckel }: { deckel: Deckel }) {
         alt=""
         draggable={false}
         // Kreis-Maske knapp innerhalb vom Scan-Rand: der hat an hellen, halbdurchsichtigen Saum (weißer Schein)
-        style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', userSelect: 'none', pointerEvents: 'none', clipPath: 'circle(47.6% at 50% 50%)' }}
+        style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', userSelect: 'none', pointerEvents: 'none', clipPath: `circle(${k.r}% at ${k.cx}% ${k.cy}%)` }}
       />
     );
   }

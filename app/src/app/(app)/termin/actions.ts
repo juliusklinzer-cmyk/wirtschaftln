@@ -476,9 +476,12 @@ export async function besuchAbschliessen(terminId: string, formData: FormData) {
   if (!me) return;
   const termin = db.select().from(termine).where(eq(termine.id, terminId)).get();
   if (!termin) return;
-  if (termin.phase !== 'heute' && termin.phase !== 'abgeschlossen') return;
-  if (termin.phase === 'abgeschlossen' && !nachtragsfristOffen(termin.abgeschlossenAm)) return;
-  if (termin.phase === 'heute' && !abschlussOffen(termin, nowIso())) return;
+  // Abschließen geht aus jeder offenen Phase, sobald der Abend rum is — a
+  // ned gschlossene Anmeldung („reserviert") derf den Abschluss ned blockieren,
+  // die Seite zeigt den Zettel dann nämlich scho an.
+  if (termin.phase === 'abgeschlossen') {
+    if (!nachtragsfristOffen(termin.abgeschlossenAm)) return;
+  } else if (!abschlussOffen(termin, nowIso())) return;
 
   const gelistet = formData.getAll('memberId').map(String);
   // Zwoa Zettel: der schlanke Abschluss-Zettel (modus=zettel: nur da / z’spät / ned da,

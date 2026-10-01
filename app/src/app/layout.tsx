@@ -73,6 +73,11 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const muenchen = (await tenantConfigAusCookie())?.features.muenchenBranding ?? false;
   return (
     <html lang="de">
+      <head>
+        {/* Manifest MIT Cookie holen, sonst kennt der Server den Stammtisch ned
+            und Chrome tauscht's App-Icon gegen die Rauten (siehe manifest.webmanifest/route.ts) */}
+        <link rel="manifest" href="/manifest.webmanifest" crossOrigin="use-credentials" />
+      </head>
       {/* suppressHydrationWarning: Browser-Extensions (z. B. ColorZilla) hängen
           Attribute an <body>, bevor React lädt, das ist kein App-Fehler. */}
       <body suppressHydrationWarning className={muenchen ? 'wn-muenchen' : undefined}>

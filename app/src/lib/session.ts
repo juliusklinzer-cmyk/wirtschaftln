@@ -10,6 +10,21 @@ import { parseTenantConfig, type TenantConfig } from '@/lib/tenant-config';
 
 const COOKIE = 'wn_session';
 const MAX_AGE_DAYS = 90;
+/**
+ * Merkt sich den Stammtisch übers Logout hinaus (nur die Slug, koa Geheimnis):
+ * Chrome holt das Manifest für's App-Icon auch mal ohne Session, und dann
+ * soll's trotzdem des richtige Icon bleiben statt der Rauten-Rückfallebene.
+ */
+export const GRUPPE_COOKIE = 'wn_gruppe';
+const GRUPPE_MAX_AGE = 400 * 86400;
+
+export const gruppeCookieOptionen = {
+  httpOnly: true,
+  sameSite: 'lax' as const,
+  secure: process.env.NODE_ENV === 'production',
+  maxAge: GRUPPE_MAX_AGE,
+  path: '/',
+};
 
 /**
  * Cookie-Wert ist `<gruppeId>:<token>`. Legacy-Cookies von vor dem
@@ -47,6 +62,7 @@ export async function createSession(memberId: string) {
     maxAge: MAX_AGE_DAYS * 86400,
     path: '/',
   });
+  jar.set(GRUPPE_COOKIE, tenant.id, gruppeCookieOptionen);
 }
 
 /**
@@ -105,8 +121,10 @@ export const getCurrentMember = cache(async () => {
  */
 export async function tenantConfigAusCookie(): Promise<TenantConfig | null> {
   const s = await sessionAusCookie();
-  if (!s) return null;
-  const t = bindTenant(s.gruppeId);
+  const gemerkt = (await cookies()).get(GRUPPE_COOKIE)?.value;
+  const id = s?.gruppeId ?? (istGueltigerSlug(gemerkt) ? gemerkt : null);
+  if (!id) return null;
+  const t = bindTenant(id);
   return t ? parseTenantConfig(t.gruppe) : null;
 }
 

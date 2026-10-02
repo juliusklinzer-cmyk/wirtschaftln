@@ -38,8 +38,14 @@ const WB_WINKEL = 190;
  * SSR/Re-Render (koa Math.random, sonst springen d'Striche beim Hydrieren).
  */
 function zitter(i: number, salz: number): number {
-  const x = Math.sin(i * 127.1 + salz * 311.7) * 43758.5453;
-  return (x - Math.floor(x)) * 2 - 1;
+  // Reiner Ganzzahl-Hash statt Math.sin: sin rechnet in Node und im Browser
+  // in den letzten Bits verschieden, dann passt's Server-HTML ned zum Client
+  // (Hydration-Warnung). Mit imul kimmt überall exakt dasselbe raus.
+  let h = Math.imul(Math.round(i * 1000) ^ 0x9e3779b9, 0x85ebca6b) ^ Math.imul(Math.round(salz * 1000) + 0x165667b1, 0xc2b2ae35);
+  h = Math.imul(h ^ (h >>> 16), 0x7feb352d);
+  h = Math.imul(h ^ (h >>> 15), 0x846ca68b);
+  h ^= h >>> 16;
+  return ((h >>> 0) / 4294967296) * 2 - 1;
 }
 
 const amRand = (winkel: number, r = RADIUS) => {
@@ -83,10 +89,10 @@ function Strichgruppen({ anzahl, winkel, salz }: { anzahl: number; winkel: numbe
           key={k}
           d={`M ${x1.toFixed(1)} ${y1.toFixed(1)} Q ${cx.toFixed(1)} ${cy.toFixed(1)} ${x2.toFixed(1)} ${y2.toFixed(1)}`}
           stroke={TINTE}
-          strokeWidth={3.3 + zitter(k, 17) * 0.5 + wt * 0.4}
+          strokeWidth={+(3.3 + zitter(k, 17) * 0.5 + wt * 0.4).toFixed(2)}
           strokeLinecap="round"
           fill="none"
-          opacity={0.9 + zitter(k, 18) * 0.08}
+          opacity={+(0.9 + zitter(k, 18) * 0.08).toFixed(3)}
           className={g * 5 + p === anzahl - 1 ? 'wn-strich-neu' : undefined}
         />,
       );
@@ -112,7 +118,7 @@ function KuerzelWB() {
     stroke: TINTE, strokeWidth: 2.8, strokeLinecap: 'round', strokeLinejoin: 'round', fill: 'none', opacity: 0.9,
   };
   return (
-    <g transform={`translate(${x.toFixed(1)} ${y.toFixed(1)}) rotate(${WB_WINKEL - 90 + zitter(1, 21) * 3})`}>
+    <g transform={`translate(${x.toFixed(1)} ${y.toFixed(1)}) rotate(${(WB_WINKEL - 90 + zitter(1, 21) * 3).toFixed(1)})`}>
       <path d="M -20 -10 Q -18 1 -15 10 Q -13 2 -10 -3 Q -7 2 -5 10 Q -2 0 1 -10" {...zug} />
       <path d="M 5.5 -10.5 Q 4.5 0 4 10.5" {...zug} />
       <path d="M 5 -10 Q 18 -12 17 -2.5 Q 16.5 0.5 6 0 Q 20 -0.5 19 7 Q 18 11.5 4 10" {...zug} />
@@ -142,7 +148,7 @@ function Sterne({ anzahl }: { anzahl: number }) {
     const d = `M ${pts[0].x.toFixed(1)} ${pts[0].y.toFixed(1)} ${pts.slice(1).map((p) => `L ${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(' ')} L ${ende.x.toFixed(1)} ${ende.y.toFixed(1)}`;
     sterne.push(
       <g key={s} transform={`translate(${x.toFixed(1)} ${y.toFixed(1)}) rotate(${(zitter(s, 37) * 14).toFixed(1)})`}>
-        <path d={d} stroke={TINTE} strokeWidth={3 + zitter(s, 38) * 0.4} strokeLinecap="round" strokeLinejoin="round" fill="none" opacity={0.9} className={s === anzahl - 1 ? 'wn-stern-neu' : undefined} />
+        <path d={d} stroke={TINTE} strokeWidth={+(3 + zitter(s, 38) * 0.4).toFixed(2)} strokeLinecap="round" strokeLinejoin="round" fill="none" opacity={0.9} className={s === anzahl - 1 ? 'wn-stern-neu' : undefined} />
       </g>,
     );
   }

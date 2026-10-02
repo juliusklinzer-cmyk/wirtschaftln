@@ -6,7 +6,7 @@ import { db, kasse } from '@/lib/db';
 import { getCurrentMember } from '@/lib/session';
 import { getKassenwartId, getPraesidentId, getAktiveMitglieder } from '@/lib/queries';
 import { hoibePreisCents } from '@/lib/preise';
-import { appUrl, mailSignatur } from '@/lib/tenant-config';
+import { appUrl, mailSignatur, tenantConfig } from '@/lib/tenant-config';
 import { newId, nowIso } from '@/lib/ids';
 import { anzeigeName } from '@/lib/namen';
 import { pushAn } from '@/lib/push';
@@ -51,7 +51,7 @@ export async function melden(formData: FormData) {
 
   // ⚖️ Der Gmeldte kriagt Bescheid (Push + Mail)
   const titel = '⚖️ Du wurdst gmeldt!';
-  const text = `${anzeigeName(me)} hat di gmeldt: „${grund}", des kost ${hoibe === 1 ? 'a Hoibe' : `${hoibe} Hoibe`}. Zohl beim Kassenwart oder per PayPal. 🍺`;
+  const text = `${anzeigeName(me)} hat di gmeldt: „${grund}", des kost ${hoibe === 1 ? 'a Hoibe' : `${hoibe} Hoibe`}. Zohl beim Kassenwart${tenantConfig().istGruender ? ' oder per PayPal' : ''}. 🍺`;
   await Promise.allSettled([
     pushAn([memberId], titel, text, '/kasse'),
     mailAn([opfer.email], titel, `Servus ${anzeigeName(opfer)}!\n\n${text}\n\n→ ${appUrl('/kasse')}\n\n${mailSignatur()}`),

@@ -39,12 +39,15 @@ import { meineBewertung } from './termin/actions';
 import { UmfrageKarte } from '@/components/domain/UmfrageKarte';
 import { UmfrageNeu } from '@/components/domain/UmfrageNeu';
 
-const PAYPAL_POOL_URL = process.env.NEXT_PUBLIC_PAYPAL_POOL_URL;
+// Der PayPal-Pool gehört dem Gründer-Stammtisch (Env, ned pro Mandant):
+// andere Stammtische zahlen bar beim Kassenwart, sonst landet ihr Geld bei uns.
+const GRUENDER_PAYPAL_URL = process.env.NEXT_PUBLIC_PAYPAL_POOL_URL;
 
 export default async function HomePage() {
   const me = (await getCurrentMember())!;
   erzwingeProfil(me);
   const config = tenantConfig();
+  const PAYPAL_POOL_URL = config.istGruender ? GRUENDER_PAYPAL_URL : undefined;
   const stats = getStats();
   const meineStats = stats.find((s) => s.member.id === me.id);
   const rangliste = [...stats].sort((a, b) => b.punkte - a.punkte);

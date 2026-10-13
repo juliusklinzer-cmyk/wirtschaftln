@@ -36,8 +36,8 @@ export const SAISON_BADGES: SaisonBadge[] = [
     geschichte: 'Respekt und a bisserl Sorge: de meisten Schweinsbraten der Saison. Kruste, Knödl, Soß, nix bleibt über. A Sau halt, im allerbesten Sinn.' },
   { key: 'schnapsler', slug: 'schnapsler', icon: '🥃', name: 'Schnapsler', tag: 'meiste Schnaps', pflicht: null,
     geschichte: 'Bier is a Grundnahrungsmittel, aber der Schnapsler geht an Schritt weiter: de meisten Stamperl der Saison. Zum Wohl, und morgen a Aspirin.' },
-  { key: 'gschaftler', slug: null, icon: '⏰', name: 'Gschaftler', tag: 'am öftesten z’spät', pflicht: null,
-    geschichte: 'Der Gschaftler hat oiwei no was z’erledigen, drum kommt er oiwei z’spät: wenn er eini geht, is d’erste Runde scho leer. Koa Strafe, nur a Vermerk vom Abschließer, und des Badge für den, der am öftesten gschaftlt hat.' },
+  { key: 'gschaftler', slug: 'gschaftler', icon: '⏰', name: 'Gschaftler', tag: 'am öftesten z’spät', pflicht: null,
+    geschichte: 'Wia da Baby Schimmerlos aus Kir Royal: kennt jeden, mischt überall mit und hat oiwei no a Gschäft am Telefon, drum kommt er oiwei z’spät. Wenn er eini geht, is d’erste Runde scho leer. Koa Strafe, nur a Vermerk vom Abschließer, und des Badge für den, der am öftesten gschaftlt hat.' },
   { key: 'alterPeter', slug: 'alterPeter', icon: '⛪', name: 'Alter Peter', tag: 'höchste Serie', pflicht: null,
     geschichte: 'Wia der Turm überm Rindermarkt: steht und steht und steht. Die längste Serie, seit’s den Stammtisch gibt, bei Gleichstand entscheiden d’Hoibe.' },
 ];

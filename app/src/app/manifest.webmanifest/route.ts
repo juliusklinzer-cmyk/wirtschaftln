@@ -50,7 +50,7 @@ async function manifest(): Promise<MetadataRoute.Manifest> {
     // Nur Hochformat (Android/Chrome halten sich dran; iOS ignoriert's, dort greift der Dreh-Hinweis in globals.css)
     orientation: 'portrait',
     background_color: '#07193A',
-    theme_color: '#FFFFFF',
+    theme_color: '#07193A', // Statusleiste (Uhrzeit, 5G) in Header-Navy, Hoam-Redesign 13.10.2026
     lang: 'de',
     // App-Icon: beim Gründer das Münchner Kindl mit der Hoibe (seit 09.08.2026),
     // sonst das Wirtschaftln-Wappen (eigenes Design, lizenzfrei)

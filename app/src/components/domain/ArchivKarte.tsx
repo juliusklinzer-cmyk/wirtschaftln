@@ -17,63 +17,52 @@ export type KartenPin = {
   photoUrl: string | null;
   naechstes?: boolean;
   top3?: boolean;
-  /** Entdeckt, aber no ned besucht und no koane Wertung: hellgrauer Pin mit ❓ statt Bierkrug. */
+  /** Entdeckt, aber no ned besucht: weißer, gestrichelter Pin. */
   offen?: boolean;
-  /** Entdeckt und von Spezln bewertet (no koa Stammtisch dort): heller blauer Pin mit ★. */
+  /** Entdeckt und von Spezln bewertet (no koa Stammtisch dort): gestrichelt mit Stern. */
   vorbewertet?: boolean;
-  /** S’Stammhaus: immer golden und groß wia „Nächstes Mal“, mit 🏠. */
+  /** S’Stammhaus: immer golden und groß. */
   stammhaus?: boolean;
 };
 
+export type Standort = { lat: number; lng: number };
+
+const BIER_PFAD = '<path d="M6 11h9v8a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2v-8z"/><path d="M15 13h2.5a2.5 2.5 0 0 1 0 5H15M6 11V8a3 3 0 0 1 3-3h3a3 3 0 0 1 3 3v3"/>';
+const HAUS_PFAD = '<path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/>';
+const STERN_PFAD = '<path d="m12 3 2.9 5.9 6.5.9-4.7 4.6 1.1 6.5L12 18.4 6.2 21.4l1.1-6.5L2.6 9.8l6.5-.9L12 3z"/>';
+
 /**
- * Bierkrug-Teardrop-Pin wie im Design-Prototyp (WirtshausScreen.jsx).
- * Offene („gfundene") Pins sind bewusst klein und dezent, heller
- * Pergament-Tropfen mit grauem ?, damit die blauen Krüge und die goldenen
- * Top-Pins die Karte dominieren.
+ * Bierkrug-Tropfen-Pin (Archiv-Redesign 13.10.2026): Gold = Top 3, nächstes
+ * Ziel und Stammhaus · Navy = besucht (auch vor der App) · Blau und größer
+ * mit Namensschild = ausgewählt · weiß gestrichelt = Vorschlag.
  */
 function pinElement(pin: KartenPin, aktiv: boolean, onClick: () => void): HTMLButtonElement {
-  const ruhig = !!pin.offen && !aktiv; // gfunden & gerade nicht ausgewählt
-  const size = aktiv || pin.stammhaus ? 36 : ruhig ? 21 : 28;
-  const gold = pin.naechstes || pin.top3 || pin.stammhaus;
+  const vorschlag = !!pin.offen || !!pin.vorbewertet;
+  const gold = !aktiv && (pin.naechstes || pin.top3 || pin.stammhaus);
+  const size = aktiv ? 44 : 34;
   const btn = document.createElement('button');
   btn.type = 'button';
-  btn.title = pin.offen ? `${pin.name} (no ned besucht)` : pin.vorbewertet ? `${pin.name} (von Spezln bewertet)` : pin.name;
+  btn.title = pin.offen ? `${pin.name} (Vorschlag)` : pin.vorbewertet ? `${pin.name} (von Spezln bewertet)` : pin.name;
   btn.style.cssText = `border:none;background:transparent;cursor:pointer;padding:0;
-    transform:translate(-50%,-100%);position:absolute;
-    filter:drop-shadow(0 ${aktiv ? 4 : 1}px ${aktiv ? 6 : 2}px rgba(12,43,90,.${ruhig ? 15 : aktiv ? 4 : 3}));
-    z-index:${pin.naechstes || pin.stammhaus ? 6 : aktiv ? 5 : pin.offen ? 0 : 1};`;
+    transform:translate(-50%,-100%);position:absolute;display:flex;flex-direction:column;align-items:center;gap:3px;
+    z-index:${aktiv ? 7 : pin.naechstes || pin.stammhaus ? 6 : vorschlag ? 1 : 2};`;
   const tropfen = document.createElement('span');
-  const hintergrund = gold
-    ? 'linear-gradient(180deg,#E6C684 0%,#D0AD66 45%,#A6843E 100%)'
-    : ruhig
-      ? '#F3EEE1' // Pergament: zurückhaltend, klar als „no ned besucht" lesbar
-      : pin.vorbewertet && !aktiv
-        ? '#DCEBF7' // hellblau: bewertet, aber no koa Stammtisch dort
-      : aktiv
-        ? '#006AB3'
-        : '#0C2B5A';
+  const hintergrund = aktiv ? '#006AB3' : gold ? '#D0AD66' : vorschlag ? '#FFFFFF' : '#0C2B5A';
+  const rand = !aktiv && vorschlag ? '2px dashed #94A3B4' : '2.5px solid #fff';
   tropfen.style.cssText = `display:flex;align-items:center;justify-content:center;
     width:${size}px;height:${size}px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);
-    transition:all .2s ease;
-    box-shadow:0 ${ruhig ? 1 : 2}px ${ruhig ? 4 : 8}px rgba(12,43,90,.${ruhig ? 12 : 25});
-    border:${ruhig ? '1.5px solid rgba(12,43,90,0.28)' : pin.vorbewertet && !aktiv ? '2px solid #006AB3' : '2px solid #fff'};
-    background:${hintergrund};`;
-  const icon = document.createElement('span');
-  if (pin.offen) {
-    // schlichtes graues ? statt rotem Emoji, deutlich leiser als die Bierkrüge
-    icon.style.cssText = `transform:rotate(45deg);font-family:var(--font-ui),sans-serif;
-      font-size:${aktiv ? 15 : 11}px;font-weight:800;line-height:1;
-      color:${aktiv ? '#fff' : '#9AA6B5'};`;
-    icon.textContent = '?';
-  } else if (pin.vorbewertet) {
-    icon.style.cssText = `transform:rotate(45deg);font-size:${aktiv ? 17 : 14}px;line-height:1;color:${aktiv ? '#E6C684' : '#B8860B'};`;
-    icon.textContent = '★';
-  } else {
-    icon.style.cssText = `transform:rotate(45deg);font-size:${aktiv ? 16 : 13}px;line-height:1;`;
-    icon.textContent = pin.naechstes ? '📍' : pin.stammhaus ? '🏠' : '🍺';
-  }
-  tropfen.appendChild(icon);
+    transition:all .2s ease;box-shadow:0 4px 10px rgba(7,25,58,.35);border:${rand};background:${hintergrund};`;
+  const iconFarbe = aktiv ? '#fff' : gold ? '#07193A' : vorschlag ? '#5A6B7E' : '#F6F0E2';
+  const iconGroesse = aktiv ? 20 : 16;
+  const pfad = pin.stammhaus ? HAUS_PFAD : pin.vorbewertet && !pin.naechstes ? STERN_PFAD : BIER_PFAD;
+  tropfen.innerHTML = `<svg width="${iconGroesse}" height="${iconGroesse}" viewBox="0 0 24 24" fill="none" stroke="${iconFarbe}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="transform:rotate(45deg)">${pfad}</svg>`;
   btn.appendChild(tropfen);
+  if (aktiv) {
+    const schild = document.createElement('span');
+    schild.textContent = pin.name;
+    schild.style.cssText = 'font-family:var(--font-ui),sans-serif;font-size:10px;font-weight:800;padding:2px 6px;border-radius:6px;background:#fff;color:#0C2B5A;box-shadow:0 1px 3px rgba(0,0,0,.2);white-space:nowrap;max-width:160px;overflow:hidden;text-overflow:ellipsis;';
+    btn.appendChild(schild);
+  }
   btn.addEventListener('click', (e) => {
     e.stopPropagation();
     onClick();
@@ -84,15 +73,18 @@ function pinElement(pin: KartenPin, aktiv: boolean, onClick: () => void): HTMLBu
 /**
  * Vollflächige Google-Karte mit allen Wirtshäusern. Nebenbei: Wirtshäuser ohne Foto
  * bekommen einmalig ein Bild aus der Places-Textsuche (ToS-konform über die JS-Library).
+ * `standort` = eigener Standort (blauer Punkt, Karte springt hin).
  */
 export function ArchivKarte({
   pins,
   activeIdx,
   onPick,
+  standort = null,
 }: {
   pins: KartenPin[];
   activeIdx: number;
   onPick: (idx: number) => void;
+  standort?: Standort | null;
 }) {
   const router = useRouter();
   // Geo-Config des Stammtischs (Kartenmitte, Umkreis, Such-Suffix); null = die ganze Welt
@@ -105,8 +97,8 @@ export function ArchivKarte({
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);
   const overlayRef = useRef<any>(null);
-  const stateRef = useRef({ pins, activeIdx, onPick });
-  stateRef.current = { pins, activeIdx, onPick };
+  const stateRef = useRef({ pins, activeIdx, onPick, standort });
+  stateRef.current = { pins, activeIdx, onPick, standort };
   const backfillDone = useRef(false);
 
   useEffect(() => {
@@ -157,7 +149,7 @@ export function ArchivKarte({
           this.getPanes().overlayMouseTarget.appendChild(this.container);
         };
         overlay.draw = function () {
-          const { pins: p, activeIdx: aktiv, onPick: pick } = stateRef.current;
+          const { pins: p, activeIdx: aktiv, onPick: pick, standort: ich } = stateRef.current;
           const projection = this.getProjection();
           if (!projection || !this.container) return;
           this.container.innerHTML = '';
@@ -170,6 +162,15 @@ export function ArchivKarte({
             el.style.top = `${punkt.y}px`;
             this.container.appendChild(el);
           });
+          // Eigener Standort: blauer Punkt mit weißem Rand
+          if (ich) {
+            const punkt = projection.fromLatLngToDivPixel(new google.maps.LatLng(ich.lat, ich.lng));
+            if (punkt) {
+              const dot = document.createElement('span');
+              dot.style.cssText = `position:absolute;left:${punkt.x}px;top:${punkt.y}px;transform:translate(-50%,-50%);width:16px;height:16px;border-radius:50%;background:#006AB3;border:3px solid #fff;box-shadow:0 0 0 6px rgba(0,106,179,.2),0 2px 6px rgba(7,25,58,.35);pointer-events:none;z-index:8;`;
+              this.container.appendChild(dot);
+            }
+          }
         };
         overlay.onRemove = function () {
           this.container?.remove();
@@ -240,6 +241,15 @@ export function ArchivKarte({
       mapRef.current.panTo({ lat: pin.lat, lng: pin.lng });
     }
   }, [activeIdx, pins]);
+
+  // Eigener Standort: hinspringen und den Punkt zeichnen
+  useEffect(() => {
+    overlayRef.current?.draw?.();
+    if (standort && mapRef.current) {
+      mapRef.current.panTo(standort);
+      if ((mapRef.current.getZoom?.() ?? 0) < 14) mapRef.current.setZoom(14);
+    }
+  }, [standort]);
 
   return <div ref={containerRef} style={{ position: 'absolute', inset: 0 }} />;
 }

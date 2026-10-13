@@ -6,8 +6,10 @@ import {
   getOffeneWirtshaeuser,
   getAltbestand,
   getNachbewertungen,
+  getAktiveMitglieder,
 } from '@/lib/queries';
-import { datumKurz } from '@/lib/format';
+import { datumKurz, datumMitJahr, datumMittelMitJahr } from '@/lib/format';
+import { orgaPunkte } from '@/lib/punkte';
 import type { ArchivEintrag } from '@/components/domain/ArchivScreen';
 import { tenantConfig } from '@/lib/tenant-config';
 
@@ -24,6 +26,11 @@ export function ladeArchivEintraege(meId: string): ArchivEintrag[] {
   const stammhausId = config.typ === 'stammhaus' ? config.stammhausWirtshausId : null;
 
   const nachbewertungen = getNachbewertungen();
+  const mitglieder = getAktiveMitglieder();
+  const nameVon = (id: string | null) => {
+    const m = id ? mitglieder.find((x) => x.id === id) : null;
+    return m ? anzeigeName(m) : null;
+  };
   const nachVon = (wirtshausId: string) => nachbewertungen.filter((n) => n.bewertung.wirtshausId === wirtshausId);
   const meineVon = (wirtshausId: string) => {
     const eigene = nachVon(wirtshausId).find((n) => n.bewertung.memberId === meId);
@@ -65,11 +72,13 @@ export function ladeArchivEintraege(meId: string): ArchivEintrag[] {
         id: wirtshaus.id,
         name: wirtshaus.name,
         bezirk: wirtshaus.bezirk,
+        adresse: wirtshaus.adresse,
         lat: wirtshaus.lat,
         lng: wirtshaus.lng,
         photoUrl: wirtshaus.photoUrl,
         biersorte: wirtshaus.biersorte,
         besuchtAm: null,
+        datumLang: datumMitJahr(aktueller.datum),
         organisator: planer ? { name: anzeigeName(planer), photoUrl: planer.photoUrl } : null,
         rating: 0,
         kaiser: 0,
@@ -90,6 +99,7 @@ export function ladeArchivEintraege(meId: string): ArchivEintrag[] {
       id: wirtshaus.id,
       name: wirtshaus.name,
       bezirk: wirtshaus.bezirk,
+      adresse: wirtshaus.adresse,
       lat: wirtshaus.lat,
       lng: wirtshaus.lng,
       photoUrl: wirtshaus.photoUrl,
@@ -102,6 +112,7 @@ export function ladeArchivEintraege(meId: string): ArchivEintrag[] {
       kaiser: blend(0, 0, nach.map((n) => n.bewertung.kaiserSterne).filter((s): s is number => s != null)),
       brodn: blend(0, 0, nach.map((n) => n.bewertung.brodnSterne).filter((s): s is number => s != null)),
       nachAnzahl: nach.length,
+      wertungen: { sterne: nach.length, kaiser: nach.filter((n) => n.bewertung.kaiserSterne != null).length, brodn: nach.filter((n) => n.bewertung.brodnSterne != null).length },
       vorbewertet: nach.length > 0,
       hoiben: 0,
       teilnehmer: [],
@@ -125,11 +136,14 @@ export function ladeArchivEintraege(meId: string): ArchivEintrag[] {
       id: s0.wirtshaus.id,
       name: s0.wirtshaus.name,
       bezirk: s0.wirtshaus.bezirk,
+      adresse: s0.wirtshaus.adresse,
       lat: s0.wirtshaus.lat,
       lng: s0.wirtshaus.lng,
       photoUrl: s0.wirtshaus.photoUrl,
       biersorte: s0.wirtshaus.biersorte,
       besuchtAm: datumKurz(s0.termin.datum),
+      datumLang: datumMitJahr(s0.termin.datum),
+      abende: stammhausAbende.length,
       stammhaus: true,
       organisator: null,
       rating: 0,
@@ -150,16 +164,26 @@ export function ladeArchivEintraege(meId: string): ArchivEintrag[] {
       id: a.wirtshaus.id,
       name: a.wirtshaus.name,
       bezirk: a.wirtshaus.bezirk,
+      adresse: a.wirtshaus.adresse,
       lat: a.wirtshaus.lat,
       lng: a.wirtshaus.lng,
       photoUrl: a.wirtshaus.photoUrl,
       biersorte: a.wirtshaus.biersorte,
       besuchtAm: datumKurz(a.termin.datum),
+      datumLang: datumMitJahr(a.termin.datum),
+      datumVoll: datumMittelMitJahr(a.termin.datum),
+      abgeschlossenVon: nameVon(a.termin.abgeschlossenVon),
+      orgaWp: a.planer ? orgaPunkte(a.rating) : null,
       organisator: a.planer ? { name: anzeigeName(a.planer), photoUrl: a.planer.photoUrl } : null,
       rating: blend(a.rating, a.ratingAnzahl, nach.map((n) => n.bewertung.sterne)),
       kaiser: blend(a.kaiser, a.kaiserAnzahl, nach.map((n) => n.bewertung.kaiserSterne).filter((s): s is number => s != null)),
       brodn: blend(a.brodn, a.brodnAnzahl, nach.map((n) => n.bewertung.brodnSterne).filter((s): s is number => s != null)),
       nachAnzahl: nach.length,
+      wertungen: {
+        sterne: a.ratingAnzahl + nach.length,
+        kaiser: a.kaiserAnzahl + nach.filter((n) => n.bewertung.kaiserSterne != null).length,
+        brodn: a.brodnAnzahl + nach.filter((n) => n.bewertung.brodnSterne != null).length,
+      },
       hoiben: a.hoiben,
       teilnehmer: a.teilnehmer,
       hinweise: [...a.hinweise, ...nachKommentare(a.wirtshaus.id)],
@@ -178,12 +202,14 @@ export function ladeArchivEintraege(meId: string): ArchivEintrag[] {
       id: w.id,
       name: w.name,
       bezirk: w.bezirk,
+      adresse: w.adresse,
       lat: w.lat,
       lng: w.lng,
       photoUrl: w.photoUrl,
       biersorte: w.biersorte,
       besuchtAm: null,
       altbestand: true,
+      wertungen: { sterne: nach.length, kaiser: nach.filter((n) => n.bewertung.kaiserSterne != null).length, brodn: nach.filter((n) => n.bewertung.brodnSterne != null).length },
       organisator: null,
       rating: blend(0, 0, nach.map((n) => n.bewertung.sterne)),
       kaiser: blend(0, 0, nach.map((n) => n.bewertung.kaiserSterne).filter((s): s is number => s != null)),

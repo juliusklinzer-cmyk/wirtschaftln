@@ -4,8 +4,19 @@ import { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Avatar, Icon } from '@/components/ds';
+import { Avatar } from '@/components/ds';
 import { PunkteInfo } from '@/components/domain/PunkteInfo';
+// Einzel-Imports: das Barrel „@phosphor-icons/react“ zieht 1500 Icons in den Dev-Bundle
+import { UserCircle } from '@phosphor-icons/react/dist/ssr/UserCircle';
+import { Medal } from '@phosphor-icons/react/dist/ssr/Medal';
+import { UserPlus } from '@phosphor-icons/react/dist/ssr/UserPlus';
+import { Bell } from '@phosphor-icons/react/dist/ssr/Bell';
+import { Info } from '@phosphor-icons/react/dist/ssr/Info';
+import { Gear } from '@phosphor-icons/react/dist/ssr/Gear';
+import { SignOut } from '@phosphor-icons/react/dist/ssr/SignOut';
+import { X } from '@phosphor-icons/react/dist/ssr/X';
+import { CaretRight } from '@phosphor-icons/react/dist/ssr/CaretRight';
+import type { Icon as PhosphorIcon } from '@phosphor-icons/react/dist/lib/types';
 
 const TITLES: Record<string, string> = {
   '/termin': 'Termin & Abstimmung',
@@ -225,14 +236,15 @@ function ProfilMenue({
     textDecoration: 'none', color: 'var(--ink-900)', fontFamily: 'var(--font-ui)',
     background: 'transparent', width: '100%', textAlign: 'left', cursor: 'pointer',
   };
-  const Zeile = ({ icon, label, hint }: { icon: string; label: string; hint?: string }) => (
+  // Zeilen mit Phosphor-Icons, exakt wia im Design (1b)
+  const Zeile = ({ icon: Ikon, label, hint }: { icon: PhosphorIcon; label: string; hint?: string }) => (
     <>
       <span style={{ width: 32, height: 32, flex: 'none', borderRadius: 10, background: 'var(--info-bg)', color: 'var(--muc-blau)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
-        <Icon name={icon} size={18} />
+        <Ikon size={18} />
       </span>
       <span style={{ flex: 1, minWidth: 0, fontSize: 15, fontWeight: 700 }}>{label}</span>
       {hint && <span className="wn-tnum" style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink-300)' }}>{hint}</span>}
-      <Icon name="chevron" size={16} color="var(--ink-200)" />
+      <CaretRight size={16} color="var(--ink-200)" />
     </>
   );
   const kachel: React.CSSProperties = { borderRadius: 16, padding: 12, display: 'flex', flexDirection: 'column', gap: 2 };
@@ -275,7 +287,7 @@ function ProfilMenue({
             className="wn-press"
             style={{ width: 36, height: 36, flex: 'none', borderRadius: '50%', border: 'none', background: 'var(--ink-100)', color: 'var(--ink-500)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: 0, cursor: 'pointer' }}
           >
-            <Icon name="x" size={18} />
+            <X size={18} />
           </button>
         </div>
 
@@ -295,19 +307,19 @@ function ProfilMenue({
         </div>
 
         <div style={{ background: 'var(--weiss)', borderRadius: 18, overflow: 'hidden' }}>
-          <Link href="/profil" style={zeileStil}><Zeile icon="user" label="Mein Profil" hint="Steckbrief" /></Link>
-          <Link href="/profil#badges" style={zeileStil}><Zeile icon="medal" label="Badges & Ämter" hint={String(badges)} /></Link>
-          <Link href="/einladen" style={zeileStil}><Zeile icon="user-plus" label="Spezl einladen" /></Link>
-          <Link href="/profil#push" style={zeileStil}><Zeile icon="bell" label="Benachrichtigungen" hint={push || undefined} /></Link>
+          <Link href="/profil" style={zeileStil}><Zeile icon={UserCircle} label="Mein Profil" hint="Steckbrief" /></Link>
+          <Link href="/profil#badges" style={zeileStil}><Zeile icon={Medal} label="Badges & Ämter" hint={String(badges)} /></Link>
+          <Link href="/einladen" style={zeileStil}><Zeile icon={UserPlus} label="Spezl einladen" /></Link>
+          <Link href="/profil#push" style={zeileStil}><Zeile icon={Bell} label="Benachrichtigungen" hint={push || undefined} /></Link>
           <PunkteInfo
             knopf={(oeffnen) => (
               <button type="button" onClick={oeffnen} style={zeileStil}>
-                <Zeile icon="info" label="Punktesystem" />
+                <Zeile icon={Info} label="Punktesystem" />
               </button>
             )}
           />
           {isAdmin && (
-            <Link href="/stammtisch" style={{ ...zeileStil, borderWidth: 0 }}><Zeile icon="settings" label="Stammtisch verwalten" /></Link>
+            <Link href="/stammtisch" style={{ ...zeileStil, borderWidth: 0 }}><Zeile icon={Gear} label="Stammtisch verwalten" /></Link>
           )}
         </div>
 
@@ -321,7 +333,7 @@ function ProfilMenue({
             fontFamily: 'var(--font-ui)', fontSize: 15, fontWeight: 800, color: 'var(--strafe)',
           }}
         >
-          <Icon name="logout" size={18} />
+          <SignOut size={18} />
           Abmelden
         </button>
       </div>

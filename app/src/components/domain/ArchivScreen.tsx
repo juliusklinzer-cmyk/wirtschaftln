@@ -1,10 +1,12 @@
 'use client';
 
 import { useRef, useState, useTransition } from 'react';
-import { SegmentedTabs, Badge, Avatar } from '@/components/ds';
-import { Stars } from '@/components/domain/Stars';
-import { ArchivKarte } from '@/components/domain/ArchivKarte';
+import { Avatar, Icon, Kachel, Zeile, ZeilenKarte } from '@/components/ds';
+import { ArchivKarte, type Standort } from '@/components/domain/ArchivKarte';
 import { RichtungsKnopf } from '@/components/domain/RichtungsKnopf';
+import { HoamTitel } from '@/components/domain/HoamTitel';
+import { KompaktStepper } from '@/components/domain/WertungFelder';
+import { goldKnopfStil, bereichHinweisStil } from '@/components/domain/hero-stil';
 import { navigationsUrl, ortsUrl } from '@/lib/google-maps';
 import { bierLogo } from '@/lib/biersorten';
 import { nachbewerten, wirtshausEntfernen } from '@/app/(app)/karte/actions';
@@ -24,20 +26,31 @@ export type ArchivEintrag = {
   id: string;
   name: string;
   bezirk: string | null;
+  adresse?: string | null;
   lat: number | null;
   lng: number | null;
   photoUrl: string | null;
   biersorte: string;
-  besuchtAm: string | null; // formatiertes Datum, null bei „nächstes" und „offen"
+  besuchtAm: string | null; // formatiertes Datum (kurz), null bei „nächstes" und „offen"
+  /** „2. Juli 2026“, fürs Karten-Kärtchen und den Chip im Detail */
+  datumLang?: string | null;
+  /** „Do, 2. Juli 2026“, fürs Detail */
+  datumVoll?: string | null;
   organisator: { name: string; photoUrl: string | null } | null;
+  /** Wer den Abend abgschlossen hat (Detail) */
+  abgeschlossenVon?: string | null;
+  /** Orga-WP des Abends (nach Sternen) */
+  orgaWp?: number | null;
   /** Spezl, der das Wirtshaus über „Wirtshaus gfunden" vorgeschlagen hat. */
   gfundenVon?: string | null;
-  /** Member-ID des Finders, für den Entfernen-Button im „Offen"-Tab. */
+  /** Member-ID des Finders, für den Entfernen-Knopf. */
   gfundenVonId?: string | null;
   rating: number;
   kaiser: number;
   brodn: number;
   hoiben: number;
+  /** Anzahl der Wertungen je Kategorie (Termin + Nachbewertungen) */
+  wertungen?: { sterne: number; kaiser: number; brodn: number };
   teilnehmer: ArchivTeilnehmer[];
   hinweise: ArchivHinweis[];
   naechstes?: boolean;
@@ -49,6 +62,8 @@ export type ArchivEintrag = {
   vorbewertet?: boolean;
   /** S’Stammhaus vom Stammtisch: immer golden und groß, wird nie bewertet. */
   stammhaus?: boolean;
+  /** Stammhaus: wie viele Abende dort */
+  abende?: number;
   /** Eigene Nachbewertung des eingeloggten Spezl (null = noch keine). */
   meineBewertung?: {
     sterne: number;
@@ -62,53 +77,61 @@ export type ArchivEintrag = {
 
 /** Bewertung immer mit Kommastelle: 4,6 */
 const dez = (n: number) => n.toLocaleString('de-DE', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+/** Vorname fürs Enge: „Sepp Brunner“ → „Sepp“, „da André“ bleibt ganz. */
+const kurzName = (name: string) => { const [a, ...r] = name.split(' '); return a.length <= 3 && r.length > 0 ? name : a; };
 
-// Bewertungen bewusst ohne Emojis, nur der ★ als Sterne-Symbol bleibt
 const METRIKEN = {
-  rang: { field: 'rating', icon: '★', label: 'STERNE', champ: 'Wirtshaus Nr. 1', heading: 'Alle Wirtshäuser', empty: 'Noch keine Bewertung.' },
-  kaiser: { field: 'kaiser', icon: '', label: 'SCHMARRN', champ: 'Schmarrn-König', heading: 'Beste Kaiserschmarrn', empty: 'Noch kein Kaiserschmarrn bewertet.' },
-  brodn: { field: 'brodn', icon: '', label: 'BRODN', champ: 'Brodn-König', heading: 'Beste Schweinsbraten', empty: 'Noch kein Brodn bewertet.' },
+  rang: { field: 'rating', champ: 'Wirtshaus Nr. 1', leer: 'Noch keine Bewertung.', art: null },
+  kaiser: { field: 'kaiser', champ: 'Schmarrn-König', leer: 'Noch kein Kaiserschmarrn bewertet.', art: 'kaisi' },
+  brodn: { field: 'brodn', champ: 'Brodn-König', leer: 'Noch kein Brodn bewertet.', art: 'brodn' },
 } as const;
 type MetrikKey = keyof typeof METRIKEN;
+type Feld = 'rating' | 'kaiser' | 'brodn';
 
-const MEDAILLE: Record<number, { bg: string; fg: string }> = {
-  1: { bg: 'var(--grad-gold)', fg: 'var(--navy-900)' },
-  2: { bg: 'linear-gradient(135deg,#E7ECF2,#C2CAD6)', fg: '#4A5568' },
-  3: { bg: 'linear-gradient(135deg,#E0A267,#C9853F)', fg: '#fff' },
-};
+const karteStil: React.CSSProperties = { background: 'var(--weiss)', borderRadius: 'var(--r-lg)', border: '1px solid var(--ink-100)', boxShadow: 'var(--sh-sm)' };
+const streifen = 'repeating-linear-gradient(135deg, var(--ink-100) 0 6px, #DCE3EA 6px 12px)';
 
-/** Brauerei-Logo auf weißem Rund statt Text-Chip, antippen/hovern zeigt den vollen Namen. */
-function BiersorteChip({ sorte, hell = false }: { sorte: string; hell?: boolean }) {
-  // Brauerei-Logos nur beim Gründer (Feature brauereiLogos), sonst der Text-Chip
-  const logo = useTenantConfig().features.brauereiLogos ? bierLogo(sorte) : null;
-  if (logo) {
-    return (
-      <span
-        title={sorte}
-        aria-label={`Bier: ${sorte}`}
-        style={{
-          width: 42, height: 42, flex: 'none', borderRadius: '50%',
-          background: 'var(--weiss)', border: `1.5px solid ${hell ? 'rgba(255,255,255,0.55)' : 'var(--pergament-edge)'}`,
-          boxShadow: 'var(--sh-sm)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-        }}
-      >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={logo} alt={sorte} width={28} height={28} style={{ width: 28, height: 28, objectFit: 'contain' }} />
-      </span>
-    );
-  }
+/** Status eines Eintrags, als Chip (Karte, Detail). */
+function StatusChip({ e, mitDatum = false }: { e: ArchivEintrag; mitDatum?: boolean }) {
+  const [bg, fg, text] = e.naechstes
+    ? ['var(--grad-gold)', 'var(--navy-900)', 'Nächstes Mal']
+    : e.stammhaus
+      ? ['var(--grad-gold)', 'var(--navy-900)', 'Stammhaus']
+      : e.besuchtAm
+        ? ['var(--navy)', 'var(--pergament)', mitDatum && e.datumLang ? `Besucht · ${e.datumLang}` : 'Besucht']
+        : e.altbestand
+          ? ['var(--info-bg)', 'var(--muc-blau)', mitDatum ? 'Vor der App · Chronik seit 2019' : 'Vor der App']
+          : e.vorbewertet
+            ? ['var(--info-bg)', 'var(--muc-blau)', 'Von Spezln bewertet']
+            : ['var(--ink-50)', 'var(--ink-500)', 'Vorschlag'];
   return (
-    <span
-      style={{
-        display: 'inline-flex', alignItems: 'center', gap: 5, padding: '3px 10px',
-        borderRadius: 'var(--r-pill)', background: hell ? 'rgba(255,255,255,0.16)' : '#F6ECD4',
-        border: `1px solid ${hell ? 'rgba(255,255,255,0.3)' : 'var(--pergament-edge)'}`,
-        fontFamily: 'var(--font-fraktur)', fontSize: 13, lineHeight: 1.4,
-        color: hell ? 'var(--gold-bright)' : 'var(--gold-700)', whiteSpace: 'nowrap',
-      }}
-    >
-      🍺 {sorte}
+    <span style={{ display: 'inline-flex', fontSize: 11, fontWeight: 800, padding: '4px 10px', borderRadius: 999, background: bg, color: fg, whiteSpace: 'nowrap' }}>
+      {text}
     </span>
+  );
+}
+
+/** Vier Ansichten als Navy-Segment mit Gold-Rand (Design 1a/1b). */
+function Ansichten({ value, onChange, ohneKarte, aufKarte = false }: { value: string; onChange: (v: 'karte' | MetrikKey) => void; ohneKarte: boolean; aufKarte?: boolean }) {
+  const tabs: Array<['karte' | MetrikKey, string]> = [['karte', 'Karte'], ['rang', 'Sterne'], ['kaiser', 'Schmarrn'], ['brodn', 'Brodn']];
+  const sichtbar = ohneKarte ? tabs.filter(([k]) => k !== 'karte') : tabs;
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: `repeat(${sichtbar.length}, 1fr)`, padding: 4, borderRadius: 14, background: aufKarte ? 'rgba(7,25,58,0.85)' : 'rgba(7,25,58,0.92)', boxShadow: '0 6px 18px rgba(7,25,58,0.3)', border: '1px solid rgba(208,173,102,0.4)', backdropFilter: 'blur(4px)' }}>
+      {sichtbar.map(([k, label]) => {
+        const an = value === k;
+        return (
+          <button
+            key={k}
+            type="button"
+            onClick={() => onChange(k)}
+            aria-pressed={an}
+            style={{ height: 38, borderRadius: 11, border: 'none', cursor: 'pointer', fontFamily: 'var(--font-ui)', fontSize: 13, fontWeight: an ? 800 : 700, background: an ? 'var(--gold)' : 'transparent', color: an ? 'var(--navy-900)' : 'rgba(246,240,226,0.75)', transition: 'background 160ms var(--ease-standard), color 160ms var(--ease-standard)' }}
+          >
+            {label}
+          </button>
+        );
+      })}
+    </div>
   );
 }
 
@@ -116,90 +139,115 @@ export function ArchivScreen({
   eintraege,
   ich,
   ohneKarte = false,
+  reservieren = null,
 }: {
   eintraege: ArchivEintrag[];
   /** Eingeloggter Spezl, darfModerieren = Admin oder aktueller Präsident. */
   ich: { id: string; darfModerieren: boolean };
-  /** Listen-Chronik statt Karte (Feature archivKarte aus, z. B. Stammhaus): nur Sterne/Schmarrn/Brodn. */
+  /** Listen statt Karte (Feature archivKarte aus, z. B. Stammhaus): nur Sterne/Schmarrn/Brodn. */
   ohneKarte?: boolean;
+  /** Vorschlag direkt reservieren (gebundene Action mit vorhandenesWirtshausId), null = grad ned möglich */
+  reservieren?: ((formData: FormData) => Promise<void>) | null;
 }) {
-  const { geo, features } = useTenantConfig();
+  const { geo } = useTenantConfig();
   const ort = geo?.suchSuffix ?? null;
-  const brauereiLogos = features.brauereiLogos;
-  const [view, setView] = useState<'karte' | 'offen' | MetrikKey>(ohneKarte ? 'rang' : 'karte');
+  const [view, setView] = useState<'karte' | MetrikKey>(ohneKarte ? 'rang' : 'karte');
   const [idx, setIdx] = useState(0);
   const [detail, setDetail] = useState<{ e: ArchivEintrag; rank: number | null } | null>(null);
+  const [legende, setLegende] = useState(false);
+  const [standort, setStandort] = useState<Standort | null>(null);
+  const [standortHinweis, setStandortHinweis] = useState<string | null>(null);
 
   // Altbestand zählt als besucht (Chronik), rankt aber nur mit Nachbewertungen (> 0 Sterne)
   const besucht = eintraege.filter((e) => e.besuchtAm || e.altbestand || e.vorbewertet);
-  // Offene Vorschläge: no ned besucht, koa nächster Termin, koa Altbestand
-  const offene = eintraege.filter((e) => !e.besuchtAm && !e.naechstes && !e.altbestand);
   const nurEntdeckt = (e: ArchivEintrag) => !e.besuchtAm && !e.naechstes && !e.altbestand && !e.vorbewertet;
   // Top 3 nach Sternen → goldene Pins auf der Karte
   const top3Ids = new Set(
     [...besucht].sort((a, b) => b.rating - a.rating).slice(0, 3).filter((e) => e.rating > 0).map((e) => e.id),
   );
 
-  const toggle = (
-    <SegmentedTabs
-      value={view}
-      onChange={(v) => setView(v as typeof view)}
-      compact
-      tabs={[
-        { label: 'Karte', value: 'karte' },
-        { label: 'Sterne', value: 'rang' },
-        { label: 'Schmarrn', value: 'kaiser' },
-        { label: 'Brodn', value: 'brodn' },
-        { label: 'Entdeckt', value: 'offen' },
-      ].filter((t) => !ohneKarte || (t.value !== 'karte' && t.value !== 'offen'))}
-    />
-  );
+  const meinStandort = () => {
+    if (!('geolocation' in navigator)) { setStandortHinweis('Koa Standort am Gerät.'); return; }
+    navigator.geolocation.getCurrentPosition(
+      (p) => { setStandort({ lat: p.coords.latitude, lng: p.coords.longitude }); setStandortHinweis(null); },
+      () => setStandortHinweis('Standort ned freigegeben.'),
+      { enableHighAccuracy: true, timeout: 8000 },
+    );
+  };
 
-  /* ── KARTE: Vollbild + Bottom-Card ── */
+  /* ── KARTE: Vollbild, oben die Ansichten, unten das Kärtchen zum Pin ── */
   if (view === 'karte') {
     const safeIdx = Math.min(idx, Math.max(0, eintraege.length - 1));
     const aktiv = eintraege[safeIdx];
     const step = (d: number) => setIdx((i) => (Math.min(i, eintraege.length - 1) + d + eintraege.length) % eintraege.length);
+    const rundKnopf: React.CSSProperties = { width: 42, height: 42, borderRadius: '50%', border: 'none', background: 'var(--weiss)', boxShadow: '0 4px 12px rgba(7,25,58,0.25)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: 'var(--muc-blau)', cursor: 'pointer', padding: 0 };
     return (
       <div style={{ position: 'absolute', inset: 0, overflow: 'hidden' }}>
         <ArchivKarte
           pins={eintraege.map((e) => ({ id: e.id, name: e.name, lat: e.lat, lng: e.lng, photoUrl: e.photoUrl, naechstes: e.naechstes, top3: top3Ids.has(e.id), offen: nurEntdeckt(e), vorbewertet: !!e.vorbewertet && !e.besuchtAm && !e.naechstes, stammhaus: !!e.stammhaus }))}
           activeIdx={safeIdx}
           onPick={setIdx}
+          standort={standort}
         />
-        <div style={{ position: 'absolute', top: 12, left: 14, zIndex: 5 }}>
-          <div style={{ display: 'inline-flex', background: 'rgba(255,255,255,0.94)', borderRadius: 'var(--r-pill)', padding: 4, boxShadow: 'var(--sh-md)', backdropFilter: 'blur(4px)' }}>
-            {toggle}
-          </div>
+        {/* Oben nur die vier Ansichten */}
+        <div style={{ position: 'absolute', left: 12, right: 12, top: 'calc(12px + env(safe-area-inset-top))', zIndex: 5 }}>
+          <Ansichten value={view} onChange={setView} ohneKarte={ohneKarte} aufKarte />
         </div>
+        {/* Rechts: mein Standort + Pin-Legende */}
+        <div style={{ position: 'absolute', right: 16, top: 'calc(70px + env(safe-area-inset-top))', zIndex: 5, display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-end' }}>
+          <button type="button" aria-label="Mein Standort" title="Mein Standort" onClick={meinStandort} className="wn-press" style={rundKnopf}>
+            <Icon name="navigation" size={20} stroke={2.2} style={{ fill: standort ? 'currentColor' : 'none' } as React.CSSProperties} />
+          </button>
+          <button type="button" aria-label="Was die Pins bedeuten" onClick={() => setLegende((l) => !l)} className="wn-press" style={{ ...rundKnopf, color: legende ? 'var(--navy)' : 'var(--ink-500)' }}>
+            <Icon name="info" size={20} />
+          </button>
+          {standortHinweis && (
+            <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink-700)', background: 'rgba(255,255,255,0.94)', padding: '4px 8px', borderRadius: 8, boxShadow: 'var(--sh-sm)' }}>{standortHinweis}</span>
+          )}
+        </div>
+        {legende && (
+          <>
+            <div onClick={() => setLegende(false)} style={{ position: 'absolute', inset: 0, zIndex: 6 }} />
+            <div style={{ position: 'absolute', left: 12, right: 12, top: 'calc(124px + env(safe-area-inset-top))', zIndex: 7, ...karteStil, boxShadow: 'var(--sh-lg)', padding: 16, display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--ink-500)' }}>Was die Pins bedeuten</span>
+              {([['var(--gold)', 'solid #fff', 'var(--navy-900)', 'Top 3 nach Sternen · nächstes Ziel'], ['var(--navy)', 'solid #fff', 'var(--pergament)', 'Besucht · auch vor der App'], ['var(--muc-blau)', 'solid #fff', '#fff', 'Ausgewählt'], ['#fff', 'dashed var(--ink-300)', 'var(--ink-500)', 'Vorschlag, noch nicht besucht']] as const).map(([bg, rand, fg, text]) => (
+                <div key={text} style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                  <span style={{ width: 34, height: 34, flex: 'none', borderRadius: '50% 50% 50% 0', transform: 'rotate(-45deg)', background: bg, border: `2px ${rand}`, boxShadow: '0 4px 10px rgba(7,25,58,0.35)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Icon name="beer" size={16} color={fg} stroke={2.4} style={{ transform: 'rotate(45deg)' }} />
+                  </span>
+                  <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink-900)' }}>{text}</span>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
         {aktiv && (
-          <div style={{ position: 'absolute', left: 12, right: 12, bottom: 14, zIndex: 5 }}>
-            <MapBottomCard
-              e={aktiv}
-              idx={safeIdx}
-              count={eintraege.length}
-              onPrev={() => step(-1)}
-              onNext={() => step(1)}
-              onOpen={() => {
-                // „Nächstes Mal" antippen → direkt in Google Maps navigieren
-                if (aktiv.naechstes) {
-                  window.open(navigationsUrl({ name: aktiv.name, lat: aktiv.lat, lng: aktiv.lng }, ort), '_blank', 'noopener');
-                  return;
-                }
-                // Besuchte, Altbestand & vorbewertete → eigenes Detail mit Bewertungen
-                if (aktiv.besuchtAm || aktiv.altbestand || aktiv.vorbewertet) {
+          <div style={{ position: 'absolute', left: 12, right: 12, bottom: 12, zIndex: 5 }}>
+            {nurEntdeckt(aktiv) || (aktiv.vorbewertet && !aktiv.besuchtAm && !aktiv.naechstes) ? (
+              <VorschlagKarte e={aktiv} idx={safeIdx} count={eintraege.length} onPrev={() => step(-1)} onNext={() => step(1)} ich={ich} ort={ort} reservieren={reservieren} onDetail={() => setDetail({ e: aktiv, rank: null })} />
+            ) : (
+              <KartenKarte
+                e={aktiv}
+                idx={safeIdx}
+                count={eintraege.length}
+                onPrev={() => step(-1)}
+                onNext={() => step(1)}
+                ort={ort}
+                onOpen={() => {
+                  // „Nächstes Mal" antippen → direkt in Google Maps navigieren
+                  if (aktiv.naechstes) {
+                    window.open(navigationsUrl({ name: aktiv.name, lat: aktiv.lat, lng: aktiv.lng }, ort), '_blank', 'noopener');
+                    return;
+                  }
                   setDetail({ e: aktiv, rank: null });
-                  return;
-                }
-                // Gfundene (offene) → Google-Maps-Ort zum Anschauen (Fotos, Bewertungen, Zeiten)
-                window.open(ortsUrl({ name: aktiv.name }, ort), '_blank', 'noopener');
-              }}
-            />
+                }}
+              />
+            )}
           </div>
         )}
-        {detail && <DetailModal e={detail.e} rank={detail.rank} onClose={() => setDetail(null)} />}
+        {detail && <DetailModal e={detail.e} rank={detail.rank} onClose={() => setDetail(null)} ich={ich} reservieren={reservieren} />}
         {eintraege.length === 0 && (
-          <div style={{ position: 'absolute', left: 16, right: 16, bottom: 20, zIndex: 5, background: 'var(--weiss)', borderRadius: 'var(--r-lg)', padding: 16, boxShadow: 'var(--sh-lg)', textAlign: 'center', fontSize: 13, fontWeight: 600, color: 'var(--ink-500)' }}>
+          <div style={{ position: 'absolute', left: 16, right: 16, bottom: 20, zIndex: 5, ...karteStil, padding: 16, boxShadow: 'var(--sh-lg)', textAlign: 'center', fontSize: 13, fontWeight: 600, color: 'var(--ink-500)' }}>
             Wirtshäuser, die ihr entdeckt, bewertet oder bsucht, erscheinen hier auf der Karte.
           </div>
         )}
@@ -207,131 +255,119 @@ export function ArchivScreen({
     );
   }
 
-  /* ── OFFEN: alle vorgeschlagenen Wirtshäuser, mit Entfernen für Admin/Präsi/Finder ── */
-  if (view === 'offen') {
-    return (
-      <div style={{ padding: '12px 16px 24px', display: 'flex', flexDirection: 'column', gap: 14 }}>
-        <div
-          style={{
-            position: 'sticky', top: 0, zIndex: 15,
-            margin: '-12px -16px 0', padding: '10px 16px',
-            background: 'var(--bg-app)', borderBottom: '1px solid var(--ink-100)',
-          }}
-        >
-          {toggle}
-        </div>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '2px 2px 0' }}>
-          <span style={{ fontFamily: 'var(--font-fraktur)', fontSize: 22, color: 'var(--navy)', lineHeight: 1 }}>Entdeckte Wirtshäuser</span>
-          <span className="wn-tnum" style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink-500)' }}>({offene.length})</span>
-        </div>
-        <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink-500)', margin: '-8px 2px 0' }}>
-          Wer scho dort war, bewertet im Detail. Entfernen dürfen Admin, Präsident und der Finder, solang koa anderer bewertet hat.
-        </div>
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {offene.map((e) => (
-            <OffenerVorschlag key={e.id} e={e} ich={ich} onOpen={() => setDetail({ e, rank: null })} />
-          ))}
-          {detail && <DetailModal e={detail.e} rank={detail.rank} onClose={() => setDetail(null)} />}
-          {offene.length === 0 && (
-            <div style={{ textAlign: 'center', padding: '30px 16px', color: 'var(--ink-500)', fontSize: 14, fontWeight: 600 }}>
-              No nix entdeckt, wer a Wirtshaus kennt, trägt’s auf der Heim-Seite ein.
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  /* ── STERNE / SCHMARRN / BRODN: Ranking vom Besten zum Schlechtesten ── */
+  /* ── STERNE / SCHMARRN / BRODN: Champion als Bild-Karte, drunter die Liste ── */
   const mc = METRIKEN[view];
+  const feld = mc.field as Feld;
   // S’Stammhaus steht in jeder Rangliste fix auf der 1, ohne Wertung (Julius, 15.09.2026)
   const stammhausEintrag = eintraege.find((e) => e.stammhaus) ?? null;
   const gewertet = besucht
-    .filter((e) => !e.stammhaus && (e[mc.field as 'rating' | 'kaiser' | 'brodn'] || 0) > 0)
-    .sort((a, b) => (b[mc.field as 'rating' | 'kaiser' | 'brodn'] || 0) - (a[mc.field as 'rating' | 'kaiser' | 'brodn'] || 0));
+    .filter((e) => !e.stammhaus && (e[feld] || 0) > 0)
+    .sort((a, b) => (b[feld] || 0) - (a[feld] || 0));
   const ranked = stammhausEintrag ? [stammhausEintrag, ...gewertet] : gewertet;
   const champ = ranked[0];
+  const hinweisZu = (e: ArchivEintrag) => (mc.art ? e.hinweise.find((h) => h.art === mc.art)?.text ?? null : null);
+  const untertitel = (e: ArchivEintrag) => {
+    if (mc.art) return hinweisZu(e) ?? (e.altbestand ? 'Vor der App · nachbewertet' : e.bezirk ?? '');
+    if (e.altbestand) return <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><Icon name="scroll" size={13} />Vor der App{e.bezirk ? ` · ${e.bezirk}` : ''}</span>;
+    return [e.bezirk, e.besuchtAm].filter(Boolean).join(' · ');
+  };
 
   return (
-    <div style={{ padding: '12px 16px 24px', display: 'flex', flexDirection: 'column', gap: 14 }}>
-      {/* Sticky-Ansichts-Wechsel, wie der Filter auf der Rangliste */}
-      <div
-        style={{
-          position: 'sticky', top: 0, zIndex: 15,
-          margin: '-12px -16px 0', padding: '10px 16px',
-          background: 'var(--bg-app)', borderBottom: '1px solid var(--ink-100)',
-        }}
-      >
-        {toggle}
+    <div style={{ padding: '0 16px 32px', display: 'flex', flexDirection: 'column', gap: 20 }}>
+      {/* Sticky-Ansichts-Wechsel, wia auf der Karte */}
+      <div style={{ position: 'sticky', top: 0, zIndex: 15, margin: '0 -16px', padding: 'calc(12px + env(safe-area-inset-top)) 16px 8px', background: 'var(--bg-app)' }}>
+        <Ansichten value={view} onChange={setView} ohneKarte={ohneKarte} />
       </div>
 
       {champ && (
-        <div onClick={() => setDetail({ e: champ, rank: 1 })} style={{ position: 'relative', borderRadius: 'var(--r-lg)', overflow: 'hidden', boxShadow: 'var(--sh-md)', cursor: 'pointer', background: 'var(--navy)' }}>
-          {champ.photoUrl && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={champ.photoUrl} alt={champ.name} style={{ width: '100%', height: 150, objectFit: 'cover', display: 'block' }} />
-          )}
-          {!champ.photoUrl && <div style={{ height: 150, background: 'var(--grad-navy)' }} />}
-          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(7,25,58,0.05) 0%, rgba(7,25,58,0.85) 100%)' }} />
-          <div style={{ position: 'absolute', top: 12, left: 12, display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--grad-gold)', color: 'var(--navy-900)', fontSize: 11, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', padding: '5px 12px', borderRadius: 'var(--r-pill)', boxShadow: 'var(--sh-sm)' }}>
-            {champ.stammhaus ? '🏠 Stammhaus' : mc.champ}
-          </div>
-          <div style={{ position: 'absolute', left: 14, right: 14, bottom: 12, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 10 }}>
-            <div style={{ minWidth: 0 }}>
-              <div style={{ fontFamily: 'var(--font-fraktur)', fontSize: 24, color: 'var(--gold-bright)', lineHeight: 1.1, textShadow: '0 1px 4px rgba(0,0,0,0.4)' }}>{champ.name}</div>
-              <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--pergament)', marginTop: 3 }}>{champ.bezirk}</div>
+        <div
+          onClick={() => setDetail({ e: champ, rank: 1 })}
+          style={{ position: 'relative', height: 184, borderRadius: 22, overflow: 'hidden', background: champ.photoUrl ? `url(${JSON.stringify(champ.photoUrl)}) center/cover` : 'var(--grad-navy)', border: '1.5px solid var(--gold)', boxShadow: 'var(--sh-lg)', color: 'var(--pergament)', cursor: 'pointer' }}
+        >
+          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(7,25,58,0.05) 25%, rgba(7,25,58,0.9) 100%)' }} />
+          <span style={{ position: 'absolute', left: 14, top: 14, display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 999, background: 'var(--grad-gold)', color: 'var(--navy-900)', fontSize: 11, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+            <Icon name={champ.stammhaus ? 'home' : 'crown'} size={14} stroke={2.4} />
+            {champ.stammhaus ? 'Stammhaus' : mc.champ}
+          </span>
+          <div style={{ position: 'absolute', left: 16, right: 16, bottom: 14, display: 'flex', alignItems: 'flex-end', gap: 12 }}>
+            <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <span style={{ fontFamily: 'var(--font-fraktur)', fontSize: champ.name.length > 18 ? 26 : 32, lineHeight: 1, color: 'var(--gold-bright)', textShadow: '0 1px 4px rgba(0,0,0,0.4)' }}>{champ.name}</span>
+              <span style={{ fontSize: 12, fontWeight: 600, color: 'rgba(246,240,226,0.85)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {mc.art
+                  ? (hinweisZu(champ) ?? champ.bezirk ?? '')
+                  : champ.stammhaus
+                    ? 'außer Konkurrenz, des kennt jeder'
+                    : [champ.bezirk, champ.wertungen ? `${champ.wertungen.sterne} ${champ.wertungen.sterne === 1 ? 'Wertung' : 'Wertungen'}` : null].filter(Boolean).join(' · ')}
+              </span>
             </div>
-            <div style={{ flex: 'none', display: 'flex', alignItems: 'baseline', gap: 3, color: '#fff' }}>
-              {champ.stammhaus ? (
-                <span style={{ fontSize: 13, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--gold-bright)' }}>Außer Konkurrenz</span>
-              ) : (
-                <>
-                  <span className="wn-tnum" style={{ fontSize: 30, fontWeight: 800, lineHeight: 1 }}>{dez(champ[mc.field as 'rating' | 'kaiser' | 'brodn'])}</span>
-                  {mc.icon && <span style={{ fontSize: 20, color: 'var(--gold-bright)' }}>{mc.icon}</span>}
-                </>
-              )}
-            </div>
+            {!champ.stammhaus && (
+              <span className="wn-tnum" style={{ fontSize: 34, fontWeight: 800, lineHeight: 1, color: 'var(--pergament)', whiteSpace: 'nowrap', flex: 'none' }}>
+                {dez(champ[feld])}{!mc.art && <span style={{ fontSize: 20, color: 'var(--gold-bright)' }}> ★</span>}
+              </span>
+            )}
           </div>
         </div>
       )}
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '2px 2px 0' }}>
-        <span style={{ fontFamily: 'var(--font-fraktur)', fontSize: 22, color: 'var(--navy)', lineHeight: 1 }}>{mc.heading}</span>
-        <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink-500)' }}>· vom Besten zum Schlechtesten</span>
-      </div>
-
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-        {ranked.map((e, i) => (
-          <RankedCard key={e.id} rank={i + 1} e={e} field={mc.field as 'rating' | 'kaiser' | 'brodn'} icon={mc.icon} label={mc.label} onClick={() => setDetail({ e, rank: i + 1 })} />
-        ))}
+      <ZeilenKarte>
+        {ranked.slice(1).map((e, i) => {
+          const rang = i + 2;
+          return (
+            <Zeile
+              key={e.id}
+              kachel={
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 12, flex: 'none' }}>
+                  {rang <= 3 ? (
+                    <span className="wn-tnum" style={{ width: 28, height: 28, borderRadius: '50%', background: rang === 2 ? '#C7D0DA' : '#C98B5A', color: 'var(--ink-900)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 800 }}>{rang}</span>
+                  ) : (
+                    <span className="wn-tnum" style={{ width: 28, textAlign: 'center', fontSize: 14, fontWeight: 800, color: 'var(--ink-300)' }}>{rang}</span>
+                  )}
+                  <span style={{ width: 44, height: 44, borderRadius: 12, flex: 'none', background: e.photoUrl ? `url(${JSON.stringify(e.photoUrl)}) center/cover` : streifen }} />
+                </span>
+              }
+              titel={e.name}
+              untertitel={untertitel(e)}
+              chip={
+                <span className="wn-tnum" style={{ flex: 'none', fontSize: 15, fontWeight: 800, color: 'var(--navy)', whiteSpace: 'nowrap' }}>
+                  {dez(e[feld])}{!mc.art && <span style={{ color: 'var(--gold)' }}> ★</span>}
+                </span>
+              }
+              onClick={() => setDetail({ e, rank: rang })}
+              letzte={i === ranked.length - 2}
+              style={{ minHeight: 60 }}
+            />
+          );
+        })}
         {ranked.length === 0 && (
-          <div style={{ textAlign: 'center', padding: '30px 16px', color: 'var(--ink-500)', fontSize: 14, fontWeight: 600 }}>{mc.empty}</div>
+          <div style={{ textAlign: 'center', padding: '30px 16px', color: 'var(--ink-500)', fontSize: 14, fontWeight: 600 }}>{mc.leer}</div>
         )}
-      </div>
+        {ranked.length === 1 && (
+          <div style={{ textAlign: 'center', padding: '20px 16px', color: 'var(--ink-500)', fontSize: 13, fontWeight: 600 }}>Mehr gibt’s no ned, kommt mit jedem Abend.</div>
+        )}
+      </ZeilenKarte>
 
-      {detail && <DetailModal e={detail.e} rank={detail.rank} onClose={() => setDetail(null)} />}
+      {detail && <DetailModal e={detail.e} rank={detail.rank} onClose={() => setDetail(null)} ich={ich} reservieren={reservieren} />}
     </div>
   );
 }
 
-/* ── Kompakte Karte über der Google-Map (Foto links, Info rechts, Blättern) ── */
-function MapBottomCard({
-  e,
-  idx,
-  count,
-  onPrev,
-  onNext,
-  onOpen,
-}: {
-  e: ArchivEintrag;
-  idx: number;
-  count: number;
-  onPrev: () => void;
-  onNext: () => void;
-  onOpen: () => void;
-}) {
+/* ── Blätter-Punkte unterm Kärtchen ── */
+function Punkte({ idx, count }: { idx: number; count: number }) {
+  if (count <= 1) return null;
+  if (count > 12) {
+    return <div className="wn-tnum" style={{ textAlign: 'center', fontSize: 11, fontWeight: 700, color: 'var(--ink-500)', paddingBottom: 10 }}>{idx + 1} / {count}</div>;
+  }
+  return (
+    <div style={{ display: 'flex', justifyContent: 'center', gap: 5, paddingBottom: 10 }}>
+      {Array.from({ length: count }, (_, i) => (
+        <span key={i} style={{ width: i === idx ? 16 : 5, height: 5, borderRadius: 999, background: i === idx ? 'var(--navy)' : 'var(--ink-200)', transition: 'width 200ms var(--ease-standard)' }} />
+      ))}
+    </div>
+  );
+}
+
+/** Wisch-Hülle: links/rechts wischen blättert durch die Pins. */
+function Wischbar({ onPrev, onNext, children }: { onPrev: () => void; onNext: () => void; children: React.ReactNode }) {
   const touchX = useRef<number | null>(null);
   return (
     <div
@@ -343,555 +379,368 @@ function MapBottomCard({
         if (delta > 40) onPrev();
         else if (delta < -40) onNext();
       }}
-      style={{
-        display: 'flex', alignItems: 'stretch', background: 'var(--weiss)',
-        borderRadius: 'var(--r-lg)', overflow: 'hidden',
-        border: e.naechstes || e.stammhaus ? '1.5px solid var(--gold)' : '1px solid var(--ink-100)',
-        boxShadow: 'var(--sh-lg)',
-      }}
+      style={{ background: 'var(--weiss)', borderRadius: 22, boxShadow: '0 14px 36px rgba(7,25,58,0.3)', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}
     >
-      <div onClick={onOpen} style={{ position: 'relative', width: 104, flex: 'none', background: 'var(--ink-100)', cursor: 'pointer' }}>
-        {e.photoUrl && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={e.photoUrl} alt={e.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-        )}
-      </div>
-      <div onClick={onOpen} style={{ flex: 1, minWidth: 0, padding: '12px 12px 12px 14px', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 6, cursor: 'pointer' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          {e.naechstes ? (
-            <Badge tone="gold" solid iconLeft="📍">Nächstes Mal</Badge>
-          ) : e.stammhaus ? (
-            <Badge tone="gold" solid iconLeft="🏠">Stammhaus</Badge>
-          ) : e.besuchtAm ? (
-            <Badge tone="blau" solid iconLeft="✓">Besucht</Badge>
-          ) : e.altbestand ? (
-            <Badge tone="blau" solid iconLeft="📜">Bsucht vor da App</Badge>
-          ) : e.vorbewertet ? (
-            <Badge tone="blau" iconLeft="★">Von Spezln bewertet</Badge>
-          ) : (
-            <Badge tone="neutral" solid>Entdeckt</Badge>
-          )}
-          <span className="wn-tnum" style={{ marginLeft: 'auto', fontSize: 11, fontWeight: 700, color: 'var(--ink-500)' }}>
-            {idx + 1} / {count}
-          </span>
-        </div>
-        <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--ink-900)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{e.name}</div>
-        {e.organisator ? (
-          <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--gold-700)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-            organisiert von {e.organisator.name}
-          </div>
-        ) : e.gfundenVon ? (
-          <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--gold-700)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-            gfunden von {e.gfundenVon}
-          </div>
-        ) : null}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-          <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink-500)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{e.bezirk}</span>
-          {e.naechstes ? (
-            <RichtungsKnopf ziel={{ name: e.name, lat: e.lat, lng: e.lng }} size={30} />
-          ) : !e.besuchtAm && !e.altbestand && !e.vorbewertet ? (
-            // Entdecktes Wirtshaus → in Google Maps anschauen
-            <RichtungsKnopf ziel={{ name: e.name }} modus="ort" size={30} />
-          ) : (
-            e.rating > 0 && <Stars rating={e.rating} size={13} />
-          )}
-        </div>
-      </div>
-      <div style={{ flex: 'none', display: 'flex', flexDirection: 'column', borderLeft: '1px solid var(--ink-100)' }}>
-        <button onClick={onPrev} aria-label="Vorheriges" style={navBtn}>‹</button>
-        <button onClick={onNext} aria-label="Nächstes" style={{ ...navBtn, borderTop: '1px solid var(--ink-100)' }}>›</button>
-      </div>
+      {children}
     </div>
   );
 }
-const navBtn: React.CSSProperties = {
-  flex: 1, width: 42, border: 'none', background: 'transparent', cursor: 'pointer',
-  fontSize: 20, fontWeight: 800, color: 'var(--navy)', lineHeight: 1,
-  display: 'flex', alignItems: 'center', justifyContent: 'center',
-};
 
-/* ── Zeile im „Offen"-Tab: Vorschlag mit Finder + Zwei-Schritt-Entfernen ── */
-function OffenerVorschlag({ e, ich, onOpen }: { e: ArchivEintrag; ich: { id: string; darfModerieren: boolean }; onOpen: () => void }) {
-  const brauereiLogos = useTenantConfig().features.brauereiLogos;
+/* ── Kärtchen über der Karte (1a): Foto mit Status-Chip, Name, Bezirk · Datum, Wertung ── */
+function KartenKarte({ e, idx, count, onPrev, onNext, onOpen, ort }: { e: ArchivEintrag; idx: number; count: number; onPrev: () => void; onNext: () => void; onOpen: () => void; ort: string | null }) {
+  void ort;
+  return (
+    <Wischbar onPrev={onPrev} onNext={onNext}>
+      <div onClick={onOpen} style={{ height: 118, position: 'relative', cursor: 'pointer', background: e.photoUrl ? `url(${JSON.stringify(e.photoUrl)}) center/cover` : 'var(--grad-navy)' }}>
+        <span style={{ position: 'absolute', left: 12, top: 12 }}><StatusChip e={e} /></span>
+      </div>
+      <div onClick={onOpen} style={{ padding: '12px 16px 14px', display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' }}>
+        <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <span style={{ fontFamily: 'var(--font-fraktur)', fontSize: 26, lineHeight: 1, color: 'var(--navy)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{e.name}</span>
+          <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink-500)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {e.naechstes
+              ? [e.bezirk, e.organisator ? `organisiert von ${kurzName(e.organisator.name)}` : null].filter(Boolean).join(' · ')
+              : e.stammhaus
+                ? [e.bezirk, 'euer Stammhaus'].filter(Boolean).join(' · ')
+                : [e.bezirk, e.datumLang ?? (e.altbestand ? 'vor der App' : null)].filter(Boolean).join(' · ')}
+          </span>
+        </div>
+        {e.naechstes ? (
+          <RichtungsKnopf ziel={{ name: e.name, lat: e.lat, lng: e.lng }} size={36} />
+        ) : e.rating > 0 ? (
+          <span className="wn-tnum" style={{ fontSize: 15, fontWeight: 800, color: 'var(--navy)', whiteSpace: 'nowrap', flex: 'none' }}>{dez(e.rating)} <span style={{ color: 'var(--gold)' }}>★</span></span>
+        ) : null}
+      </div>
+      <Punkte idx={idx} count={count} />
+    </Wischbar>
+  );
+}
+
+/* ── Vorschlag auf der Karte (2e): Organisator reserviert direkt ── */
+function VorschlagKarte({ e, idx, count, onPrev, onNext, ich, ort, reservieren, onDetail }: { e: ArchivEintrag; idx: number; count: number; onPrev: () => void; onNext: () => void; ich: { id: string; darfModerieren: boolean }; ort: string | null; reservieren: ((formData: FormData) => Promise<void>) | null; onDetail: () => void }) {
+  return (
+    <Wischbar onPrev={onPrev} onNext={onNext}>
+      <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <div onClick={e.vorbewertet ? onDetail : undefined} style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: e.vorbewertet ? 'pointer' : 'default' }}>
+          <span style={{ width: 52, height: 52, flex: 'none', borderRadius: 14, background: e.photoUrl ? `url(${JSON.stringify(e.photoUrl)}) center/cover` : streifen }} />
+          <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <span style={{ fontFamily: 'var(--font-fraktur)', fontSize: 24, lineHeight: 1, color: 'var(--navy)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{e.name}</span>
+            <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink-500)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {[e.bezirk, e.gfundenVon ? `gefunden von ${kurzName(e.gfundenVon)}` : null].filter(Boolean).join(' · ')}
+            </span>
+          </div>
+          {e.vorbewertet && e.rating > 0 ? (
+            <span className="wn-tnum" style={{ fontSize: 15, fontWeight: 800, color: 'var(--navy)', whiteSpace: 'nowrap', flex: 'none' }}>{dez(e.rating)} <span style={{ color: 'var(--gold)' }}>★</span></span>
+          ) : (
+            <StatusChip e={e} />
+          )}
+        </div>
+        {reservieren ? (
+          <form action={reservieren}>
+            <input type="hidden" name="vorhandenesWirtshausId" value={e.id} />
+            <button type="submit" className="wn-press" style={{ ...goldKnopfStil, width: '100%', minHeight: 48, fontSize: 15 }}>Für den nächsten Abend reservieren</button>
+          </form>
+        ) : (
+          <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink-500)', textAlign: 'center' }}>Der nächste Organisator kann’s direkt reservieren.</div>
+        )}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+          <a href={ortsUrl({ name: e.name }, ort)} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12, fontWeight: 800, color: 'var(--muc-blau)', textDecoration: 'none' }}>In Google Maps anschauen</a>
+          <button type="button" onClick={onDetail} style={{ border: 'none', background: 'none', padding: 0, fontFamily: 'var(--font-ui)', fontSize: 12, fontWeight: 800, color: 'var(--muc-blau)', cursor: 'pointer' }}>
+            {e.vorbewertet ? 'Details & bewerten' : 'Schon dort gewesen? Bewerten'}
+          </button>
+        </div>
+        <EntfernenKnopf e={e} ich={ich} />
+      </div>
+      <Punkte idx={idx} count={count} />
+    </Wischbar>
+  );
+}
+
+/* ── Vorschlag entfernen, zwei Schritte (Admin, Präsident, Finder) ── */
+function EntfernenKnopf({ e, ich }: { e: ArchivEintrag; ich: { id: string; darfModerieren: boolean } }) {
   const [nachfrage, setNachfrage] = useState(false);
   const [meldung, setMeldung] = useState<{ ok: boolean; text: string } | null>(null);
   const [pending, startTransition] = useTransition();
-  const darfEntfernen = ich.darfModerieren || (e.gfundenVonId != null && e.gfundenVonId === ich.id);
-
-  const entfernen = () =>
-    startTransition(async () => {
-      const ergebnis = await wirtshausEntfernen(e.id);
-      setNachfrage(false);
-      setMeldung(
-        ergebnis.ok
-          ? { ok: true, text: `✓ „${e.name}“ is von der Karte, der Vorschlags-WP is wieder weg.` }
-          : { ok: false, text: ergebnis.meldung ?? 'Hat ned klappt.' },
-      );
-    });
-
-  // Nach erfolgreichem Entfernen verschwindet der Eintrag beim nächsten Server-Refresh —
-  // bis dahin zeigen wir die Erfolgsmeldung anstelle der Karte.
+  const darf = ich.darfModerieren || (e.gfundenVonId != null && e.gfundenVonId === ich.id);
+  if (!darf || e.besuchtAm || e.altbestand || e.naechstes) return null;
   if (meldung?.ok) {
+    return <div style={{ padding: '10px 12px', borderRadius: 'var(--r-md)', textAlign: 'center', background: 'var(--erfolg-bg)', border: '1px solid var(--erfolg)', fontSize: 12, fontWeight: 800, color: 'var(--erfolg)' }}>{meldung.text}</div>;
+  }
+  if (!nachfrage) {
     return (
-      <div style={{ padding: '12px 14px', borderRadius: 'var(--r-md)', textAlign: 'center', background: 'var(--erfolg-bg)', border: '1px solid var(--erfolg)', fontSize: 13, fontWeight: 800, color: 'var(--erfolg)' }}>
-        {meldung.text}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+        <button type="button" onClick={() => setNachfrage(true)} style={{ alignSelf: 'center', border: 'none', background: 'none', padding: 0, fontFamily: 'var(--font-ui)', fontSize: 12, fontWeight: 700, color: 'var(--ink-300)', cursor: 'pointer' }}>
+          Vorschlag entfernen
+        </button>
+        {meldung && <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--strafe)', textAlign: 'center' }}>{meldung.text}</div>}
       </div>
     );
   }
-
   return (
-    <div style={{ background: 'var(--weiss)', borderRadius: 'var(--r-lg)', border: '1px solid var(--ink-100)', boxShadow: 'var(--sh-sm)', overflow: 'hidden' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px' }}>
-        <div style={{ flex: 'none', width: 54, height: 54, borderRadius: 'var(--r-md)', overflow: 'hidden', background: 'var(--ink-100)' }}>
-          {e.photoUrl && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={e.photoUrl} alt={e.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-          )}
-        </div>
-        <div onClick={onOpen} style={{ flex: 1, minWidth: 0, cursor: 'pointer' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span style={{ fontSize: 15, fontWeight: 800, color: 'var(--ink-900)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{e.name}</span>
-            {e.vorbewertet ? <Badge tone="blau" iconLeft="★">{dez(e.rating)}</Badge> : <Badge tone="neutral" solid>Entdeckt</Badge>}
-          </div>
-          <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink-500)', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{e.bezirk}</div>
-          {e.gfundenVon && (
-            <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--gold-700)', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-              gfunden von {e.gfundenVon}
-            </div>
-          )}
-          {/* Welches Helle gibt's? Kommt vom Finder (bzw. Standard Augustiner) */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 3, minWidth: 0 }}>
-            {brauereiLogos && bierLogo(e.biersorte) && (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={bierLogo(e.biersorte)!} alt="" width={15} height={15} style={{ width: 15, height: 15, objectFit: 'contain', flex: 'none' }} />
-            )}
-            <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink-500)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{e.biersorte}</span>
-          </div>
-        </div>
-        {darfEntfernen && !nachfrage && (
-          <button
-            type="button"
-            onClick={() => setNachfrage(true)}
-            aria-label={`${e.name} entfernen`}
-            style={{ flex: 'none', border: '1.5px solid var(--ink-200)', background: 'var(--weiss)', borderRadius: 'var(--r-md)', padding: '7px 10px', fontFamily: 'var(--font-ui)', fontSize: 12, fontWeight: 800, color: 'var(--strafe)', cursor: 'pointer' }}
-          >
-            🗑 Entfernen
-          </button>
-        )}
-      </div>
-      {nachfrage && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px', background: 'var(--strafe-bg)', borderTop: '1px solid var(--ink-100)' }}>
-          <span style={{ flex: 1, fontSize: 12, fontWeight: 700, color: 'var(--strafe)' }}>
-            Wirklich? Der WP vom Finder geht damit wieder weg.
-          </span>
-          <button
-            type="button"
-            onClick={() => setNachfrage(false)}
-            style={{ border: 'none', background: 'none', fontFamily: 'var(--font-ui)', fontSize: 12, fontWeight: 800, color: 'var(--ink-500)', cursor: 'pointer', padding: '6px 8px' }}
-          >
-            Doch ned
-          </button>
-          <button
-            type="button"
-            onClick={entfernen}
-            disabled={pending}
-            style={{ border: 'none', background: 'var(--strafe)', color: '#fff', borderRadius: 'var(--r-md)', fontFamily: 'var(--font-ui)', fontSize: 12, fontWeight: 800, cursor: 'pointer', padding: '7px 12px', opacity: pending ? 0.6 : 1 }}
-          >
-            Weg damit
-          </button>
-        </div>
-      )}
-      {meldung && !meldung.ok && (
-        <div style={{ padding: '8px 12px', borderTop: '1px solid var(--ink-100)', fontSize: 12, fontWeight: 700, color: 'var(--strafe)', background: 'var(--strafe-bg)' }}>
-          {meldung.text}
-        </div>
-      )}
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px', borderRadius: 12, background: 'var(--strafe-bg)' }}>
+      <span style={{ flex: 1, fontSize: 12, fontWeight: 700, color: 'var(--strafe)' }}>Wirklich? Der WP vom Finder geht damit wieder weg.</span>
+      <button type="button" onClick={() => setNachfrage(false)} style={{ border: 'none', background: 'none', fontFamily: 'var(--font-ui)', fontSize: 12, fontWeight: 800, color: 'var(--ink-500)', cursor: 'pointer', padding: '6px 8px' }}>Doch ned</button>
+      <button
+        type="button"
+        disabled={pending}
+        onClick={() => startTransition(async () => {
+          const ergebnis = await wirtshausEntfernen(e.id);
+          setNachfrage(false);
+          setMeldung(ergebnis.ok ? { ok: true, text: `✓ „${e.name}“ is von der Karte.` } : { ok: false, text: ergebnis.meldung ?? 'Hat ned klappt.' });
+        })}
+        style={{ border: 'none', background: 'var(--strafe)', color: '#fff', borderRadius: 10, fontFamily: 'var(--font-ui)', fontSize: 12, fontWeight: 800, cursor: 'pointer', padding: '7px 12px', opacity: pending ? 0.6 : 1 }}
+      >
+        Weg damit
+      </button>
     </div>
   );
 }
 
-/* ── Nummerierte Ranking-Zeile mit Medaille ── */
-function RankedCard({
-  rank,
+/* ── Wirtshaus-Detail als Vollbild (1c/2c), auch von der Chronik (Termin-Seite) genutzt ── */
+export function DetailModal({
   e,
-  field,
-  icon,
-  label,
-  onClick,
+  rank,
+  onClose,
+  ich = null,
+  reservieren = null,
 }: {
-  rank: number;
   e: ArchivEintrag;
-  field: 'rating' | 'kaiser' | 'brodn';
-  icon: string;
-  label: string;
-  onClick: () => void;
+  rank: number | null;
+  onClose: () => void;
+  ich?: { id: string; darfModerieren: boolean } | null;
+  reservieren?: ((formData: FormData) => Promise<void>) | null;
 }) {
-  const top = rank <= 3;
-  const medal = MEDAILLE[rank] ?? { bg: 'var(--ink-100)', fg: 'var(--ink-500)' };
-  return (
-    <div
-      onClick={onClick}
-      style={{
-        position: 'relative', display: 'flex', alignItems: 'center', gap: 12,
-        background: 'var(--weiss)', borderRadius: 'var(--r-lg)', overflow: 'hidden',
-        border: '1px solid var(--ink-100)',
-        boxShadow: top ? 'var(--sh-md)' : 'var(--sh-sm)',
-        padding: '10px 12px 10px 10px', cursor: 'pointer',
-      }}
-    >
-      <div style={{ flex: 'none', width: 36, display: 'flex', justifyContent: 'center' }}>
-        {top ? (
-          <div className="wn-tnum" style={{ width: 30, height: 30, borderRadius: '50%', background: medal.bg, color: medal.fg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 800, boxShadow: 'var(--sh-xs)' }}>
-            {rank}
-          </div>
-        ) : (
-          <span className="wn-tnum" style={{ fontSize: 15, fontWeight: 800, color: 'var(--ink-300)' }}>{rank}</span>
-        )}
-      </div>
-      <div style={{ flex: 'none', width: 54, height: 54, borderRadius: 'var(--r-md)', overflow: 'hidden', background: 'var(--ink-100)' }}>
-        {e.photoUrl && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={e.photoUrl} alt={e.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-        )}
-      </div>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--ink-900)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{e.name}</div>
-        <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink-500)', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{e.bezirk}</div>
-        {e.organisator && (
-          <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--gold-700)', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-            organisiert von {e.organisator.name}
-          </div>
-        )}
-        {e.altbestand && (
-          <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--muc-blau)', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-            📜 Vor da App · zählt koane Punkte
-          </div>
-        )}
-        {e.vorbewertet && !e.besuchtAm && !e.altbestand && (
-          <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--muc-blau)', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-            ★ Von Spezln bewertet · no koa Stammtisch dort
-          </div>
-        )}
-      </div>
-      <div style={{ flex: 'none', textAlign: 'right' }}>
-        {e.stammhaus ? (
-          <>
-            <div style={{ fontSize: 22, lineHeight: 1 }}>🏠</div>
-            <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', color: 'var(--gold-700)', marginTop: 3 }}>Stammhaus</div>
-          </>
-        ) : (
-          <>
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: 3, justifyContent: 'flex-end' }}>
-              <span className="wn-tnum" style={{ fontSize: 22, fontWeight: 800, color: 'var(--navy)', lineHeight: 1 }}>{dez(e[field])}</span>
-              {icon && <span style={{ fontSize: 16, color: 'var(--gold)' }}>{icon}</span>}
-            </div>
-            <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', color: 'var(--gold-700)', marginTop: 3 }}>{label}</div>
-          </>
-        )}
-      </div>
-    </div>
-  );
-}
+  const { features, geo } = useTenantConfig();
+  const ort = geo?.suchSuffix ?? null;
+  const logo = features.brauereiLogos ? bierLogo(e.biersorte) : null;
+  const [nachbewertenOffen, setNachbewertenOffen] = useState(false);
+  const offen = !e.besuchtAm && !e.naechstes && !e.altbestand;
+  const darfNachbewerten = e.altbestand || offen;
+  const w = e.wertungen;
+  const anzahlText = (n: number | undefined, nach: boolean) => (n == null || n === 0 ? '' : nach ? `${n} Nachbew.` : `${n} ${n === 1 ? 'Wertung' : 'Wertungen'}`);
+  const nurNach = !!e.altbestand || offen;
 
-/* ── Detail-Dialog: Stats, wer dabei war, Hinweise, auch von der Chronik (Termin-Seite) genutzt ── */
-export function DetailModal({ e, rank, onClose }: { e: ArchivEintrag; rank: number | null; onClose: () => void }) {
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 60, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-      <style>{`@keyframes wnWirtshausRein { from { transform: translateY(26px) scale(0.97); opacity: 0; } to { transform: translateY(0) scale(1); opacity: 1; } }`}</style>
-      <div onClick={onClose} style={{ position: 'absolute', inset: 0, background: 'rgba(7,25,58,0.6)', backdropFilter: 'blur(2px)' }} />
-      <div style={{ position: 'relative', width: '100%', maxWidth: 360, maxHeight: '86dvh', overflowY: 'auto', background: 'var(--weiss)', borderRadius: 'var(--r-xl)', boxShadow: 'var(--sh-lg)', animation: 'wnWirtshausRein 320ms cubic-bezier(0.32, 0.72, 0, 1) both' }}>
-        {/* Foto-Kopf */}
-        <div style={{ position: 'relative', height: 158, background: 'var(--grad-navy)', borderRadius: 'var(--r-xl) var(--r-xl) 0 0', overflow: 'hidden' }}>
-          {e.photoUrl && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={e.photoUrl} alt={e.name} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-          )}
-          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(7,25,58,0) 40%, rgba(7,25,58,0.82) 100%)' }} />
-          <button onClick={onClose} aria-label="Schließen" style={{ position: 'absolute', top: 10, right: 10, width: 30, height: 30, borderRadius: '50%', border: 'none', background: 'rgba(255,255,255,0.92)', color: 'var(--ink-700)', fontSize: 16, fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            ×
-          </button>
-          {e.stammhaus && (
-            <div style={{ position: 'absolute', top: 12, left: 12, display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--grad-gold)', color: 'var(--navy-900)', fontSize: 11, fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase', padding: '5px 11px', borderRadius: 'var(--r-pill)', boxShadow: 'var(--sh-sm)' }}>
-              🏠 Stammhaus
-            </div>
-          )}
-          {rank && (
-            <div style={{ position: 'absolute', top: 12, left: 12, display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--grad-gold)', color: 'var(--navy-900)', fontSize: 11, fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase', padding: '5px 11px', borderRadius: 'var(--r-pill)', boxShadow: 'var(--sh-sm)' }}>
-              Platz {rank}
-            </div>
-          )}
-          {!e.altbestand && !e.besuchtAm && !e.naechstes && (
-            <div style={{ position: 'absolute', top: rank ? 46 : 12, left: 12, display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--muc-blau)', color: '#fff', fontSize: 11, fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase', padding: '5px 11px', borderRadius: 'var(--r-pill)', boxShadow: 'var(--sh-sm)' }}>
-              {e.vorbewertet ? '★ Von Spezln bewertet' : 'Entdeckt'}
-            </div>
-          )}
-          {e.altbestand && (
-            <div style={{ position: 'absolute', top: rank ? 46 : 12, left: 12, display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--muc-blau)', color: '#fff', fontSize: 11, fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase', padding: '5px 11px', borderRadius: 'var(--r-pill)', boxShadow: 'var(--sh-sm)' }}>
-              📜 Vor da App
-            </div>
-          )}
-          <div style={{ position: 'absolute', left: 14, right: 14, bottom: 12, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 8 }}>
-            <div style={{ minWidth: 0 }}>
-              <div style={{ fontFamily: 'var(--font-fraktur)', fontSize: 24, color: 'var(--gold-bright)', lineHeight: 1.15, textShadow: '0 1px 4px rgba(0,0,0,0.4)' }}>{e.name}</div>
-              <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--pergament)', marginTop: 3 }}>{e.bezirk}</div>
-            </div>
-            <BiersorteChip sorte={e.biersorte} hell />
+    <div className="wn-scroll-still" style={{ position: 'fixed', inset: 0, zIndex: 60, maxWidth: 'var(--container-app)', margin: '0 auto', background: 'var(--ink-50)', overflowY: 'auto', overscrollBehavior: 'contain', animation: 'wnWirtshausRein 260ms cubic-bezier(0.32, 0.72, 0, 1) both' }}>
+      <style>{`@keyframes wnWirtshausRein { from { transform: translateY(24px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }`}</style>
+      {/* Foto-Kopf: Chip, Name, Adresse, Brauerei-Logo */}
+      <div style={{ position: 'relative', height: e.photoUrl ? 290 : 210, background: e.photoUrl ? `url(${JSON.stringify(e.photoUrl)}) center/cover` : 'var(--grad-navy)' }}>
+        <div style={{ position: 'absolute', inset: 'auto 0 0 0', height: 140, background: 'linear-gradient(180deg, rgba(7,25,58,0), rgba(7,25,58,0.88))' }} />
+        <div style={{ position: 'absolute', inset: '0 0 auto 0', height: 'calc(60px + env(safe-area-inset-top))', background: 'linear-gradient(rgba(7,25,58,0.45), rgba(7,25,58,0))' }} />
+        <button type="button" onClick={onClose} aria-label="Schließen" className="wn-press" style={{ position: 'absolute', right: 16, top: 'calc(14px + env(safe-area-inset-top))', width: 40, height: 40, borderRadius: '50%', border: 'none', background: 'rgba(7,25,58,0.55)', color: '#fff', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0 }}>
+          <Icon name="x" size={18} />
+        </button>
+        {logo ? (
+          <span title={e.biersorte} aria-label={`Bier: ${e.biersorte}`} style={{ position: 'absolute', right: 18, bottom: 16, width: 58, height: 58, borderRadius: '50%', background: 'var(--weiss)', border: '2px solid var(--gold)', boxShadow: '0 4px 12px rgba(0,0,0,0.35)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={logo} alt={e.biersorte} style={{ width: '76%', height: '76%', objectFit: 'contain' }} />
+          </span>
+        ) : (
+          <span style={{ position: 'absolute', right: 18, bottom: 18, padding: '4px 10px', borderRadius: 999, background: 'rgba(255,255,255,0.16)', border: '1px solid rgba(255,255,255,0.3)', fontFamily: 'var(--font-fraktur)', fontSize: 13, color: 'var(--gold-bright)', whiteSpace: 'nowrap' }}>{e.biersorte}</span>
+        )}
+        <div style={{ position: 'absolute', left: 18, right: 90, bottom: 14, display: 'flex', flexDirection: 'column', gap: 6, color: 'var(--pergament)' }}>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            <StatusChip e={e} mitDatum />
+            {rank && !e.stammhaus && <span style={{ display: 'inline-flex', fontSize: 11, fontWeight: 800, padding: '4px 10px', borderRadius: 999, background: 'var(--grad-gold)', color: 'var(--navy-900)' }}>Platz {rank}</span>}
           </div>
+          <span style={{ fontFamily: 'var(--font-fraktur)', fontSize: e.name.length > 18 ? 28 : 34, lineHeight: 1, color: 'var(--gold-bright)', textShadow: '0 1px 4px rgba(0,0,0,0.4)' }}>{e.name}</span>
+          <span style={{ fontSize: 13, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
+            <Icon name="pin" size={15} />
+            {[e.adresse, e.bezirk].filter(Boolean).join(' · ') || 'Adresse folgt'}
+          </span>
         </div>
-        {/* Gold-Haarlinie als Zeremonie-Trenner, wie im Spezl-Detail */}
-        <div style={{ height: 1.5, background: 'linear-gradient(90deg, transparent, var(--gold), transparent)' }} />
+      </div>
 
-        <div style={{ padding: '16px 18px 20px' }}>
-          {/* 3 Bewertungs-Kacheln */}
-          <div style={{ display: 'flex', gap: 8 }}>
-            {([['rating', 'Sterne', '★'], ['kaiser', 'Schmarrn', ''], ['brodn', 'Brodn', '']] as const).map(([f, lbl, ic]) => (
-              <div key={f} style={{ flex: 1, textAlign: 'center', padding: '12px 4px', background: 'var(--pergament)', borderRadius: 'var(--r-md)' }}>
-                <div className="wn-tnum" style={{ fontSize: 20, fontWeight: 800, color: 'var(--navy)', lineHeight: 1 }}>
-                  {e[f] > 0 ? dez(e[f]) : '–'}{ic && <span style={{ fontSize: 14, color: 'var(--gold)' }}> {ic}</span>}
-                </div>
-                <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--ink-500)', marginTop: 5 }}>{lbl}</div>
+      <div style={{ padding: '18px 16px calc(32px + env(safe-area-inset-bottom))', display: 'flex', flexDirection: 'column', gap: 24 }}>
+        {/* Drei Wertungen */}
+        <div style={{ ...karteStil, display: 'flex' }}>
+          {([['rating', 'Wirtshaus', w?.sterne], ['kaiser', 'Schmarrn', w?.kaiser], ['brodn', 'Brodn', w?.brodn]] as const).map(([f, label, n], i) => {
+            const wert = e[f];
+            const leer = wert <= 0 || (f === 'rating' && e.stammhaus);
+            return (
+              <div key={f} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, padding: '14px 4px', borderLeft: i > 0 ? '1px solid var(--ink-50)' : 'none' }}>
+                <span className="wn-tnum" style={{ fontSize: 26, fontWeight: 800, lineHeight: 1.1, color: leer ? 'var(--ink-200)' : 'var(--navy)' }}>
+                  {leer ? '–' : dez(wert)}{!leer && <span style={{ fontSize: 16, color: 'var(--gold)' }}> ★</span>}
+                </span>
+                <span style={{ fontSize: 12, fontWeight: 800, color: 'var(--ink-700)' }}>{label}</span>
+                <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink-300)', minHeight: 14 }}>{f === 'rating' && e.stammhaus ? 'außer Konkurrenz' : anzahlText(n, nurNach)}</span>
               </div>
-            ))}
+            );
+          })}
+        </div>
+
+        {/* Der Abend */}
+        {e.besuchtAm && !e.stammhaus && (
+          <ZeilenKarte>
+            <Zeile
+              kachel={<Kachel><Icon name="calendar" size={19} /></Kachel>}
+              titel={e.datumVoll ?? e.datumLang ?? e.besuchtAm}
+              untertitel={e.organisator ? `organisiert von ${kurzName(e.organisator.name)}` : 'ohne Organisator'}
+              chip={e.orgaWp != null && e.organisator ? <span className="wn-tnum" style={{ flex: 'none', fontSize: 11, fontWeight: 800, padding: '4px 10px', borderRadius: 999, background: 'var(--pergament)', color: 'var(--gold-700)' }}>+{e.orgaWp} WP</span> : null}
+              pfeil={false}
+              style={{ minHeight: 60 }}
+            />
+            <Zeile
+              kachel={<Kachel><Icon name="users" size={19} /></Kachel>}
+              titel={`${e.teilnehmer.length} dabei · ${e.hoiben} Bier`}
+              untertitel={e.abgeschlossenVon ? `abgeschlossen von ${kurzName(e.abgeschlossenVon)}` : null}
+              pfeil={false}
+              letzte
+              style={{ minHeight: 60 }}
+            />
+          </ZeilenKarte>
+        )}
+        {e.stammhaus && (
+          <ZeilenKarte>
+            <Zeile kachel={<Kachel ton="gold"><Icon name="home" size={19} /></Kachel>} titel={`${e.abende ?? 0} Abende · ${e.hoiben} Bier`} untertitel={`euer Stammhaus${e.besuchtAm ? ` · zuletzt am ${e.besuchtAm}` : ''}`} pfeil={false} letzte style={{ minHeight: 60 }} />
+          </ZeilenKarte>
+        )}
+        {(e.altbestand || offen) && (
+          <div style={{ display: 'flex', gap: 10, alignItems: 'center', padding: '10px 12px', borderRadius: 12, background: 'var(--info-bg)', fontSize: 12, fontWeight: 700, color: 'var(--navy)' }}>
+            <Icon name="info" size={18} color="var(--muc-blau)" style={{ flex: 'none' }} />
+            {e.altbestand
+              ? 'Besucht vor der App-Zeit. Sterne zählen in der Wertung, Punkte gibt’s dafür keine.'
+              : `${e.gfundenVon ? `Entdeckt von ${kurzName(e.gfundenVon)}` : 'Entdeckt'} · noch kein Stammtisch dort. Wer schon dort war, bewertet hier, Punkte gibt’s dafür keine.`}
           </div>
-          {(e.nachAnzahl ?? 0) > 0 && (
-            <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink-500)', marginTop: 6, textAlign: 'center' }}>
-              {e.besuchtAm ? 'Sterne inkl. ' : ''}{e.nachAnzahl} {e.nachAnzahl === 1 ? 'Bewertung' : 'Bewertungen'} von Spezln{e.besuchtAm ? '' : ', ohne WP'}
-            </div>
-          )}
+        )}
 
-          {/* Freiwillige Nachbewertung, NUR für Vor-der-App-Wirtshäuser (Chronik).
-              Echte Besuche werden beim Abschluss + in der Nachtragsfrist bewertet, danach is fix. */}
-          {(e.altbestand || (!e.besuchtAm && !e.naechstes)) && <Nachbewertung wirtshausId={e.id} meine={e.meineBewertung} altbestand={!!e.altbestand} />}
-
-          {/* Organisator */}
-          {e.organisator && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 14, padding: '12px 14px', background: 'rgba(0,106,179,0.06)', borderRadius: 'var(--r-md)' }}>
-              <Avatar src={e.organisator.photoUrl} name={e.organisator.name} size={38} ring />
-              <div style={{ minWidth: 0 }}>
-                <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--ink-500)' }}>Organisiert von</div>
-                <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--muc-blau)' }}>{e.organisator.name}</div>
-              </div>
-            </div>
-          )}
-
-          {/* Wer war dabei */}
-          {e.teilnehmer.length > 0 && (
-            <div style={{ marginTop: 14 }}>
-              <div style={{ fontFamily: 'var(--font-fraktur)', fontSize: 19, color: 'var(--navy)', marginBottom: 8 }}>
-                De warn dabei <span style={{ fontFamily: 'var(--font-ui)', fontSize: 11, fontWeight: 600, color: 'var(--ink-500)' }}>({e.teilnehmer.length})</span>
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                {e.teilnehmer.map((t) => (
-                  <div key={t.name} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <Avatar src={t.photoUrl} name={t.name} size={28} verein={t.verein} />
-                    <span style={{ flex: 1, fontSize: 13, fontWeight: 700, color: 'var(--ink-900)', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.name}</span>
-                    <span className="wn-tnum" style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink-500)', whiteSpace: 'nowrap' }}>
-                      {t.hoiben} Hoibe{t.kaiserschmarrn > 0 && <> · Schmarrn</>}{t.schweinsbraten > 0 && <> · Brodn</>}
+        {/* Wer war dabei */}
+        {e.teilnehmer.length > 0 && (
+          <section style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <HoamTitel>Wer war dabei</HoamTitel>
+            <ZeilenKarte>
+              {e.teilnehmer.map((t, i) => (
+                <div key={t.name} style={{ display: 'flex', alignItems: 'center', gap: 12, minHeight: 50, borderBottom: i < e.teilnehmer.length - 1 ? '1px solid var(--ink-50)' : 'none' }}>
+                  <Avatar src={t.photoUrl} name={t.name} size={34} verein={t.verein} />
+                  <span style={{ flex: 1, minWidth: 0, fontSize: 15, fontWeight: 700, color: 'var(--ink-900)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{kurzName(t.name)}</span>
+                  {([['beer', t.hoiben], ['cookie', t.kaiserschmarrn], ['bowl', t.schweinsbraten]] as const).map(([icon, n]) => (
+                    <span key={icon} className="wn-tnum" style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 13, fontWeight: 800, color: n > 0 ? 'var(--navy)' : 'var(--ink-200)', minWidth: 34 }}>
+                      <Icon name={icon} size={15} color={n > 0 ? 'var(--gold-700)' : 'var(--ink-200)'} />
+                      {n}
                     </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+                  ))}
+                </div>
+              ))}
+            </ZeilenKarte>
+          </section>
+        )}
 
-          {/* Hinweise (Kaisi/Brodn-Notizen + Kommentare) */}
-          {e.hinweise.length > 0 && (
-            <div style={{ marginTop: 14 }}>
-              <div style={{ fontFamily: 'var(--font-fraktur)', fontSize: 19, color: 'var(--navy)', marginBottom: 8 }}>
-                D’Hinweise
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {e.hinweise.map((h, i) => (
-                  <div key={i} style={{ padding: '10px 12px', background: 'var(--pergament)', border: '1px solid var(--pergament-edge)', borderRadius: 'var(--r-md)' }}>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink-900)', lineHeight: 1.45 }}>
-                      {h.art !== 'allgemein' && (
-                        <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--gold-700)', marginRight: 6 }}>
-                          {h.art === 'kaisi' ? 'Schmarrn' : 'Brodn'}
-                        </span>
-                      )}
-                      {h.text}
-                    </div>
-                    <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--gold-700)', marginTop: 4 }}>von {h.von}</div>
+        {/* Hinweise der Spezln */}
+        {e.hinweise.length > 0 && (
+          <section style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <HoamTitel action={<span style={bereichHinweisStil}>von den Spezln</span>}>Hinweise</HoamTitel>
+            <div style={{ ...karteStil, padding: 16, display: 'flex', flexDirection: 'column', gap: 14 }}>
+              {e.hinweise.map((h, i) => (
+                <div key={i} style={{ display: 'flex', gap: 10 }}>
+                  <Icon name={h.art === 'kaisi' ? 'cookie' : h.art === 'brodn' ? 'bowl' : 'star'} size={18} color="var(--gold-700)" style={{ flex: 'none', marginTop: 2 }} />
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
+                    <span style={{ fontSize: 14, fontWeight: 600, lineHeight: 1.45, color: 'var(--ink-700)' }}>„{h.text}“</span>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink-300)' }}>{h.von} · {h.art === 'kaisi' ? 'Schmarrn' : h.art === 'brodn' ? 'Brodn' : 'Wirtshaus'}</span>
                   </div>
-                ))}
-              </div>
+                </div>
+              ))}
             </div>
-          )}
+          </section>
+        )}
 
-          {e.besuchtAm && (
-            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink-500)', marginTop: 14, textAlign: 'center' }}>
-              {e.stammhaus ? `Euer Stammhaus · zuletzt am ${e.besuchtAm}` : `Besucht am ${e.besuchtAm}`}
-              {e.stammhaus && <><br /><span style={{ fontSize: 11 }}>S’Stammhaus wird ned bewertet, des kennt jeder. Schmarrn und Brodn zählen über alle Abende.</span></>}
-            </div>
-          )}
-          {!e.altbestand && !e.besuchtAm && !e.naechstes && (
-            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink-500)', marginTop: 14, textAlign: 'center' }}>
-              {e.gfundenVon ? `Entdeckt von ${e.gfundenVon}` : 'Entdeckt'} · no koa Stammtisch dort
-              <br />
-              <span style={{ fontSize: 11 }}>Wer scho dort war, bewertet hier; Punkte gibt’s dafür koane.</span>
-            </div>
-          )}
-          {e.altbestand && !e.besuchtAm && (
-            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink-500)', marginTop: 14, textAlign: 'center' }}>
-              📜 Bsucht vor da App-Zeit · Chronik seit 2019
-              <br />
-              <span style={{ fontSize: 11 }}>Sterne zählen in der Wertung, Punkte gibt’s dafür koane.</span>
-            </div>
-          )}
-        </div>
-        {/* Rauten-Band als Abschluss, wie auf der Spezl-Urkunde */}
-        <div className="wn-raute wn-raute--sm" style={{ height: 7 }} />
+        {/* Vorschlag: reservieren / anschauen / entfernen */}
+        {offen && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {reservieren && (
+              <form action={reservieren}>
+                <input type="hidden" name="vorhandenesWirtshausId" value={e.id} />
+                <button type="submit" className="wn-press" style={{ ...goldKnopfStil, width: '100%', minHeight: 48, fontSize: 15 }}>Für den nächsten Abend reservieren</button>
+              </form>
+            )}
+            <a href={ortsUrl({ name: e.name }, ort)} target="_blank" rel="noopener noreferrer" className="wn-press" style={{ height: 48, borderRadius: 'var(--r-md)', border: '1.5px solid var(--ink-200)', background: 'var(--weiss)', color: 'var(--navy)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, fontSize: 15, fontWeight: 800, textDecoration: 'none' }}>
+              <Icon name="richtung" size={18} />
+              In Google Maps anschauen
+            </a>
+            {ich && <EntfernenKnopf e={e} ich={ich} />}
+          </div>
+        )}
+
+        {/* Nachbewerten (2d): freiwillig, ohne Punkte */}
+        {darfNachbewerten && (nachbewertenOffen ? (
+          <Nachbewertung wirtshausId={e.id} name={e.name} meine={e.meineBewertung} onFertig={() => setNachbewertenOffen(false)} />
+        ) : (
+          <button type="button" className="wn-press" onClick={() => setNachbewertenOffen(true)} style={{ height: 48, borderRadius: 'var(--r-md)', border: '1.5px solid var(--ink-200)', background: 'var(--weiss)', color: 'var(--navy)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, fontFamily: 'var(--font-ui)', fontSize: 15, fontWeight: 800, cursor: 'pointer' }}>
+            <Icon name="pencil" size={18} />
+            {e.meineBewertung ? 'Meine Bewertung ändern' : 'Nachbewerten'}
+          </button>
+        ))}
       </div>
     </div>
   );
 }
 
 /**
- * Freiwillige Nachbewertung (Altbestand oder Wiederbesuch ohne Stammtisch):
- * eigene Sterne + optionaler Kommentar, jederzeit änderbar, bewusst OHNE WP,
- * damit koaner mit Schmarrn-Bewertungen Punkte sammelt.
+ * Freiwillige Nachbewertung (2d): Wirtshaus-Sterne mit Satz, Schweinsbraten und
+ * Kaiserschmarrn erst auf Tipp. Bewusst OHNE WP, damit koaner mit
+ * Schmarrn-Bewertungen Punkte sammelt; fließt gewichtet in die drei Wertungen.
  */
-/** ± Stepper für eine Bewertung mit einer Kommastelle, 1,0–5,0 (wie beim Besuch-Abschluss). */
-function BewertungsStepper({ value, onChange }: { value: number; onChange: (v: number) => void }) {
-  const clamp = (v: number) => Math.max(1, Math.min(5, Math.round(v * 10) / 10));
-  const btn: React.CSSProperties = {
-    width: 36, height: 36, flex: 'none', borderRadius: '50%', border: '1.5px solid var(--ink-200)',
-    background: 'var(--weiss)', cursor: 'pointer', fontSize: 18, fontWeight: 800, color: 'var(--navy)',
-    display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, padding: 0,
-  };
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-      <button type="button" onClick={() => onChange(clamp(value - 0.1))} aria-label="Weniger" style={btn}>−</button>
-      <div style={{ display: 'flex', alignItems: 'baseline', gap: 4, minWidth: 64, justifyContent: 'center' }}>
-        <span className="wn-tnum" style={{ fontSize: 24, fontWeight: 800, color: 'var(--navy)', lineHeight: 1 }}>
-          {value.toFixed(1).replace('.', ',')}
-        </span>
-        <span style={{ fontSize: 17, color: 'var(--gold)' }}>★</span>
-      </div>
-      <button type="button" onClick={() => onChange(clamp(value + 0.1))} aria-label="Mehr" style={btn}>+</button>
-    </div>
-  );
-}
-
-const notizStyle: React.CSSProperties = {
-  width: '100%', marginTop: 8, padding: '9px 12px', border: '1.5px solid var(--ink-200)',
-  borderRadius: 'var(--r-md)', fontFamily: 'var(--font-ui)', fontSize: 13, fontWeight: 500,
-  color: 'var(--ink-900)', background: 'var(--weiss)', outline: 'none',
-};
-
-function Nachbewertung({
-  wirtshausId,
-  meine,
-  altbestand,
-}: {
-  wirtshausId: string;
-  meine?: ArchivEintrag['meineBewertung'];
-  altbestand?: boolean;
-}) {
-  const [sterne, setSterne] = useState(meine?.sterne ?? 3);
+function Nachbewertung({ wirtshausId, name, meine, onFertig }: { wirtshausId: string; name: string; meine?: ArchivEintrag['meineBewertung']; onFertig: () => void }) {
+  const [sterne, setSterne] = useState(meine?.sterne ?? 4);
   const [kommentar, setKommentar] = useState(meine?.kommentar ?? '');
   const [kaiserAktiv, setKaiserAktiv] = useState(meine?.kaiserSterne != null);
-  const [kaiserSterne, setKaiserSterne] = useState(meine?.kaiserSterne ?? 3);
+  const [kaiserSterne, setKaiserSterne] = useState(meine?.kaiserSterne ?? 4);
   const [kaiserNotiz, setKaiserNotiz] = useState(meine?.kaiserNotiz ?? '');
   const [brodnAktiv, setBrodnAktiv] = useState(meine?.brodnSterne != null);
-  const [brodnSterne, setBrodnSterne] = useState(meine?.brodnSterne ?? 3);
+  const [brodnSterne, setBrodnSterne] = useState(meine?.brodnSterne ?? 4);
   const [brodnNotiz, setBrodnNotiz] = useState(meine?.brodnNotiz ?? '');
   const [gespeichert, setGespeichert] = useState(false);
   const [pending, startTransition] = useTransition();
-  const frisch = () => setGespeichert(false);
+  const clamp1 = (v: number) => Math.max(1, v);
 
   const speichern = () =>
     startTransition(async () => {
       const fd = new FormData();
       fd.set('wirtshausId', wirtshausId);
-      fd.set('sterne', String(sterne));
-      fd.set('kaiserSterne', kaiserAktiv ? String(kaiserSterne) : '');
-      fd.set('brodnSterne', brodnAktiv ? String(brodnSterne) : '');
+      fd.set('sterne', String(clamp1(sterne)));
+      fd.set('kaiserSterne', kaiserAktiv ? String(clamp1(kaiserSterne)) : '');
+      fd.set('brodnSterne', brodnAktiv ? String(clamp1(brodnSterne)) : '');
       fd.set('kommentar', kommentar);
       fd.set('kaiserNotiz', kaiserNotiz);
       fd.set('brodnNotiz', brodnNotiz);
       await nachbewerten(fd);
       setGespeichert(true);
+      setTimeout(onFertig, 1200);
     });
 
-  /** Optionale Wertung (Schmarrn/Brodn): erst aktivieren, dann Stepper + eigene Notiz. */
-  const optionalBlock = (
-    label: string,
-    aktiv: boolean,
-    setAktiv: (a: boolean) => void,
-    wert: number,
-    setWert: (v: number) => void,
-    notiz: string,
-    setNotiz: (t: string) => void,
-    platzhalter: string,
-  ) => (
-    <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--pergament-edge)' }}>
-      {!aktiv ? (
-        <button
-          type="button"
-          onClick={() => { setAktiv(true); frisch(); }}
-          style={{ border: '1.5px dashed var(--ink-200)', background: 'none', borderRadius: 'var(--r-md)', width: '100%', padding: '9px 12px', fontFamily: 'var(--font-ui)', fontSize: 13, fontWeight: 700, color: 'var(--ink-500)', cursor: 'pointer' }}
-        >
-          + {label} bewerten
-        </button>
-      ) : (
-        <>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-            <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--ink-900)' }}>{label}</span>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <BewertungsStepper value={wert} onChange={(v) => { setWert(v); frisch(); }} />
-              <button
-                type="button"
-                onClick={() => { setAktiv(false); setNotiz(''); frisch(); }}
-                aria-label={`${label}-Bewertung entfernen`}
-                title="Doch ned bewerten"
-                style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: 14, fontWeight: 800, color: 'var(--ink-300)', padding: 2 }}
-              >
-                ✕
+  const feld: React.CSSProperties = { width: '100%', boxSizing: 'border-box', minHeight: 44, padding: '12px 14px', borderRadius: 12, border: '1.5px solid var(--ink-200)', background: 'var(--weiss)', fontFamily: 'var(--font-ui)', fontSize: 14, fontWeight: 600, color: 'var(--ink-900)', outline: 'none' };
+  const block = (icon: string, label: string, aktiv: boolean, setAktiv: ((a: boolean) => void) | null, wert: number, setWert: (v: number) => void, notiz: string, setNotiz: (t: string) => void, platzhalter: string) => (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 10, padding: '14px 0', borderTop: '1px solid var(--ink-50)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <Kachel ton="gold"><Icon name={icon} size={19} /></Kachel>
+        <span style={{ flex: 1, fontSize: 15, fontWeight: 700, color: 'var(--ink-900)' }}>{label}</span>
+        {aktiv ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <KompaktStepper value={wert} onChange={setWert} size={34} />
+            {setAktiv && (
+              <button type="button" onClick={() => { setAktiv(false); setNotiz(''); }} aria-label={`${label} doch ned bewerten`} style={{ border: 'none', background: 'none', cursor: 'pointer', color: 'var(--ink-300)', padding: 2, display: 'inline-flex' }}>
+                <Icon name="x" size={14} />
               </button>
-            </div>
+            )}
           </div>
-          <input value={notiz} onChange={(ev) => { setNotiz(ev.target.value); frisch(); }} placeholder={platzhalter} maxLength={500} style={notizStyle} />
-        </>
-      )}
+        ) : (
+          <button type="button" onClick={() => setAktiv?.(true)} style={{ fontSize: 12, fontWeight: 800, padding: '6px 12px', borderRadius: 999, border: '1.5px dashed var(--gold)', background: 'none', color: 'var(--gold-700)', fontFamily: 'var(--font-ui)', cursor: 'pointer' }}>+ bewerten</button>
+        )}
+      </div>
+      {aktiv && <input value={notiz} onChange={(ev) => setNotiz(ev.target.value)} placeholder={platzhalter} maxLength={500} style={feld} />}
     </div>
   );
 
   return (
-    <div style={{ marginTop: 14, padding: '12px 14px', background: 'var(--pergament)', border: '1px solid var(--pergament-edge)', borderRadius: 'var(--r-md)' }}>
-      <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--ink-500)' }}>
-        Deine Bewertung · freiwillig, ohne WP
+    <div style={{ ...karteStil, padding: 16, display: 'flex', flexDirection: 'column', gap: 14 }}>
+      <span style={{ fontFamily: 'var(--font-fraktur)', fontSize: 26, lineHeight: 1, color: 'var(--navy)' }}>{name} nachbewerten</span>
+      <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink-500)', marginTop: -6 }}>aus der Erinnerung · ohne Punkte</span>
+      <div style={{ display: 'flex', flexDirection: 'column' }}>
+        {block('home', 'Wirtshaus', true, null, sterne, setSterne, kommentar, setKommentar, 'Wie war’s?')}
+        {block('bowl', 'Schweinsbraten', brodnAktiv, setBrodnAktiv, brodnSterne, setBrodnSterne, brodnNotiz, setBrodnNotiz, 'Kruste, Knödl, Soße …')}
+        {block('cookie', 'Kaiserschmarrn', kaiserAktiv, setKaiserAktiv, kaiserSterne, setKaiserSterne, kaiserNotiz, setKaiserNotiz, 'Fluffig? Rosinen?')}
       </div>
-      {!meine && (
-        <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink-500)', marginTop: 4 }}>
-          {altbestand ? 'Du warst da scho? Bewert den Klassiker aus der Erinnerung, a Schmarrn und Brodn, wenn’st di erinnerst.' : 'Du warst da scho? Dann sag den Spezln, wia’s war, a Schmarrn und Brodn, wenn’st magst.'}
-        </div>
-      )}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginTop: 10 }}>
-        <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--ink-900)' }}>★ Wirtshaus</span>
-        <BewertungsStepper value={sterne} onChange={(v) => { setSterne(v); frisch(); }} />
-      </div>
-      <input
-        value={kommentar}
-        onChange={(ev) => { setKommentar(ev.target.value); frisch(); }}
-        placeholder={'Wia is’s gwesen? (optional), z. B. „Bedienung zach, Bier gscheit kalt“'}
-        maxLength={500}
-        style={notizStyle}
-      />
-      {optionalBlock('Schmarrn', kaiserAktiv, setKaiserAktiv, kaiserSterne, setKaiserSterne, kaiserNotiz, setKaiserNotiz, 'Wia war da Schmarrn? (optional)')}
-      {optionalBlock('Brodn', brodnAktiv, setBrodnAktiv, brodnSterne, setBrodnSterne, brodnNotiz, setBrodnNotiz, 'Wia war da Brodn? (optional)')}
-      <button
-        type="button"
-        onClick={speichern}
-        disabled={pending}
-        style={{
-          marginTop: 12, width: '100%', padding: '10px 12px', border: 'none', borderRadius: 'var(--r-md)',
-          background: 'var(--grad-gold)', boxShadow: 'var(--sh-gold)',
-          fontFamily: 'var(--font-ui)', fontSize: 13, fontWeight: 800, color: 'var(--navy-900)',
-          cursor: 'pointer', opacity: pending ? 0.6 : 1,
-        }}
-      >
-        {gespeichert ? '✓ Gspeichert, vergelt’s Gott!' : meine ? 'Bewertung ändern' : 'Bewertung speichern'}
+      <button type="button" className="wn-press" onClick={speichern} disabled={pending || gespeichert} style={{ ...goldKnopfStil, minHeight: 52, opacity: pending ? 0.7 : 1 }}>
+        {gespeichert ? '✓ Gespeichert, vergelt’s Gott!' : pending ? 'Speichert …' : 'Speichern'}
       </button>
     </div>
   );

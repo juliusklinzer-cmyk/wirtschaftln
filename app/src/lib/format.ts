@@ -19,6 +19,18 @@ export function datumMittel(iso: string): string {
     .replace('.,', ',');
 }
 
+/** "2. Juli 2026" aus ISO-Datum (Archiv-Karte, Detail). */
+export function datumMitJahr(iso: string): string {
+  return new Date(`${iso}T12:00:00`).toLocaleDateString('de-DE', { day: 'numeric', month: 'long', year: 'numeric' });
+}
+
+/** "Do, 2. Juli 2026" aus ISO-Datum (Wirtshaus-Detail). */
+export function datumMittelMitJahr(iso: string): string {
+  return new Date(`${iso}T12:00:00`)
+    .toLocaleDateString('de-DE', { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric' })
+    .replace('.,', ',');
+}
+
 /** "11. Apr" aus ISO-Datum. */
 export function datumKurz(iso: string): string {
   return new Date(`${iso}T12:00:00`).toLocaleDateString('de-DE', { day: '2-digit', month: 'short' });

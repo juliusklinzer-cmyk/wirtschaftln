@@ -19,6 +19,7 @@
     "@fontsource/libre-caslon-text": "^5.2.7",
     "@fontsource/manrope": "^5.2.8",
     "@fontsource/pirata-one": "^5.2.8",
+    "@phosphor-icons/react": "^2.1.10",
     "better-sqlite3": "^12.11.1",
     "drizzle-orm": "^0.45.2",
     "next": "16.2.10",

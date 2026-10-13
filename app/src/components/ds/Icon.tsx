@@ -51,6 +51,9 @@ const ICON_PATHS: Record<string, string> = {
   wine: '<path d="M8 3h8l-1 7a3 3 0 0 1-6 0L8 3z"/><path d="M12 13v7M8.5 21h7"/>',
   bowl: '<path d="M3 11h18a9 9 0 0 1-18 0z"/><path d="M8 11c0-3 2-5 4-6M12 11c0-2.5 1.5-4 3-5"/>',
   cookie: '<path d="M12 3a9 9 0 1 0 9 9 3 3 0 0 1-3-3 3 3 0 0 1-3-3 3 3 0 0 1-3-3z"/><path d="M8.5 9.5h.01M8 15h.01M13 16h.01M16 13h.01"/>',
+  // Archiv-Redesign (13.10.2026): Krone (Champion), Schriftrolle (vor der App)
+  crown: '<path d="M3 8.5 7.5 12 12 5.5 16.5 12 21 8.5 19 18H5L3 8.5z"/><path d="M5 21h14"/>',
+  scroll: '<path d="M6 4h12a2 2 0 0 1 2 2v1H8"/><path d="M6 4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-1H8"/><path d="M8 7v13M11 11h5M11 14.5h5"/>',
   settings: '<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1"/>',
 };
 

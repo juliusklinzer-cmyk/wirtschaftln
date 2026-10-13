@@ -54,6 +54,11 @@ const ICON_PATHS: Record<string, string> = {
   // Archiv-Redesign (13.10.2026): Krone (Champion), Schriftrolle (vor der App)
   crown: '<path d="M3 8.5 7.5 12 12 5.5 16.5 12 21 8.5 19 18H5L3 8.5z"/><path d="M5 21h14"/>',
   scroll: '<path d="M6 4h12a2 2 0 0 1 2 2v1H8"/><path d="M6 4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-1H8"/><path d="M8 7v13M11 11h5M11 14.5h5"/>',
+  // Rang-Redesign (13.10.2026): Schneeflocke, Klemmbrett, Stuhl, Pfeile links-rechts, Schloss-Krone schon da
+  snowflake: '<path d="M12 2v20M2 12h20M5 5l14 14M19 5 5 19"/><path d="M12 2 9.5 4.5M12 2l2.5 2.5M12 22l-2.5-2.5M12 22l2.5-2.5M2 12l2.5-2.5M2 12l2.5 2.5M22 12l-2.5-2.5M22 12l-2.5 2.5"/>',
+  clipboard: '<rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V2.5h6V4M8.5 10h7M8.5 14h7M8.5 18h4"/>',
+  chair: '<path d="M6 11V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v6"/><path d="M4 11h16v4H4zM6 15v6M18 15v6"/>',
+  'arrows-left-right': '<path d="M4 9h16M16 5l4 4-4 4M20 15H4M8 11l-4 4 4 4"/>',
   settings: '<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1"/>',
 };
 

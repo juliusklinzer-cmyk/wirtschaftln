@@ -21,7 +21,7 @@ import type { Icon as PhosphorIcon } from '@phosphor-icons/react/dist/lib/types'
 const TITLES: Record<string, string> = {
   '/termin': 'Termin & Abstimmung',
   '/karte': 'Archiv',
-  '/spezln': 'Spezln',
+  '/spezln': 'Rang',
   '/kasse': 'Vereinskasse',
   '/profil': 'Mei Profil',
   '/stammtisch': 'Stammtisch',
@@ -84,9 +84,9 @@ export function AppBar({
     }
   }, [wp]);
 
-  // Archiv/Karte: Vollbild-Karte mit eigenen Filtern oben, da braucht's
-  // koan Header (Julius, 29.08.2026) — der lag sonst über den Filtern
-  if (pathname.startsWith('/karte')) return null;
+  // Karte und Rang: Vollbild mit eigener Ansichts-Wahl oben, da braucht's
+  // koan Header (Julius, 29.08.2026 bzw. Rang-Redesign 13.10.2026)
+  if (pathname.startsWith('/karte') || pathname.startsWith('/spezln')) return null;
 
   return (
     <header

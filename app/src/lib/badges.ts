@@ -109,21 +109,8 @@ export function saisonBadgesVergeben(stats: MitgliedStats[], meisterEderId: stri
   return saisonBadges().flatMap((b) => (holderIds[b.key] ? [{ ...b, holderId: holderIds[b.key]! }] : []));
 }
 
-/**
- * Dauerhafte Serien-Abzeichen: ab 3/6/10/15 Abenden in Folge, bleiben für immer
- * (bemessen an der Rekord-Serie) und schmücken das Profil.
- */
-export const SERIEN_ABZEICHEN = [
-  { ab: 3, icon: '🥉', name: 'Stammgast' },
-  { ab: 5, icon: '🥈', name: 'Inventar' },
-  { ab: 8, icon: '🏅', name: 'Urgestein' },
-  { ab: 10, icon: '🥇', name: 'Wirtshaus-Legende' },
-  { ab: 15, icon: '💎', name: 'Unkaputtbar' },
-] as const;
-
-export function serienAbzeichen(bestStreak: number) {
-  return SERIEN_ABZEICHEN.filter((a) => bestStreak >= a.ab);
-}
+// Serien-Abzeichen leben in lib/serien.ts (ohne DB-Import, aa im Client nutzbar)
+export { SERIEN_ABZEICHEN, serienAbzeichen } from '@/lib/serien';
 
 /**
  * Ämter: Präsident automatisch (meiste Wirtschaftln-Punkte, wird direkt

@@ -26,48 +26,38 @@ function Logo({ src }: { src: string }) {
   );
 }
 
-/** Der bayrische Steckbrief eines Spezls, zeigt nur, was ausgefüllt ist. */
+/**
+ * Der bayrische Steckbrief eines Spezls (Rang-Redesign 1b): Zeilen mit Begriff
+ * links in Grau, Wert rechts fett, Logos wo's eins gibt, drunter der Spruch
+ * in Fraktur. Zeigt nur, was ausgefüllt ist.
+ */
 export function Steckbrief({ daten, logos = true }: { daten: SteckbriefDaten; /** Brauerei-Logos (nur Gründer) */ logos?: boolean }) {
   if (steckbriefLeer(daten)) return null;
-  const zeilen: Array<{ icon: React.ReactNode; label: string; wert: string }> = [];
-  if (daten.herkunft) zeilen.push({ icon: '📍', label: 'Herkunft', wert: daten.herkunft });
+  const zeilen: Array<{ logo?: string | null; label: string; wert: string }> = [];
+  if (daten.herkunft) zeilen.push({ label: 'Viertel', wert: daten.herkunft });
+  if (daten.lieblingsbier) zeilen.push({ logo: logos ? bierLogo(daten.lieblingsbier) : null, label: 'Lieblingsbier', wert: daten.lieblingsbier });
+  if (daten.lieblingsweissbier) zeilen.push({ logo: logos ? bierLogo(daten.lieblingsweissbier) : null, label: 'Weißbier', wert: daten.lieblingsweissbier });
+  if (daten.leibspeise) zeilen.push({ label: 'Leibspeise', wert: daten.leibspeise });
+  if (daten.lieblingsbiergarten) zeilen.push({ label: 'Biergarten', wert: daten.lieblingsbiergarten });
+  if (daten.lieblingswirtshaus) zeilen.push({ label: 'Wirtshaus', wert: daten.lieblingswirtshaus });
   if (daten.verein === 'bayern' || daten.verein === 'sechzig') {
-    zeilen.push({
-      icon: <Logo src={daten.verein === 'bayern' ? '/brand/vereine/fcb.png' : '/brand/vereine/1860.png'} />,
-      label: 'Verein',
-      wert: daten.verein === 'bayern' ? 'FC Bayern' : 'TSV 1860',
-    });
+    zeilen.push({ logo: daten.verein === 'bayern' ? '/brand/vereine/fcb.png' : '/brand/vereine/1860.png', label: 'Verein', wert: daten.verein === 'bayern' ? 'FC Bayern' : 'TSV 1860' });
   } else if (daten.verein) {
-    zeilen.push({ icon: '⚽', label: 'Verein', wert: daten.verein });
+    zeilen.push({ label: 'Verein', wert: daten.verein });
   }
-  if (daten.lieblingsbier) {
-    const logo = logos ? bierLogo(daten.lieblingsbier) : null;
-    zeilen.push({ icon: logo ? <Logo src={logo} /> : '🍺', label: 'Helles', wert: daten.lieblingsbier });
-  }
-  if (daten.lieblingsweissbier) {
-    const logo = logos ? bierLogo(daten.lieblingsweissbier) : null;
-    zeilen.push({ icon: logo ? <Logo src={logo} /> : '🍺', label: 'Weißbier', wert: daten.lieblingsweissbier });
-  }
-  if (daten.leibspeise) zeilen.push({ icon: '🥘', label: 'Leibspeise', wert: daten.leibspeise });
-  if (daten.lieblingsbiergarten) zeilen.push({ icon: '🌳', label: 'Biergarten', wert: daten.lieblingsbiergarten });
-  if (daten.lieblingswirtshaus) zeilen.push({ icon: '🏠', label: 'Wirtshaus', wert: daten.lieblingswirtshaus });
-  if (daten.schafkopfer) zeilen.push({ icon: <Logo src="/brand/vereine/eichel.png" />, label: 'Schafkopf', wert: 'Karteln? Freilich!' });
+  if (daten.schafkopfer) zeilen.push({ logo: '/brand/vereine/eichel.png', label: 'Schafkopf', wert: 'Ja' });
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+    <div style={{ display: 'flex', flexDirection: 'column' }}>
       {zeilen.map((z, i) => (
-        <div key={z.label} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 2px', borderBottom: i < zeilen.length - 1 || daten.beschreibung ? '1px solid var(--ink-100)' : 'none' }}>
-          <span style={{ width: 24, display: 'inline-flex', justifyContent: 'center', fontSize: 15, flex: 'none' }}>{z.icon}</span>
-          <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--ink-500)', width: 78, flex: 'none' }}>
-            {z.label}
-          </span>
-          <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink-900)', minWidth: 0 }}>{z.wert}</span>
+        <div key={z.label} style={{ display: 'flex', alignItems: 'center', gap: 10, minHeight: 46, borderBottom: i < zeilen.length - 1 || daten.beschreibung ? '1px solid var(--ink-50)' : 'none' }}>
+          <span style={{ flex: 1, fontSize: 14, fontWeight: 600, color: 'var(--ink-500)' }}>{z.label}</span>
+          {z.logo && <Logo src={z.logo} />}
+          <span style={{ fontSize: 14, fontWeight: 800, color: 'var(--ink-900)', minWidth: 0, textAlign: 'right' }}>{z.wert}</span>
         </div>
       ))}
       {daten.beschreibung && (
-        <div style={{ padding: '10px 2px 2px', fontFamily: 'var(--font-quote)', fontStyle: 'italic', fontSize: 14, color: 'var(--ink-700)', lineHeight: 1.5 }}>
-          „{daten.beschreibung}“
-        </div>
+        <p style={{ margin: '10px 0 0', fontFamily: 'var(--font-fraktur)', fontSize: 20, lineHeight: 1.3, color: 'var(--navy)' }}>„{daten.beschreibung}“</p>
       )}
     </div>
   );

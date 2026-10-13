@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { Icon } from '@/components/ds';
 import { PTS, WACKELT_AB_UNENTSCHULDIGT, ABSCHLUSS_SPERRE_STUNDEN, anwesenheitsBonus, entschuldigtMalus, unentschuldigtMalus } from '@/lib/punkte';
 
 /**
@@ -31,117 +32,74 @@ export function PunkteInfo({ knopf }: { knopf?: (oeffnen: () => void) => React.R
       )}
 
       {offen && (
-        <div className="wn-scroll-still" style={{ position: 'fixed', inset: 0, zIndex: 70, overflowY: 'auto', overscrollBehavior: 'contain', background: 'var(--weiss)', animation: 'wnPunkteRein 240ms ease-out both' }}>
+        <div className="wn-scroll-still" style={{ position: 'fixed', inset: 0, zIndex: 70, maxWidth: 'var(--container-app)', margin: '0 auto', overflowY: 'auto', overscrollBehavior: 'contain', background: 'var(--ink-50)', animation: 'wnPunkteRein 240ms ease-out both' }}>
           <style>{`
             @keyframes wnPunkteRein { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
-            @keyframes wnPunkteZeile { from { transform: translateY(8px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
           `}</style>
-          <div style={{ minHeight: '100%', display: 'flex', flexDirection: 'column' }}>
-            {/* Kopf: Navy-Zeremonie mit Rauten-Band */}
-            <div style={{ position: 'relative', background: 'var(--grad-navy)', overflow: 'hidden' }}>
-              <div className="wn-raute wn-raute--sm" style={{ height: 7 }} />
-              <button onClick={() => setOffen(false)} aria-label="Schließen" className="wn-press" style={{ position: 'absolute', top: 'calc(12px + env(safe-area-inset-top))', right: 12, width: 34, height: 34, borderRadius: '50%', border: '1px solid rgba(255,255,255,0.28)', background: 'rgba(255,255,255,0.14)', color: '#fff', fontSize: 17, fontWeight: 800, cursor: 'pointer', zIndex: 2 }}>
-                ×
-              </button>
-              <div style={{ padding: 'calc(22px + env(safe-area-inset-top)) 20px 18px', textAlign: 'center' }}>
-                <div style={{ fontFamily: 'var(--font-fraktur)', fontSize: 32, color: 'var(--gold-bright)', lineHeight: 1.1 }}>D’Wirtschaftln-Punkte</div>
-                <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--pergament)', opacity: 0.85, marginTop: 5 }}>
-                  Wer wann WP kriagt, und wann’s weniger werden.
-                  <br />
-                  Einmal verdient bleibt verdient.
-                </div>
-              </div>
-            </div>
-            <div style={{ height: 1.5, background: 'linear-gradient(90deg, transparent, var(--gold), transparent)' }} />
+          {/* Kopf: Navy mit Rautenband */}
+          <div style={{ position: 'relative', background: 'radial-gradient(circle at 50% 30%, #123E78 0%, #07193A 80%)', color: 'var(--pergament)', textAlign: 'center', padding: 'calc(16px + env(safe-area-inset-top)) 20px 18px' }}>
+            <button type="button" onClick={() => setOffen(false)} aria-label="Schließen" className="wn-press" style={{ position: 'absolute', top: 'calc(14px + env(safe-area-inset-top))', right: 16, width: 40, height: 40, borderRadius: '50%', border: 'none', background: 'rgba(255,255,255,0.14)', color: '#fff', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0, zIndex: 2 }}>
+              <Icon name="x" size={18} />
+            </button>
+            <div style={{ fontFamily: 'var(--font-fraktur)', fontSize: 30, lineHeight: 1, color: 'var(--gold-bright)', marginTop: 28 }}>Die Wirtschaftln-Punkte</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: 'rgba(246,240,226,0.8)', marginTop: 6 }}>Wer wann WP bekommt und wann’s weniger werden. Einmal verdient bleibt verdient.</div>
+          </div>
+          <div className="wn-raute wn-raute--sm" style={{ height: 8 }} />
 
-            <div style={{ flex: 1, width: '100%', maxWidth: 420, margin: '0 auto', padding: '16px 18px 0' }}>
-              <div style={{ animation: 'wnPunkteZeile 320ms 80ms ease-out both' }}>
-                <Ueberschrift text="So gibt’s Punkte" />
-                <Zeile icon="🎟️" text="Beim Stammtisch dabei" wp={`+${PTS.teilnahme}`} />
-                <Zeile icon="🍺" text="Pro Hoibe" wp={`+${PTS.hoibe}`} />
-                <Zeile icon="🚕" text="Gfahren & Spezln mitgnommen" wp={`+${PTS.taxi}`} />
-                <Zeile icon="🍻" text="A Runde gschmissen" wp={`+${PTS.runde}`} />
-                <Zeile icon="🗳️" text="Rechtzeitig zu- oder abgsagt (bis 3 Tag vorher)" wp={`+${PTS.abstimmen}`} />
-                <Zeile icon="🪑" text="Als Erster im Wirtshaus eingecheckt" wp={`+${PTS.checkin}`} />
-                <Zeile icon="📍" text="Wirtshaus vorgschlagen (+1 extra, wenn’s besucht wird)" wp={`+${PTS.vorschlag}`} />
-                <Zeile icon="⭐" text="Eigene Bewertung zum Abend abgeben" wp={`+${PTS.bewertung}`} />
-                <Zeile icon="✅" text={`Als Erster den Abend abgschlossen (ab ${ABSCHLUSS_SPERRE_STUNDEN} Std. nach Beginn)`} wp={`+${PTS.abschluss}`} />
-                <Zeile icon="📋" text="Organisiert, je nach Sterne-Schnitt vom Abend" wp={`0–${PTS.orgaMax}`} letzte />
-              </div>
-
-              <div style={{ animation: 'wnPunkteZeile 320ms 160ms ease-out both' }}>
-                <Ueberschrift text="🔥 D’Serie, dei Bonus" abstand />
-                <div style={erklaerText}>
-                  Ab dem zweiten Abend in Folge gibt’s je Abend an Extra-Bonus, ohne Deckel, und er bleibt dir <b>für immer</b>. A Riss beendet nur die Serie, nimmt dir aber nix weg.
-                </div>
-                <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
-                  {[2, 3, 5, 10].map((s) => (
-                    <Kachel key={s} oben={`${s}. in Folge`} unten={`+${anwesenheitsBonus(s)}`} farbe="var(--erfolg)" />
-                  ))}
-                </div>
-              </div>
-
-              <div style={{ animation: 'wnPunkteZeile 320ms 240ms ease-out both' }}>
-                <Ueberschrift text="📅 Absagen, sauber glöst" abstand />
-                <div style={erklaerText}>
-                  Wer <b>absagt</b>, is entschuldigt. Die erste Absage kost’ nix, dann wird’s in Folge teurer:
-                </div>
-                <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
-                  {[1, 2, 3, 4].map((n) => (
-                    <Kachel
-                      key={n}
-                      oben={n === 4 ? 'ab 4.' : `${n}.`}
-                      unten={entschuldigtMalus(n) === 0 ? '±0' : String(entschuldigtMalus(n))}
-                      farbe={entschuldigtMalus(n) === 0 ? 'var(--erfolg)' : 'var(--strafe)'}
-                    />
-                  ))}
-                </div>
-              </div>
-
-              <div style={{ animation: 'wnPunkteZeile 320ms 320ms ease-out both' }}>
-                <Ueberschrift text="🥶 Unentschuldigt, des werd teuer" abstand />
-                <div style={erklaerText}>
-                  <b>Koa Stimme und ned da</b> (oder zugsagt und ned kemma) = unentschuldigt:
-                </div>
-                <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
-                  {[1, 2, 3].map((n) => (
-                    <Kachel key={n} oben={n === 3 ? 'ab 3.' : `${n}.`} unten={String(unentschuldigtMalus(n))} farbe="var(--strafe)" />
-                  ))}
-                </div>
-                <div style={{ ...erklaerText, marginTop: 8 }}>
-                  ⚠️ Beim {WACKELT_AB_UNENTSCHULDIGT}. unentschuldigten Fehlen in Folge <b>wackelst</b>, und a <b>Strafrunde</b> is fällig (Teilnehmer × Bräustüberl-Hoibe). Wieder dabei sein setzt alles zurück.
-                </div>
-              </div>
-
-              <div style={{ animation: 'wnPunkteZeile 320ms 380ms ease-out both' }}>
-                <Ueberschrift text="So läuft a Abend" abstand />
-                <div style={erklaerText}>
-                  🙋 <b>D’Orga schnappt sich, wer mag</b> („I regle das!“). Nur wer den letzten Stammtisch organisiert hat, setzt aus.
-                  <br />
-                  ⭐ <b>Bewertet wird einzeln:</b> Jeder gibt sei eigene Wertung ab (bis 7 Tag nach’m Abschluss), aus allen zusammen wird d’Tages-Wertung. Kaisi & Brodn bewertet nur, wer selber probiert hat.
-                  <br />
-                  ✅ <b>Abgschlossen</b> wird frühestens {ABSCHLUSS_SPERRE_STUNDEN} Stunden nach Beginn, und nur no d’Logistik (wer da war, Hoibe, Runden).
-                  <br />
-                  🪑 <b>Einchecken:</b> ab 2 Stund’ vor Beginn auf der Startseite, der Erste sagt, wo ihr hockts.
-                </div>
-              </div>
-
-              <div style={{ animation: 'wnPunkteZeile 320ms 440ms ease-out both', paddingBottom: 16 }}>
-                <Ueberschrift text="Guat zum Wissen" abstand />
-                <div style={erklaerText}>
-                  💶 Geldstrafen (Strafrunde, zugsagt & ned kemma) laufen über d’Kasse, die kosten <b>Geld, koane WP</b>, und WP kann ma ned zum Zahlen hernehmen.
-                  <br />
-                  🍺🏠 Hoibe- und Wirtshäuser-Ranglisten sind eigene Wertungen ohne Punkte, zählen tut die <b>Gesamt-Wertung (WP)</b>.
-                  <br />
-                  📅 <b>Saison</b> zählt ab 1.7. bzw. 1.1., d’Serie läuft immer über die ganze Chronik weiter.
-                  <br />
-                  📜 Nachbewertungen von alte Wirtshäuser bringen <b>koane</b> Punkte, nur Ruhm in der Sterne-Wertung.
-                </div>
-              </div>
+          <div style={{ padding: '20px 16px calc(32px + env(safe-area-inset-bottom))', display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <Ueberschrift text="So gibt’s Punkte" />
+            <div style={{ background: 'var(--weiss)', borderRadius: 'var(--r-lg)', border: '1px solid var(--ink-100)', boxShadow: 'var(--sh-sm)', padding: '4px 16px' }}>
+              <Zeile icon="calendar" text="Beim Stammtisch dabei" wp={`+${PTS.teilnahme}`} />
+              <Zeile icon="beer" text="Pro Hoibe" wp={`+${PTS.hoibe}`} />
+              <Zeile icon="taxi" text="Gefahren & Spezln mitgenommen" wp={`+${PTS.taxi}`} />
+              <Zeile icon="star" text="Eine Runde geschmissen" wp={`+${PTS.runde}`} />
+              <Zeile icon="hand" text="Rechtzeitig zu- oder abgesagt (bis 3 Tage vorher)" wp={`+${PTS.abstimmen}`} />
+              <Zeile icon="chair" text="Als Erster im Wirtshaus eingecheckt" wp={`+${PTS.checkin}`} />
+              <Zeile icon="pin-plus" text="Wirtshaus vorgeschlagen (+1 extra, wenn’s besucht wird)" wp={`+${PTS.vorschlag}`} />
+              <Zeile icon="star" text="Eigene Bewertung zum Abend (Text bringt nichts extra)" wp={`+${PTS.bewertung}`} />
+              <Zeile icon="check-circle" text={`Als Erster abgeschlossen (ab ${ABSCHLUSS_SPERRE_STUNDEN} Std. nach Beginn)`} wp={`+${PTS.abschluss}`} />
+              <Zeile icon="clipboard" text="Organisiert, je nach Sterne-Schnitt des Abends" wp={`0–${PTS.orgaMax}`} letzte />
             </div>
 
-            {/* Rauten-Band als Abschluss der Urkunde */}
-            <div className="wn-raute wn-raute--sm" style={{ height: 7, marginBottom: 'env(safe-area-inset-bottom)' }} />
+            <Ueberschrift text="Die Serie" abstand />
+            <div style={erklaerText}>Ab dem zweiten Abend in Folge gibt’s je Abend einen Bonus, ohne Deckel, und er bleibt für immer. Ein Riss beendet nur die Serie.</div>
+            <div style={{ display: 'flex', gap: 6 }}>
+              {[2, 3, 5, 10].map((n) => (
+                <Kachel key={n} oben={n === 2 ? '2. in Folge' : `${n}.`} unten={`+${anwesenheitsBonus(n)}`} farbe="var(--erfolg)" />
+              ))}
+            </div>
+
+            <Ueberschrift text="Absagen" abstand />
+            <div style={erklaerText}>Wer absagt, ist entschuldigt. Die erste Absage kostet nichts, dann wird’s in Folge teurer:</div>
+            <div style={{ display: 'flex', gap: 6 }}>
+              {[1, 2, 3, 4].map((n) => (
+                <Kachel key={n} oben={n === 4 ? 'ab 4.' : `${n}.`} unten={entschuldigtMalus(n) === 0 ? '±0' : String(entschuldigtMalus(n))} farbe={entschuldigtMalus(n) === 0 ? 'var(--erfolg)' : 'var(--strafe)'} />
+              ))}
+            </div>
+
+            <Ueberschrift text="Unentschuldigt" abstand />
+            <div style={erklaerText}>Keine Stimme und nicht da, oder zugesagt und nicht gekommen:</div>
+            <div style={{ display: 'flex', gap: 6 }}>
+              {[1, 2, 3].map((n) => (
+                <Kachel key={n} oben={n === 3 ? 'ab 3.' : `${n}.`} unten={String(unentschuldigtMalus(n))} farbe="var(--strafe)" />
+              ))}
+            </div>
+            <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', padding: '10px 12px', borderRadius: 12, background: 'var(--strafe-bg)', marginTop: 4 }}>
+              <Icon name="warning" size={18} color="var(--strafe)" style={{ flex: 'none' }} />
+              <span style={{ fontSize: 12, fontWeight: 700, lineHeight: 1.5, color: 'var(--strafe)' }}>Beim {WACKELT_AB_UNENTSCHULDIGT}. Mal in Folge wackelst du und eine Strafrunde ist fällig. Wieder dabei sein setzt alles zurück.</span>
+            </div>
+
+            <Ueberschrift text="So läuft ein Abend" abstand />
+            <div style={erklaerText}>
+              Die Orga schnappt sich, wer mag („Ich übernehm’s“). Nur wer den letzten Stammtisch organisiert hat, setzt aus.
+              Bewertet wird einzeln: Jeder gibt seine eigene Wertung ab (bis 7 Tage nach dem Abschluss), aus allen zusammen wird die Tages-Wertung. Schmarrn und Brodn bewertet nur, wer selber probiert hat.
+              Abgeschlossen wird frühestens {ABSCHLUSS_SPERRE_STUNDEN} Stunden nach Beginn, und nur noch die Logistik (wer da war, wer zu spät kam). Einchecken geht ab 2 Stunden vor Beginn auf der Startseite.
+            </div>
+
+            <Ueberschrift text="Gut zu wissen" abstand />
+            <div style={erklaerText}>
+              Geldstrafen laufen über die Kasse und kosten Geld, keine WP. Hoibe- und Wirtshäuser-Ranglisten sind eigene Wertungen ohne Punkte. Die Saison zählt ab 1.7. bzw. 1.1., die Serie läuft über die ganze Chronik. Nachbewertungen bringen keine Punkte.
+            </div>
           </div>
         </div>
       )}
@@ -151,7 +109,7 @@ export function PunkteInfo({ knopf }: { knopf?: (oeffnen: () => void) => React.R
 
 function Ueberschrift({ text, abstand = false }: { text: string; abstand?: boolean }) {
   return (
-    <div style={{ fontFamily: 'var(--font-fraktur)', fontSize: 20, color: 'var(--navy)', marginTop: abstand ? 18 : 0, marginBottom: 8, lineHeight: 1.1 }}>
+    <div style={{ fontFamily: 'var(--font-fraktur)', fontSize: 22, color: 'var(--navy)', marginTop: abstand ? 12 : 4, marginBottom: 4, lineHeight: 1, padding: '0 4px' }}>
       {text}
     </div>
   );
@@ -159,9 +117,9 @@ function Ueberschrift({ text, abstand = false }: { text: string; abstand?: boole
 
 function Zeile({ icon, text, wp, letzte = false }: { icon: string; text: string; wp: string; letzte?: boolean }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 0', borderBottom: letzte ? 'none' : '1px solid var(--ink-100)' }}>
-      <span style={{ flex: 'none', fontSize: 16 }}>{icon}</span>
-      <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: 'var(--ink-900)', lineHeight: 1.4 }}>{text}</span>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 12, minHeight: 46, padding: '6px 0', borderBottom: letzte ? 'none' : '1px solid var(--ink-50)' }}>
+      <Icon name={icon} size={19} color="var(--gold-700)" style={{ flex: 'none', width: 22 }} />
+      <span style={{ flex: 1, fontSize: 14, fontWeight: 700, color: 'var(--ink-900)', lineHeight: 1.35 }}>{text}</span>
       <span
         className="wn-tnum"
         style={{
@@ -187,5 +145,5 @@ function Kachel({ oben, unten, farbe }: { oben: string; unten: string; farbe: st
 }
 
 const erklaerText: React.CSSProperties = {
-  fontSize: 13, fontWeight: 500, color: 'var(--ink-700)', lineHeight: 1.55,
+  fontSize: 13, fontWeight: 600, color: 'var(--ink-700)', lineHeight: 1.55, padding: '0 4px',
 };

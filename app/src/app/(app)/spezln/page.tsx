@@ -14,7 +14,7 @@ export default async function SpezlnPage() {
   const darfAmtZuweisen = me.role === 'admin' || me.id === praesidentId;
 
   return (
-    <div className="wn-eintritt" style={{ padding: '16px 16px 24px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+    <div className="wn-eintritt" style={{ padding: '0 16px 32px', display: 'flex', flexDirection: 'column', gap: 24 }}>
       <Rangliste eintraege={eintraege} aemter={aemterListe} galerie={galerie} badgeInfos={badgeInfos} saisonLabel={saison.label} />
 
       {darfAmtZuweisen && (

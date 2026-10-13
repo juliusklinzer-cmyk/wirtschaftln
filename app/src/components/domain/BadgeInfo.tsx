@@ -1,7 +1,9 @@
 'use client';
 
-import { Avatar } from '@/components/ds';
+import { Avatar, Icon, ZeilenKarte } from '@/components/ds';
 import { BadgeBild } from '@/components/domain/BadgeBild';
+import { HoamTitel } from '@/components/domain/HoamTitel';
+import { bereichHinweisStil } from '@/components/domain/hero-stil';
 
 export type HallOfFameEintrag = { name: string; photoUrl: string | null; zeitraum: string; aktiv: boolean };
 
@@ -33,213 +35,129 @@ export function amtKey(titel: string): string | null {
   return null;
 }
 
-/**
- * Strahlenkranz als conic-gradient: 24 Strahlen à 6° mit Lücken.
- * Ämter: durchgehend Gold. Badges: bayrisch, Weiß und Blau im Wechsel.
- */
-function strahlenGradient(art: 'badge' | 'amt'): string {
-  const gold = 'rgba(230,198,132,0.30)';
-  const weiss = 'rgba(255,255,255,0.30)';
-  const blau = 'rgba(66,148,213,0.38)';
-  const stops: string[] = [];
-  for (let g = 0; g < 24; g++) {
-    const von = g * 15;
-    const farbe = art === 'amt' ? gold : g % 2 ? blau : weiss;
-    stops.push(`${farbe} ${von}deg ${von + 6}deg`, `transparent ${von + 6}deg ${von + 15}deg`);
-  }
-  return `conic-gradient(from 0deg, ${stops.join(', ')})`;
-}
+const karte: React.CSSProperties = { background: 'var(--weiss)', borderRadius: 'var(--r-lg)', border: '1px solid var(--ink-100)', boxShadow: 'var(--sh-sm)' };
 
 /**
- * Badge-Bühne (Vollbild, Julius 29.08.2026): Badge/Amt in voller Größe vor
- * einem DURCHGEHEND rotierenden Schein — Ämter golden, Badges weiß-blau
- * (bayrisch). Beschreibung, Pflichten und Hall of Fame erscheinen erst hier;
- * die Listen draußen zeigen nur noch das Nötigste.
+ * Badge-Info & Hall of Fame (Rang-Redesign 1c/2d): Navy-Kopf mit der Grafik
+ * groß im Strahlenkranz, wofür es vergeben wird und wer’s grad trägt; heller
+ * Teil mit Pflicht, Geschichte, Hall of Fame und (bei Ämtern) den Pflichten als Liste.
  */
 export function BadgeInfo({ info, onClose }: { info: BadgeInfoDaten; onClose: () => void }) {
   const amt = info.art === 'amt';
   const halter = info.hallOfFame.find((h) => h.aktiv) ?? null;
-  const glut = amt ? 'rgba(230,198,132,0.30)' : 'rgba(120,180,235,0.30)';
+  const pflichten = info.duties ? info.duties.split(' · ').map((t) => t.trim()).filter(Boolean) : [];
 
   return (
-    <div
-      onClick={onClose}
-      className="wn-scroll-still"
-      style={{
-        position: 'fixed', inset: 0, zIndex: 70, overflowY: 'auto', overscrollBehavior: 'contain',
-        background: 'radial-gradient(circle at 50% 24%, #10305F 0%, var(--navy-900) 62%)',
-        animation: 'wnBuehneAuf 240ms ease-out both',
-      }}
-    >
+    <div className="wn-scroll-still" style={{ position: 'fixed', inset: 0, zIndex: 70, maxWidth: 'var(--container-app)', margin: '0 auto', background: 'var(--ink-50)', overflowY: 'auto', overscrollBehavior: 'contain', animation: 'wnBuehneAuf 260ms cubic-bezier(0.32, 0.72, 0, 1) both' }}>
       <style>{`
-        @keyframes wnBuehneAuf { from { opacity: 0; } }
+        @keyframes wnBuehneAuf { from { transform: translateY(24px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
         @keyframes wnScheinDreht { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
         @keyframes wnBadgeAuftritt { 0% { transform: scale(0.6); opacity: 0; } 60% { transform: scale(1.08); opacity: 1; } 100% { transform: scale(1); opacity: 1; } }
-        @keyframes wnBuehneZeile { from { transform: translateY(12px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-        @media (prefers-reduced-motion: reduce) {
-          .wn-schein { animation: none !important; }
-        }
+        @media (prefers-reduced-motion: reduce) { .wn-schein { animation: none !important; } }
       `}</style>
 
-      {/* Rauten-Band oben — a bayrische Bühne braucht ihr Band */}
-      <div className="wn-raute wn-raute--sm" style={{ height: 7 }} />
-
-      <button
-        onClick={onClose}
-        aria-label="Schließen"
-        className="wn-press"
-        style={{
-          position: 'fixed', top: 'calc(16px + env(safe-area-inset-top))', right: 16, zIndex: 3,
-          width: 36, height: 36, borderRadius: '50%', border: '1px solid rgba(255,255,255,0.28)',
-          background: 'rgba(255,255,255,0.12)', color: 'var(--pergament)', fontSize: 18, fontWeight: 800,
-          cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-        }}
-      >
-        ×
-      </button>
-
-      {/* Alles im Inneren fängt den Klick ab — zua geht's über × oder den Rand */}
-      <div onClick={(e) => e.stopPropagation()} style={{ maxWidth: 420, margin: '0 auto', padding: '30px 22px calc(30px + env(safe-area-inset-bottom))' }}>
-        {/* ── Die Bühne: Schein + Badge ── */}
-        <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: 26 }}>
-          {/* Durchgehend rotierender Strahlenkranz + weiche Glut */}
-          <div aria-hidden style={{ position: 'absolute', top: -20, left: '50%', transform: 'translateX(-50%)', width: 360, height: 360, pointerEvents: 'none' }}>
-            <div
-              className="wn-schein"
-              style={{
-                position: 'absolute', inset: 0, borderRadius: '50%',
-                background: strahlenGradient(info.art),
-                animation: 'wnScheinDreht 22s linear infinite',
-                maskImage: 'radial-gradient(circle, black 30%, transparent 72%)',
-                WebkitMaskImage: 'radial-gradient(circle, black 30%, transparent 72%)',
-              }}
-            />
-            <div style={{ position: 'absolute', inset: 40, borderRadius: '50%', background: `radial-gradient(circle, ${glut} 0%, transparent 65%)` }} />
-          </div>
-
+      {/* Navy-Kopf: Strahlenkranz, Grafik, Name, Träger */}
+      <div style={{ position: 'relative', background: 'radial-gradient(circle at 50% 30%, #123E78 0%, #07193A 75%)', color: 'var(--pergament)', padding: 'calc(16px + env(safe-area-inset-top)) 20px 22px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, textAlign: 'center' }}>
+        <button type="button" onClick={onClose} aria-label="Schließen" className="wn-press" style={{ position: 'absolute', right: 16, top: 'calc(14px + env(safe-area-inset-top))', width: 40, height: 40, borderRadius: '50%', border: 'none', background: 'rgba(255,255,255,0.14)', color: '#fff', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0, zIndex: 2 }}>
+          <Icon name="x" size={18} />
+        </button>
+        <div style={{ position: 'relative', width: 230, height: 230, display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: 10 }}>
+          <div className="wn-schein" aria-hidden style={{ position: 'absolute', inset: 0, borderRadius: '50%', background: 'repeating-conic-gradient(rgba(230,198,132,0.2) 0 12deg, transparent 12deg 30deg)', animation: 'wnScheinDreht 24s linear infinite' }} />
           <div style={{ position: 'relative', animation: 'wnBadgeAuftritt 500ms cubic-bezier(0.34, 1.56, 0.64, 1) both' }}>
             {info.slug ? (
-              <BadgeBild slug={info.slug} icon={info.icon} name={info.name} size={230} />
+              amt ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={`/brand/badges/${info.slug}.png`} alt={info.name} style={{ width: 150, height: 150, borderRadius: '50%', objectFit: 'cover', border: '3px solid var(--gold-bright)', boxShadow: 'var(--sh-gold)' }} />
+              ) : (
+                <BadgeBild slug={info.slug} icon={info.icon} name={info.name} size={190} />
+              )
             ) : (
-              <span style={{ width: 180, height: 180, borderRadius: '50%', background: 'var(--grad-gold)', border: '4px solid var(--gold-bright)', boxShadow: 'var(--sh-gold)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 84 }}>
-                {info.icon}
-              </span>
-            )}
-          </div>
-
-          <div style={{ position: 'relative', textAlign: 'center', marginTop: 18, animation: 'wnBuehneZeile 320ms 120ms ease-out both' }}>
-            <div style={{ fontFamily: 'var(--font-fraktur)', fontSize: 36, color: 'var(--gold-bright)', lineHeight: 1.1, textShadow: '0 2px 10px rgba(0,0,0,0.4)' }}>
-              {info.name}
-            </div>
-            <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--pergament)', opacity: 0.85, marginTop: 6 }}>
-              {info.untertitel}
-            </div>
-          </div>
-
-          {/* Wer's grad tragt */}
-          <div style={{ position: 'relative', marginTop: 16, animation: 'wnBuehneZeile 320ms 200ms ease-out both' }}>
-            {halter ? (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 16px 9px 10px', borderRadius: 999, background: 'rgba(255,255,255,0.1)', border: '1.5px solid var(--gold)' }}>
-                <Avatar src={halter.photoUrl} name={halter.name} size={34} ring />
-                <div>
-                  <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--pergament)', lineHeight: 1.2 }}>{halter.name}</div>
-                  <div className="wn-tnum" style={{ fontSize: 11, fontWeight: 700, color: 'var(--gold-bright)' }}>{halter.zeitraum}</div>
-                </div>
-              </div>
-            ) : (
-              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--pergament)', opacity: 0.7, fontStyle: 'italic' }}>
-                No ned vergeben, vielleicht du beim nächsten Stammtisch?
-              </div>
+              <span style={{ width: 160, height: 160, borderRadius: '50%', background: 'var(--grad-gold)', border: '4px solid var(--gold-bright)', boxShadow: 'var(--sh-gold)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 76 }}>{info.icon}</span>
             )}
           </div>
         </div>
+        <span style={{ fontFamily: 'var(--font-fraktur)', fontSize: 40, lineHeight: 1, color: 'var(--gold-bright)' }}>{info.name}</span>
+        <span style={{ fontSize: 12, fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--gold)' }}>{info.untertitel}</span>
+        {halter ? (
+          <span style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6 }}>
+            <Avatar src={halter.photoUrl} name={halter.name} size={28} ring />
+            <span style={{ fontSize: 14, fontWeight: 800 }}>{halter.name} trägt es {halter.zeitraum}</span>
+          </span>
+        ) : (
+          <span style={{ fontSize: 13, fontWeight: 700, opacity: 0.7, fontStyle: 'italic', marginTop: 6 }}>Noch nicht vergeben, vielleicht du beim nächsten Stammtisch?</span>
+        )}
+      </div>
+      <div className="wn-raute wn-raute--sm" style={{ height: 8 }} />
 
-        {/* ── G'schichtl & Pflichten ── */}
-        <div style={{ marginTop: 26, animation: 'wnBuehneZeile 320ms 280ms ease-out both' }}>
-          <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--pergament)', opacity: 0.92, lineHeight: 1.65 }}>{info.text}</div>
-          {info.duties && (
-            <div style={{ marginTop: 12, fontSize: 13, fontWeight: 600, color: 'var(--pergament)', opacity: 0.75, lineHeight: 1.55 }}>{info.duties}</div>
-          )}
-          {info.pflicht && (
-            <div style={{ marginTop: 12, padding: '10px 14px', background: 'rgba(208,173,102,0.14)', border: '1px solid var(--border-on-dark)', borderRadius: 'var(--r-md)', fontSize: 13, fontWeight: 700, color: 'var(--gold-bright)', lineHeight: 1.5 }}>
-              {info.pflicht}
+      <div style={{ padding: '20px 16px calc(32px + env(safe-area-inset-bottom))', display: 'flex', flexDirection: 'column', gap: 22 }}>
+        {info.pflicht && (
+          <div style={{ padding: '14px 16px', borderRadius: 16, background: 'var(--pergament)', border: '1.5px solid var(--gold)', display: 'flex', gap: 12 }}>
+            <Icon name="scroll" size={22} color="var(--gold-700)" style={{ flex: 'none' }} />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+              <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--gold-700)' }}>Pflicht</span>
+              <span style={{ fontSize: 15, fontWeight: 800, color: 'var(--navy)' }}>{info.pflicht}</span>
             </div>
-          )}
-        </div>
-
-        {/* ── Hall of Fame ── */}
-        <div style={{ marginTop: 24, animation: 'wnBuehneZeile 320ms 360ms ease-out both' }}>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 10 }}>
-            <span style={{ fontFamily: 'var(--font-fraktur)', fontSize: 22, color: 'var(--gold-bright)', lineHeight: 1 }}>Hall of Fame</span>
-            <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--pergament)', opacity: 0.65 }}>wer’s wia lang g’halten hat</span>
           </div>
+        )}
+
+        {pflichten.length > 0 && (
+          <div style={{ ...karte, padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {pflichten.map((p, i) => (
+              <div key={i} style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+                <Icon name="check-circle" size={18} color="var(--gold)" style={{ flex: 'none', marginTop: 1 }} />
+                <span style={{ fontSize: 14, fontWeight: 600, lineHeight: 1.45, color: 'var(--ink-900)' }}>{p.charAt(0).toUpperCase() + p.slice(1)}</span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <section style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <HoamTitel>Geschichte</HoamTitel>
+          <div style={{ ...karte, padding: 16 }}>
+            <span style={{ fontSize: 14, fontWeight: 600, lineHeight: 1.6, color: 'var(--ink-700)' }}>{info.text}</span>
+          </div>
+        </section>
+
+        <section style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <HoamTitel action={<span style={bereichHinweisStil}>wer’s wie lang hatte</span>}>Hall of Fame</HoamTitel>
           {info.hallOfFame.length === 0 ? (
-            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--pergament)', opacity: 0.65, textAlign: 'center', padding: '8px 0' }}>
-              No koaner, vielleicht du beim nächsten Stammtisch?
-            </div>
+            <div style={{ ...karte, padding: 16, fontSize: 13, fontWeight: 600, color: 'var(--ink-500)', textAlign: 'center' }}>Noch niemand, vielleicht du beim nächsten Stammtisch?</div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <ZeilenKarte>
               {info.hallOfFame.map((h, i) => (
-                <div
-                  key={`${h.name}-${i}`}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px',
-                    background: h.aktiv ? 'rgba(208,173,102,0.14)' : 'rgba(255,255,255,0.06)',
-                    border: h.aktiv ? '1px solid var(--gold)' : '1px solid rgba(255,255,255,0.1)',
-                    borderRadius: 'var(--r-md)',
-                  }}
-                >
-                  <Avatar src={h.photoUrl} name={h.name} size={30} ring={h.aktiv} />
-                  <span style={{ flex: 1, minWidth: 0, fontSize: 14, fontWeight: 700, color: 'var(--pergament)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    {h.name}
-                  </span>
-                  <span className="wn-tnum" style={{ fontSize: 11, fontWeight: 700, color: h.aktiv ? 'var(--gold-bright)' : 'var(--pergament)', opacity: h.aktiv ? 1 : 0.65, whiteSpace: 'nowrap' }}>
-                    {h.zeitraum}
-                  </span>
+                <div key={`${h.name}-${i}`} style={{ display: 'flex', alignItems: 'center', gap: 12, minHeight: 56, borderBottom: i < info.hallOfFame.length - 1 ? '1px solid var(--ink-50)' : 'none' }}>
+                  <Avatar src={h.photoUrl} name={h.name} size={36} ring={h.aktiv} />
+                  <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 1 }}>
+                    <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink-900)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{h.name}</span>
+                    <span className="wn-tnum" style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink-500)' }}>{h.zeitraum}</span>
+                  </div>
+                  {h.aktiv && <span style={{ fontSize: 11, fontWeight: 800, padding: '4px 10px', borderRadius: 999, background: 'var(--grad-gold)', color: 'var(--navy-900)', whiteSpace: 'nowrap', flex: 'none' }}>aktuell</span>}
                 </div>
               ))}
-            </div>
+            </ZeilenKarte>
           )}
-        </div>
+        </section>
 
-        {/* ── Zähler-Rangliste (z. B. Runden beim Moshammer) ── */}
         {info.zaehler && (
-          <div style={{ marginTop: 24, animation: 'wnBuehneZeile 320ms 420ms ease-out both' }}>
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 10 }}>
-              <span style={{ fontFamily: 'var(--font-fraktur)', fontSize: 22, color: 'var(--gold-bright)', lineHeight: 1 }}>{info.zaehler.titel}</span>
-              <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--pergament)', opacity: 0.65 }}>{info.zaehler.hinweis}</span>
-            </div>
+          <section style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <HoamTitel action={<span style={bereichHinweisStil}>{info.zaehler.hinweis}</span>}>{info.zaehler.titel}</HoamTitel>
             {info.zaehler.eintraege.length === 0 ? (
-              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--pergament)', opacity: 0.65, textAlign: 'center', padding: '8px 0' }}>
-                No koa oanzige, wer mocht’n Anfang?
-              </div>
+              <div style={{ ...karte, padding: 16, fontSize: 13, fontWeight: 600, color: 'var(--ink-500)', textAlign: 'center' }}>Noch keine, wer macht den Anfang?</div>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <ZeilenKarte>
                 {info.zaehler.eintraege.map((z, i) => (
-                  <div
-                    key={z.name}
-                    style={{
-                      display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px',
-                      background: z.aktiv ? 'rgba(208,173,102,0.14)' : 'rgba(255,255,255,0.06)',
-                      border: z.aktiv ? '1px solid var(--gold)' : '1px solid rgba(255,255,255,0.1)',
-                      borderRadius: 'var(--r-md)',
-                    }}
-                  >
-                    <span className="wn-tnum" style={{ width: 20, textAlign: 'center', fontSize: 13, fontWeight: 800, color: i === 0 ? 'var(--gold-bright)' : 'var(--pergament)', opacity: i === 0 ? 1 : 0.65, flex: 'none' }}>
-                      {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : i + 1}
-                    </span>
-                    <Avatar src={z.photoUrl} name={z.name} size={30} ring={z.aktiv} />
-                    <span style={{ flex: 1, minWidth: 0, fontSize: 14, fontWeight: 700, color: 'var(--pergament)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      {z.name}
-                    </span>
-                    <span className="wn-tnum" style={{ fontSize: 11, fontWeight: 700, color: z.aktiv ? 'var(--gold-bright)' : 'var(--pergament)', opacity: z.aktiv ? 1 : 0.65, whiteSpace: 'nowrap', textAlign: 'right' }}>
-                      {z.saison} heier{z.gesamt !== z.saison ? ` · ${z.gesamt} gsamt` : ''}
+                  <div key={z.name} style={{ display: 'flex', alignItems: 'center', gap: 12, minHeight: 56, borderBottom: i < info.zaehler!.eintraege.length - 1 ? '1px solid var(--ink-50)' : 'none' }}>
+                    <span className="wn-tnum" style={{ width: 24, textAlign: 'center', fontSize: 15, fontWeight: 800, color: i === 0 ? 'var(--gold-700)' : 'var(--ink-300)', flex: 'none' }}>{i + 1}</span>
+                    <Avatar src={z.photoUrl} name={z.name} size={36} ring={z.aktiv} />
+                    <span style={{ flex: 1, minWidth: 0, fontSize: 15, fontWeight: 700, color: 'var(--ink-900)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{z.name}</span>
+                    <span className="wn-tnum" style={{ fontSize: 13, fontWeight: 800, color: 'var(--navy)', whiteSpace: 'nowrap' }}>
+                      {z.saison} {info.zaehler!.einheit}{z.gesamt !== z.saison ? <span style={{ fontWeight: 600, color: 'var(--ink-300)' }}> · {z.gesamt} gesamt</span> : null}
                     </span>
                   </div>
                 ))}
-              </div>
+              </ZeilenKarte>
             )}
-          </div>
+          </section>
         )}
       </div>
     </div>

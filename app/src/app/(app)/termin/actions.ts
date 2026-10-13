@@ -1,5 +1,6 @@
 'use server';
 
+import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { anzeigeName } from '@/lib/namen';
 import { and, eq } from 'drizzle-orm';
@@ -881,4 +882,10 @@ export async function einchecken(terminId: string, formData: FormData): Promise<
   }
   revalidateAll();
   return { ok: true, erster };
+}
+
+/** Abschluss-Screen (/termin/abschluss): abschließen und zurück zur Termin-Seite. */
+export async function abschliessenUndZurueck(terminId: string, formData: FormData) {
+  await besuchAbschliessen(terminId, formData);
+  redirect('/termin');
 }

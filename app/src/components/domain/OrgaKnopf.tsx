@@ -9,7 +9,7 @@ import type { OrgaErgebnis } from '@/app/(app)/termin/actions';
  * Wer den letzten Stammtisch organisiert hat, muss aussetzen und kriegt
  * statt’m Knopf den Hinweis.
  */
-export function OrgaKnopf({ action, gesperrt }: { action: () => Promise<OrgaErgebnis>; gesperrt: boolean }) {
+export function OrgaKnopf({ action, gesperrt, label = 'Ich organisier’s', icon = null }: { action: () => Promise<OrgaErgebnis>; gesperrt: boolean; label?: string; icon?: React.ReactNode }) {
   const [fehler, setFehler] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -38,9 +38,11 @@ export function OrgaKnopf({ action, gesperrt }: { action: () => Promise<OrgaErge
           minHeight: 50, border: 'none', borderRadius: 'var(--r-md)', background: 'var(--grad-gold)',
           boxShadow: 'var(--sh-gold)', cursor: pending ? 'default' : 'pointer', opacity: pending ? 0.7 : 1,
           fontFamily: 'var(--font-ui)', fontSize: 16, fontWeight: 800, color: 'var(--navy-900)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
         }}
       >
-        {pending ? 'Wird eingetragen…' : 'Ich organisier’s'}
+        {icon}
+        {pending ? 'Wird eingetragen…' : label}
       </button>
       {fehler && (
         <div style={{ padding: '10px 14px', borderRadius: 'var(--r-md)', textAlign: 'center', background: 'var(--strafe-bg)', border: '1px solid var(--strafe)', fontSize: 13, fontWeight: 800, color: 'var(--strafe)' }}>

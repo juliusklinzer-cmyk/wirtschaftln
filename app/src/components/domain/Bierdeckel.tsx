@@ -2,7 +2,9 @@
 
 import { useEffect, useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { Avatar } from '@/components/ds';
+import { Avatar, Icon, Zeile, ZeilenKarte } from '@/components/ds';
+import { HoamTitel } from '@/components/domain/HoamTitel';
+import { PTS } from '@/lib/punkte';
 import { hoibenStricheln, schnapsStricheln, abendFlagsSetzen, rundeSchmeissen } from '@/app/(app)/termin/actions';
 import { deckelFuer, deckelKreis } from '@/lib/bierdeckel';
 import { DeckelGrafik } from '@/components/domain/DeckelGrafik';
@@ -191,36 +193,6 @@ function MiniStrichliste({ anzahl }: { anzahl: number }) {
   );
 }
 
-/** Runde Marke mit Beschriftung drunter (grau bis aktiviert, dann Gold), wie der RundToggle im Abschluss-Zettel. */
-function Marke({ an, icon, label, title, onClick }: { an: boolean; icon: string; label: string; title: string; onClick: () => void }) {
-  return (
-    <button
-      type="button"
-      className="wn-press"
-      onClick={onClick}
-      title={title}
-      aria-pressed={an}
-      style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5, minWidth: 66, padding: 0, border: 'none', background: 'transparent', cursor: 'pointer', fontFamily: 'var(--font-ui)' }}
-    >
-      <span
-        style={{
-          width: 46, height: 46, borderRadius: '50%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 21, lineHeight: 1,
-          border: an ? 'none' : '1.5px solid var(--ink-200)',
-          background: an ? 'var(--grad-gold)' : 'var(--weiss)',
-          boxShadow: an ? 'var(--sh-gold)' : 'none',
-          filter: an ? 'none' : 'grayscale(1) opacity(0.55)',
-          transition: 'background 160ms var(--ease-standard), filter 160ms var(--ease-standard)',
-        }}
-      >
-        {icon}
-      </span>
-      <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: '0.02em', color: an ? 'var(--gold-700)' : 'var(--ink-500)', whiteSpace: 'nowrap' }}>
-        {label}
-      </span>
-    </button>
-  );
-}
-
 type Ziel = 'hoibe' | 'weisse' | 'schnaps';
 
 /** Ziele der Halte-und-Zieh-Geste, Winkel wia im SVG (90 = unten, 270 = oben, 180 = links). */
@@ -284,6 +256,8 @@ export function Bierdeckel({
   initialFlags,
   spezln,
   rundenErlaubt = true,
+  kopf = null,
+  kopfKurz = 'Heute',
 }: {
   terminId: string;
   /** Helles vom Wirtshaus → passender Deckel (Augustiner-Scan, Brauerei-Deckel oder neutral) */
@@ -300,6 +274,10 @@ export function Bierdeckel({
   spezln: BierdeckelSpezl[];
   /** false = Deckel im Nachtrag (a Woch’ nach’m Abschluss): eigene Sachen richten ja, Runde schmeißen nimmer */
   rundenErlaubt?: boolean;
+  /** Kopf der Tisch-Karte (Eyebrow, Wirtshaus, Adresse, Navigation), kommt von der Seite */
+  kopf?: React.ReactNode;
+  /** Kurze Zeile fürs Vollbild („Heute · Am Hart“) */
+  kopfKurz?: string;
 }) {
   const router = useRouter();
   const [hoiben, setHoiben] = useState(initialHoiben);
@@ -313,6 +291,9 @@ export function Bierdeckel({
   const [status, setStatus] = useState<'still' | 'speichert' | 'gspeichert'>('still');
   const [fehler, setFehler] = useState<string | null>(null);
   const [tipp, setTipp] = useState(false);
+  // Info-Layer übern Deckel (oben Schnaps, unten Bier, links weg, rechts dazu) + Vollbild für späte Stunden
+  const [info, setInfo] = useState(false);
+  const [voll, setVoll] = useState(false);
   const [, startTransition] = useTransition();
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const schnapsTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -543,9 +524,147 @@ export function Bierdeckel({
   };
 
   const rundenGesamt = flags.rundenBier + flags.rundenSchnaps;
+  const statusText = status === 'speichert' ? 'Speichert …' : status === 'gspeichert' ? '✓ Gespeichert' : '';
+  const statusFarbe = status === 'gspeichert' ? '#7FD3A0' : 'rgba(246,240,226,0.7)';
+  const amTisch = spezln.length + 1;
+  const rundKnopf: React.CSSProperties = {
+    width: 38, height: 38, flex: 'none', borderRadius: '50%', padding: 0, cursor: 'pointer',
+    border: '1.5px solid rgba(246,240,226,0.35)', background: 'rgba(255,255,255,0.1)', color: 'var(--pergament)',
+    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+  };
+  const schnapsAnzeigen = schnapsAn;
+
+  /* Der Deckel selbst: Pappe + Tinte, leicht schräg wia hinglegt, Schatten drunter. Koa Knopf drauf,
+     bedient wird durch Tippen (und Halten + Ziehen); Info-Layer und Tipp-Kreise liegen drüber. */
+  const deckelBlock = (gross: boolean) => (
+    <div style={{ position: 'relative', width: gross ? 'min(92vw, 400px)' : 'min(calc(100% + 24px), 352px)', aspectRatio: '1 / 1', alignSelf: 'center', margin: gross ? 0 : '0 -12px', flex: 'none' }}>
+      <div aria-hidden style={{ position: 'absolute', left: `${kreis.cx - kreis.r}%`, top: `${kreis.cy - kreis.r}%`, width: `${2 * kreis.r}%`, height: `${2 * kreis.r}%`, borderRadius: '50%', boxShadow: '0 18px 30px rgba(0,0,0,0.45), 0 3px 6px rgba(0,0,0,0.3)' }} />
+      <button
+        ref={deckelRef}
+        type="button"
+        onPointerDown={zeigerRunter}
+        onPointerMove={zeigerBewegt}
+        onPointerUp={zeigerHoch}
+        onPointerCancel={zeigerWeg}
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); hoibeAendern(1); } }}
+        aria-label={schnapsAn ? 'Bierdeckel: unten Bier, oben Schnaps; rechts dazu, links weg. Halten und ziehen für Bier, Weiße oder Schnaps.' : 'Bierdeckel: rechts a Bier dazu, links oans weg.'}
+        className="wn-bierdeckel"
+        style={{
+          width: '100%', height: '100%', display: 'block', position: 'relative', padding: 0, border: 'none',
+          background: 'transparent', cursor: 'pointer', borderRadius: '50%',
+          WebkitTapHighlightColor: 'transparent', touchAction: 'manipulation', userSelect: 'none', WebkitUserSelect: 'none',
+        }}
+      >
+        {/* Beim Halten wird der Deckel unscharf und a bisserl kleiner, d'Ziele liegen scharf drüber */}
+        <div style={{
+          position: 'absolute', inset: 0, borderRadius: '50%',
+          filter: halten && !bewegungReduziert ? 'blur(2.5px)' : 'none',
+          transform: `rotate(-6deg) scale(${halten && !bewegungReduziert ? 0.985 : 1})`,
+          transition: 'filter 180ms cubic-bezier(0.23, 1, 0.32, 1), transform 180ms cubic-bezier(0.23, 1, 0.32, 1)',
+        }}>
+          <DeckelGrafik deckel={deckel} />
+          <Tinte hoiben={hoiben} schnaps={schnaps} sterne={rundenGesamt} schnapsAn={schnapsAn} />
+        </div>
+        {zieleFuer(schnapsAn).map((z, i) => {
+          const rad = (z.winkel * Math.PI) / 180;
+          const an = ziel === z.key;
+          return (
+            <span
+              key={z.key}
+              aria-hidden
+              style={{
+                position: 'absolute', left: `${50 + 40 * Math.cos(rad)}%`, top: `${50 + 40 * Math.sin(rad)}%`,
+                transform: `translate(-50%, -50%) scale(${halten ? (an ? 1.08 : 1) : 0.94})`,
+                opacity: halten ? 1 : 0,
+                transition: `transform 160ms cubic-bezier(0.23, 1, 0.32, 1) ${halten ? i * 40 : 0}ms, opacity 140ms ease ${halten ? i * 40 : 0}ms, background 120ms ease, border-color 120ms ease`,
+                padding: '7px 13px', borderRadius: 'var(--r-pill)',
+                background: an ? 'var(--grad-gold)' : 'rgba(246,240,226,0.94)',
+                border: an ? '1.5px solid var(--gold-700)' : '1.5px solid rgba(32,34,38,0.35)',
+                boxShadow: an ? 'var(--sh-gold)' : '0 2px 8px rgba(30,28,24,0.18)',
+                fontFamily: 'var(--font-ui)', fontSize: 14, fontWeight: 800, letterSpacing: '0.01em',
+                color: an ? 'var(--navy-900)' : TINTE, whiteSpace: 'nowrap', pointerEvents: 'none',
+              }}
+            >
+              {z.label}
+            </span>
+          );
+        })}
+      </button>
+
+      {/* Tipp-Kreise am Rand, bis zum ersten Strich */}
+      {tipp && !info && (
+        <>
+          <span aria-hidden style={{ position: 'absolute', left: -10, top: '50%', transform: 'translateY(-50%)', width: 36, height: 36, borderRadius: '50%', background: 'rgba(7,25,58,0.75)', border: '1.5px solid rgba(246,240,226,0.4)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, fontWeight: 800, color: 'var(--pergament)', pointerEvents: 'none' }}>−</span>
+          <span aria-hidden style={{ position: 'absolute', right: -10, top: '50%', transform: 'translateY(-50%)', width: 36, height: 36, borderRadius: '50%', background: 'var(--gold)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, fontWeight: 800, color: 'var(--navy-900)', pointerEvents: 'none' }}>+</span>
+        </>
+      )}
+
+      {/* Info-Layer (4h): legt die Bedienung übern Deckel, Tipp irgendwo schließt */}
+      {info && (
+        <div
+          role="button"
+          aria-label="Erklärung schließen"
+          onClick={(e) => { e.stopPropagation(); setInfo(false); }}
+          style={{ position: 'absolute', inset: '4%', borderRadius: '50%', overflow: 'hidden', display: 'grid', gridTemplateRows: schnapsAnzeigen ? '1fr 1fr' : '1fr', zIndex: 3, cursor: 'pointer' }}
+        >
+          {schnapsAnzeigen && (
+            <div style={{ background: 'rgba(7,25,58,0.78)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, color: 'var(--pergament)', borderBottom: '2px dashed rgba(230,198,132,0.8)' }}>
+              <Icon name="wine" size={24} color="var(--gold-bright)" />
+              <span style={{ fontSize: 18, fontWeight: 800 }}>Schnaps</span>
+              <span style={{ fontSize: 11, fontWeight: 700, opacity: 0.75 }}>obere Hälfte</span>
+            </div>
+          )}
+          <div style={{ background: 'rgba(0,74,137,0.78)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, color: 'var(--pergament)' }}>
+            <Icon name="beer" size={24} color="var(--gold-bright)" />
+            <span style={{ fontSize: 18, fontWeight: 800 }}>Bier</span>
+            <span style={{ fontSize: 11, fontWeight: 700, opacity: 0.75 }}>{schnapsAnzeigen ? 'untere Hälfte' : 'der ganze Deckel'}</span>
+          </div>
+          <span style={{ position: 'absolute', left: '9%', top: '50%', transform: 'translateY(-50%)', padding: '5px 10px', borderRadius: 999, background: 'var(--pergament)', color: 'var(--navy)', fontSize: 12, fontWeight: 800, whiteSpace: 'nowrap' }}>− weg</span>
+          <span style={{ position: 'absolute', right: '9%', top: '50%', transform: 'translateY(-50%)', padding: '5px 10px', borderRadius: 999, background: 'var(--gold)', color: 'var(--navy-900)', fontSize: 12, fontWeight: 800, whiteSpace: 'nowrap' }}>+ dazu</span>
+        </div>
+      )}
+    </div>
+  );
+
+  /* Zahlen unterm Deckel: Bier in Gold, Schnaps in Pergament */
+  const zahlen = (gross: boolean) => (
+    <div style={{ display: 'flex', gap: gross ? 40 : 28, alignItems: 'flex-end', justifyContent: 'center' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+        <span key={`h${hoiben}`} className="wn-tnum wn-hoiben-pop" style={{ fontSize: gross ? 56 : 40, fontWeight: 800, lineHeight: 1, color: 'var(--gold-bright)', letterSpacing: '-0.02em' }}>{hoiben}</span>
+        <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(246,240,226,0.7)' }}>
+          Bier{weissbier > 0 ? ` · ${weissbier} Weiße` : ''}
+        </span>
+      </div>
+      {schnapsAnzeigen && (
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <span key={`s${schnaps}`} className="wn-tnum wn-hoiben-pop" style={{ fontSize: gross ? 56 : 40, fontWeight: 800, lineHeight: 1, color: 'var(--pergament)', letterSpacing: '-0.02em' }}>{schnaps}</span>
+          <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(246,240,226,0.7)' }}>Schnaps</span>
+        </div>
+      )}
+    </div>
+  );
+
+  const rundeKnopfVoll = (rundenErlaubt || rundenGesamt > 0) && (
+    <button
+      type="button"
+      className="wn-press"
+      disabled={!rundenErlaubt}
+      onClick={() => setRundeWahl(true)}
+      style={{
+        marginTop: 8, height: 52, padding: '0 22px', borderRadius: 999, cursor: rundenErlaubt ? 'pointer' : 'default',
+        border: `1.5px solid ${rundenGesamt > 0 ? 'var(--gold-700)' : 'rgba(246,240,226,0.35)'}`,
+        background: rundenGesamt > 0 ? 'var(--grad-gold)' : 'rgba(255,255,255,0.1)',
+        color: rundenGesamt > 0 ? 'var(--navy-900)' : 'var(--pergament)',
+        display: 'inline-flex', alignItems: 'center', gap: 10, fontFamily: 'var(--font-ui)', fontSize: 15, fontWeight: 800,
+      }}
+    >
+      <Icon name="star" size={20} />
+      {rundenGesamt > 0 ? `Runde ×${rundenGesamt}${rundenErlaubt ? ' · noch eine?' : ''}` : 'Runde schmeißen'}
+    </button>
+  );
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
       <style>{`
         @keyframes wnStrichZiehen { to { stroke-dashoffset: 0; } }
         .wn-strich-neu { stroke-dasharray: 60; stroke-dashoffset: 60; animation: wnStrichZiehen 240ms cubic-bezier(0.32, 0.72, 0, 1) 40ms forwards; }
@@ -556,107 +675,89 @@ export function Bierdeckel({
         .wn-bierdeckel:focus-visible { outline: 3px solid var(--muc-blau); outline-offset: 6px; }
       `}</style>
 
-      {/* Der Deckel: nur Pappe + Tinte, so breit wie der Bildschirm hergibt. Schatten liegt als
-          eigener Kreis drunter (koa CSS-Filter, der hat am Augustiner-Scan an blauen Rand gmacht);
-          koa Druck-Animation, a echter Deckel schrumpft ned, d'Rückmeldung is der neue Strich. */}
-      <div style={{ position: 'relative', width: 'min(calc(100% + 16px), 420px)', aspectRatio: '1 / 1', marginInline: -8 }}>
-        {/* Schatten genau unterm echten Deckelkreis (sonst schaut a heller Ring raus, wo der Scan kleiner is als das Feld) */}
-        <div aria-hidden style={{ position: 'absolute', left: `${kreis.cx - kreis.r}%`, top: `${kreis.cy - kreis.r}%`, width: `${2 * kreis.r}%`, height: `${2 * kreis.r}%`, borderRadius: '50%', boxShadow: '0 10px 22px rgba(30,28,24,0.28), 0 2px 5px rgba(30,28,24,0.16)' }} />
+      {/* Der Tisch: dunkle Karte mit Rautenband; im Vollbild derselbe Tisch über der ganzen App */}
+      <div
+        style={
+          voll
+            ? { position: 'fixed', inset: 0, zIndex: 70, maxWidth: 'var(--container-app)', margin: '0 auto', background: 'radial-gradient(120% 80% at 50% 45%, #1B4C8A 0%, #0C2B5A 52%, #07193A 100%)', color: 'var(--pergament)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14, padding: 'calc(16px + env(safe-area-inset-top)) 18px calc(28px + env(safe-area-inset-bottom))' }
+            : { borderRadius: 'var(--r-lg)', background: 'var(--grad-navy)', color: 'var(--pergament)', border: '1.5px solid var(--gold)', boxShadow: 'var(--sh-lg)', overflow: 'hidden', display: 'flex', flexDirection: 'column' }
+        }
+      >
+        {voll ? (
+          <>
+            <div style={{ alignSelf: 'stretch', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
+                <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--gold)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{kopfKurz}</span>
+                <span style={{ fontSize: 12, fontWeight: 700, color: statusFarbe, minHeight: 16 }}>{statusText}</span>
+              </div>
+              <div style={{ display: 'flex', gap: 8, flex: 'none' }}>
+                <button type="button" aria-label="Bedienung erklären" onClick={() => setInfo((i) => !i)} style={rundKnopf}><Icon name="info" size={19} /></button>
+                <button type="button" aria-label="Vollbild schließen" onClick={() => { setVoll(false); setInfo(false); }} style={rundKnopf}><Icon name="x" size={19} /></button>
+              </div>
+            </div>
+            <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 0 }}>{deckelBlock(true)}</div>
+            {zahlen(true)}
+            {rundeKnopfVoll}
+          </>
+        ) : (
+          <>
+            <div className="wn-raute wn-raute--sm" style={{ height: 8 }} />
+            <div style={{ padding: '14px 20px 18px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+              {kopf}
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginBottom: -6 }}>
+                <button type="button" aria-label="Bedienung erklären" onClick={() => setInfo((i) => !i)} style={rundKnopf}><Icon name="info" size={19} /></button>
+                <button type="button" aria-label="Deckel im Vollbild" onClick={() => setVoll(true)} style={rundKnopf}><Icon name="arrows-out" size={19} /></button>
+              </div>
+              {deckelBlock(false)}
+              {zahlen(false)}
+              <span className="wn-tnum" style={{ alignSelf: 'center', textAlign: 'center', fontSize: 12, fontWeight: 600, color: 'rgba(246,240,226,0.7)', minHeight: 16 }}>
+                {tipp ? 'Rechts tippen: Strich dazu · links: einer weg' : schnapsAnzeigen ? 'Unten Bier, oben Schnaps' : ''}
+                {statusText && <>{tipp || schnapsAnzeigen ? ' · ' : ''}<span style={{ color: statusFarbe }}>{statusText}</span></>}
+              </span>
+            </div>
+          </>
+        )}
+      </div>
+
+      {/* Taxler + Runde: zwei Knöpfe unterm Tisch (Brodn/Schmarrn kommen mit der Wertung) */}
+      <div style={{ display: 'grid', gridTemplateColumns: rundenErlaubt || rundenGesamt > 0 ? '1fr 1fr' : '1fr', gap: 8 }}>
         <button
-          ref={deckelRef}
           type="button"
-          onPointerDown={zeigerRunter}
-          onPointerMove={zeigerBewegt}
-          onPointerUp={zeigerHoch}
-          onPointerCancel={zeigerWeg}
-          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); hoibeAendern(1); } }}
-          aria-label={schnapsAn ? 'Bierdeckel: unten Hoibe, oben Schnaps; rechts dazu, links weg. Halten und ziehen für Hoibe, Weiße oder Schnaps.' : 'Bierdeckel: rechts a Hoibe dazu, links oane weg. Halten und ziehen für Hoibe oder Weiße.'}
-          className="wn-bierdeckel"
+          className="wn-press"
+          aria-pressed={flags.taxi}
+          onClick={() => flagUmschalten('taxi')}
           style={{
-            width: '100%', height: '100%', display: 'block', position: 'relative', padding: 0, border: 'none',
-            background: 'transparent', cursor: 'pointer', borderRadius: '50%',
-            WebkitTapHighlightColor: 'transparent', touchAction: 'manipulation', userSelect: 'none', WebkitUserSelect: 'none',
+            minHeight: 56, borderRadius: 16, cursor: 'pointer', padding: '0 14px', textAlign: 'left',
+            border: `1.5px solid ${flags.taxi ? 'var(--gold)' : 'var(--ink-200)'}`,
+            background: flags.taxi ? 'var(--pergament)' : 'var(--weiss)', color: flags.taxi ? 'var(--gold-700)' : 'var(--ink-500)',
+            display: 'flex', alignItems: 'center', gap: 10, fontFamily: 'var(--font-ui)', fontSize: 14, fontWeight: 800,
           }}
         >
-          {/* Beim Halten wird der Deckel unscharf und a bisserl kleiner (Blur kaschiert den Wechsel, Emil), d'Ziele liegen scharf drüber */}
-          <div style={{
-            position: 'absolute', inset: 0, borderRadius: '50%',
-            filter: halten && !bewegungReduziert ? 'blur(2.5px)' : 'none',
-            transform: halten && !bewegungReduziert ? 'scale(0.985)' : 'scale(1)',
-            transition: 'filter 180ms cubic-bezier(0.23, 1, 0.32, 1), transform 180ms cubic-bezier(0.23, 1, 0.32, 1)',
-          }}>
-            <DeckelGrafik deckel={deckel} />
-            <Tinte hoiben={hoiben} schnaps={schnaps} sterne={rundenGesamt} schnapsAn={schnapsAn} />
-          </div>
-          {zieleFuer(schnapsAn).map((z, i) => {
-            const rad = (z.winkel * Math.PI) / 180;
-            const an = ziel === z.key;
-            return (
-              <span
-                key={z.key}
-                aria-hidden
-                style={{
-                  position: 'absolute', left: `${50 + 40 * Math.cos(rad)}%`, top: `${50 + 40 * Math.sin(rad)}%`,
-                  transform: `translate(-50%, -50%) scale(${halten ? (an ? 1.08 : 1) : 0.94})`,
-                  opacity: halten ? 1 : 0,
-                  transition: `transform 160ms cubic-bezier(0.23, 1, 0.32, 1) ${halten ? i * 40 : 0}ms, opacity 140ms ease ${halten ? i * 40 : 0}ms, background 120ms ease, border-color 120ms ease`,
-                  padding: '7px 13px', borderRadius: 'var(--r-pill)',
-                  background: an ? 'var(--grad-gold)' : 'rgba(246,240,226,0.94)',
-                  border: an ? '1.5px solid var(--gold-700)' : '1.5px solid rgba(32,34,38,0.35)',
-                  boxShadow: an ? 'var(--sh-gold)' : '0 2px 8px rgba(30,28,24,0.18)',
-                  fontFamily: 'var(--font-ui)', fontSize: 14, fontWeight: 800, letterSpacing: '0.01em',
-                  color: an ? 'var(--navy-900)' : TINTE, whiteSpace: 'nowrap', pointerEvents: 'none',
-                }}
-              >
-                {z.label}
-              </span>
-            );
-          })}
+          <Icon name="taxi" size={22} />
+          <span style={{ display: 'flex', flexDirection: 'column', gap: 1, minWidth: 0 }}>
+            <span>Taxler</span>
+            <span style={{ fontSize: 11, fontWeight: 700, opacity: 0.75, whiteSpace: 'nowrap' }}>{flags.taxi ? `Du fährst · +${PTS.taxi} WP` : 'Fährst du heute?'}</span>
+          </span>
         </button>
-      </div>
-
-      {/* Stand + Speicher-Rückmeldung, eine Zeile */}
-      <div className="wn-tnum" style={{ display: 'flex', alignItems: 'baseline', gap: 8, fontSize: 16, fontWeight: 800, color: 'var(--ink-700)' }}>
-        <span>
-          <span key={`h${hoiben}`} className="wn-hoiben-pop" style={{ color: 'var(--gold-700)' }}>{hoiben}</span> Hoibe
-          {weissbier > 0 && <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink-500)' }}> (davon <span key={`w${weissbier}`} className="wn-hoiben-pop">{weissbier}</span> Weiße)</span>}
-          {schnapsAn && (
-            <>
-              {' '}· <span key={`s${schnaps}`} className="wn-hoiben-pop" style={{ color: 'var(--gold-700)' }}>{schnaps}</span> WB
-            </>
-          )}
-        </span>
-        <span style={{ fontSize: 12, fontWeight: 700, color: status === 'gspeichert' ? 'var(--erfolg)' : 'var(--ink-500)', minWidth: 72 }}>
-          {status === 'speichert' ? 'Speichert…' : status === 'gspeichert' ? '✓ Gspeichert' : ''}
-        </span>
-      </div>
-      {tipp && (
-        <div style={{ marginTop: -6, fontSize: 12, fontWeight: 600, color: 'var(--ink-500)', textAlign: 'center' }}>
-          Rechts tippen: a Strich dazu, links: oaner weg.{schnapsAn ? ' Unten Hoibe, oben Schnaps. Oder halten und zum Ziel ziehen.' : ''}
-        </div>
-      )}
-
-      {/* Abend-Marken: Taxler, Brodn, Schmarrn, Runde (→ Stern am Deckel + Strich bei allen am Tisch) */}
-      <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'center' }}>
-        <div style={{ display: 'flex', justifyContent: 'center', gap: 10 }}>
-          <Marke an={flags.taxi} icon="🚕" label="Taxler" title="Mit'm Auto da & Spezln mitgnommen" onClick={() => flagUmschalten('taxi')} />
-          {(rundenErlaubt || rundenGesamt > 0) && (
-            <Marke an={rundenGesamt > 0} icon="⭐" label={rundenGesamt > 0 ? `Runde ×${rundenGesamt}` : 'Runde'} title="A Runde für alle am Tisch gschmissen" onClick={() => rundenErlaubt && setRundeWahl((w) => !w)} />
-          )}
-        </div>
-        {rundeWahl && (
-          <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 8, padding: '12px 14px', background: 'var(--pergament)', border: '1px solid var(--pergament-edge)', borderRadius: 'var(--r-md)' }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink-700)' }}>
-              Runde gschmissen? Kommt bei allen am Tisch am Deckel dazu, rausnehmen geht nur beim Abschluss.
-            </div>
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              <button type="button" className="wn-press" onClick={() => runde('bier')} style={wahlStil(true)}>🍺 Bier-Runde</button>
-              {schnapsAn && (
-                <button type="button" className="wn-press" onClick={() => runde('schnaps')} style={wahlStil(true)}>🥃 Schnaps-Runde</button>
-              )}
-              <button type="button" className="wn-press" onClick={() => setRundeWahl(false)} style={wahlStil(false)}>Doch ned</button>
-            </div>
-          </div>
+        {(rundenErlaubt || rundenGesamt > 0) && (
+          <button
+            type="button"
+            className="wn-press"
+            disabled={!rundenErlaubt}
+            onClick={() => setRundeWahl(true)}
+            style={{
+              minHeight: 56, borderRadius: 16, cursor: rundenErlaubt ? 'pointer' : 'default', padding: '0 14px', textAlign: 'left',
+              border: `1.5px solid ${rundenGesamt > 0 ? 'var(--gold)' : 'var(--ink-200)'}`,
+              background: rundenGesamt > 0 ? 'var(--pergament)' : 'var(--weiss)', color: rundenGesamt > 0 ? 'var(--gold-700)' : 'var(--ink-500)',
+              display: 'flex', alignItems: 'center', gap: 10, fontFamily: 'var(--font-ui)', fontSize: 14, fontWeight: 800,
+            }}
+          >
+            <Icon name="star" size={22} />
+            <span style={{ display: 'flex', flexDirection: 'column', gap: 1, minWidth: 0 }}>
+              <span>{rundenGesamt > 0 ? `Runde ×${rundenGesamt}` : 'Runde'}</span>
+              <span style={{ fontSize: 11, fontWeight: 700, opacity: 0.75, whiteSpace: 'nowrap' }}>{rundenErlaubt ? 'für alle am Tisch' : 'gschmissen'}</span>
+            </span>
+          </button>
         )}
       </div>
 
@@ -668,38 +769,68 @@ export function Bierdeckel({
 
       {/* De anderen am Tisch */}
       {spezln.length > 0 && (
-        <div style={{ width: '100%', background: 'var(--weiss)', border: '1px solid var(--ink-100)', borderRadius: 'var(--r-lg)', boxShadow: 'var(--sh-sm)', padding: '12px 14px' }}>
-          <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--ink-500)', marginBottom: 8 }}>
-            Am Tisch
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {[...spezln].sort((a, b) => b.hoiben - a.hoiben || (b.schnaps ?? 0) - (a.schnaps ?? 0)).map((s) => (
-              <div key={s.name} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <Avatar src={s.photoUrl} name={s.name} size={28} verein={s.verein} />
-                <span style={{ flex: 1, minWidth: 0, fontSize: 13, fontWeight: 700, color: 'var(--ink-900)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {s.name}
-                </span>
-                <MiniStrichliste anzahl={s.hoiben} />
-                <span className="wn-tnum" style={{ flex: 'none', width: 22, textAlign: 'right', fontSize: 13, fontWeight: 800, color: 'var(--gold-700)' }}>
-                  {s.hoiben}
-                </span>
-                {schnapsAn && (
-                  <span className="wn-tnum" style={{ flex: 'none', width: 40, textAlign: 'right', fontSize: 12, fontWeight: 800, color: 'var(--ink-500)' }}>
-                    {s.schnaps ?? 0} WB
+        <section style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <HoamTitel action={<span style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink-500)' }}>{spezln.length} {spezln.length === 1 ? 'strichelt' : 'strichln'}</span>}>Am Tisch</HoamTitel>
+          <ZeilenKarte>
+            {[...spezln].sort((a, b) => b.hoiben - a.hoiben || (b.schnaps ?? 0) - (a.schnaps ?? 0)).map((s, i, arr) => (
+              <Zeile
+                key={s.name}
+                kachel={<Avatar src={s.photoUrl} name={s.name} size={34} verein={s.verein} />}
+                titel={s.name}
+                untertitel={schnapsAnzeigen ? `${s.schnaps ?? 0} Schnaps` : null}
+                chip={
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 'none' }}>
+                    <MiniStrichliste anzahl={s.hoiben} />
+                    <span className="wn-tnum" style={{ width: 24, textAlign: 'right', fontSize: 16, fontWeight: 800, color: 'var(--navy)' }}>{s.hoiben}</span>
                   </span>
-                )}
-              </div>
+                }
+                pfeil={false}
+                letzte={i === arr.length - 1}
+              />
             ))}
+          </ZeilenKarte>
+        </section>
+      )}
+
+      {/* Runde schmeißen: Sheet von unten (2g) */}
+      {rundeWahl && (
+        <>
+          <div onClick={() => setRundeWahl(false)} style={{ position: 'fixed', inset: 0, zIndex: 80, background: 'rgba(7,25,58,0.5)' }} />
+          <div
+            role="dialog"
+            aria-label="Runde schmeißen"
+            className="wn-sheet-auf"
+            style={{ position: 'fixed', left: 0, right: 0, bottom: 0, zIndex: 81, maxWidth: 'var(--container-app)', margin: '0 auto', background: 'var(--ink-50)', borderRadius: '28px 28px 0 0', padding: '10px 16px calc(24px + env(safe-area-inset-bottom))', display: 'flex', flexDirection: 'column', gap: 14 }}
+          >
+            <span style={{ alignSelf: 'center', width: 40, height: 5, borderRadius: 999, background: 'var(--ink-200)' }} />
+            <span style={{ fontFamily: 'var(--font-fraktur)', fontSize: 28, lineHeight: 1, color: 'var(--navy)', padding: '0 4px' }}>Runde schmeißen</span>
+            <span style={{ fontSize: 13, fontWeight: 600, lineHeight: 1.5, color: 'var(--ink-500)', padding: '0 4px' }}>
+              Bei allen am Tisch kommt ein Strich dazu, bei dir ein Stern. Rausnehmen geht nur beim Abschluss.
+            </span>
+            <ZeilenKarte>
+              <Zeile
+                kachel={<span style={{ width: 36, height: 36, flex: 'none', borderRadius: 10, background: 'var(--pergament)', color: 'var(--gold-700)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="beer" size={19} /></span>}
+                titel="Bier-Runde"
+                untertitel={`${amTisch} Bier · +${PTS.runde} WP für dich`}
+                onClick={() => runde('bier')}
+                letzte={!schnapsAn}
+              />
+              {schnapsAn && (
+                <Zeile
+                  kachel={<span style={{ width: 36, height: 36, flex: 'none', borderRadius: 10, background: 'var(--pergament)', color: 'var(--gold-700)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="wine" size={19} /></span>}
+                  titel="Schnaps-Runde"
+                  untertitel={`${amTisch} Stamperl · +${PTS.runde} WP für dich`}
+                  onClick={() => runde('schnaps')}
+                  letzte
+                />
+              )}
+            </ZeilenKarte>
+            <button type="button" className="wn-press" onClick={() => setRundeWahl(false)} style={{ height: 48, borderRadius: 'var(--r-md)', border: '1.5px solid var(--ink-200)', background: 'var(--weiss)', color: 'var(--navy)', fontFamily: 'var(--font-ui)', fontSize: 15, fontWeight: 800, cursor: 'pointer' }}>
+              Doch nicht
+            </button>
           </div>
-        </div>
+        </>
       )}
     </div>
   );
 }
-
-const wahlStil = (gold: boolean): React.CSSProperties => ({
-  display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 12px', borderRadius: 'var(--r-pill)',
-  border: gold ? '1.5px solid var(--gold)' : '1.5px solid var(--ink-200)',
-  background: gold ? 'var(--weiss)' : 'transparent', cursor: 'pointer',
-  fontFamily: 'var(--font-ui)', fontSize: 13, fontWeight: 800, color: gold ? 'var(--gold-700)' : 'var(--ink-500)',
-});

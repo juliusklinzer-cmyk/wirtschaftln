@@ -40,30 +40,11 @@ import { UmfragenBereich } from '@/components/domain/UmfrageNeu';
 import { HoamTitel } from '@/components/domain/HoamTitel';
 import { OrgaKnopf } from '@/components/domain/OrgaKnopf';
 import { VorschlagenKnopf } from '@/components/domain/VorschlagenKnopf';
+import { eyebrowStil, titelStil, zeileStil, hinweisStil, goldKnopfStil, rundKnopfStil, blockStil } from '@/components/domain/hero-stil';
 
 // Der PayPal-Pool gehört dem Gründer-Stammtisch (Env, ned pro Mandant):
 // andere Stammtische zahlen bar beim Kassenwart, sonst landet ihr Geld bei uns.
 const GRUENDER_PAYPAL_URL = process.env.NEXT_PUBLIC_PAYPAL_POOL_URL;
-
-/* ---------- Stil-Bausteine der Termin-Karte (Navy, Gold, Pergament) ---------- */
-const eyebrowStil: React.CSSProperties = { fontSize: 11, fontWeight: 800, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--gold)' };
-const titelStil: React.CSSProperties = { fontFamily: 'var(--font-fraktur)', fontWeight: 400, lineHeight: 1, margin: 0, color: 'var(--pergament)' };
-const zeileStil: React.CSSProperties = { fontSize: 14, fontWeight: 600, color: 'rgba(246,240,226,0.75)' };
-const hinweisStil: React.CSSProperties = { fontSize: 12, fontWeight: 600, color: 'rgba(246,240,226,0.6)', lineHeight: 1.5 };
-const goldKnopfStil: React.CSSProperties = {
-  minHeight: 50, borderRadius: 'var(--r-md)', background: 'var(--grad-gold)', boxShadow: 'var(--sh-gold)',
-  color: 'var(--navy-900)', fontSize: 16, fontWeight: 800, textDecoration: 'none',
-  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-};
-const rundKnopfStil: React.CSSProperties = {
-  width: 40, height: 40, flex: 'none', borderRadius: '50%',
-  background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.25)',
-  color: 'var(--pergament)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none',
-};
-const blockStil: React.CSSProperties = {
-  padding: 14, borderRadius: 'var(--r-md)', background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.18)',
-  display: 'flex', flexDirection: 'column', gap: 10,
-};
 
 export default async function HomePage() {
   const me = (await getCurrentMember())!;

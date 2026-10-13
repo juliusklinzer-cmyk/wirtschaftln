@@ -11,3 +11,4 @@ export { SegmentedTabs } from './SegmentedTabs';
 export { Stat } from './Stat';
 export { Switch } from './Switch';
 export { KlappenKopf } from './KlappenKopf';
+export { Zeile, ZeilenKarte, Kachel, Chip } from './Zeile';

@@ -1,52 +1,44 @@
 'use client';
 
 import { useState } from 'react';
-import { Card, Badge, Icon } from '@/components/ds';
+import { Zeile, ZeilenKarte } from '@/components/ds';
 import { DetailModal, type ArchivEintrag } from '@/components/domain/ArchivScreen';
 
 /**
- * Chronik auf der Termin-Seite: Antippen öffnet dasselbe Wirtshaus-Detail
- * wie im Archiv (Bewertungs-Kacheln, wer dabei war, Hinweise, Nachbewertung).
+ * Chronik auf der Termin-Seite (Redesign 1a): Foto-Kachel, Wirtshaus, Datum,
+ * Tages-Wertung. Antippen öffnet dasselbe Wirtshaus-Detail wie im Archiv.
  */
 export function ChronikListe({ eintraege }: { eintraege: ArchivEintrag[] }) {
   const [detail, setDetail] = useState<ArchivEintrag | null>(null);
 
   return (
     <>
-      <Card pad={12}>
+      <ZeilenKarte>
         {eintraege.map((e, i) => (
-          <div
+          <Zeile
             key={`${e.id}-${e.besuchtAm}`}
+            kachel={
+              e.photoUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={e.photoUrl} alt="" style={{ width: 36, height: 36, flex: 'none', borderRadius: 10, objectFit: 'cover' }} />
+              ) : (
+                <span style={{ width: 36, height: 36, flex: 'none', borderRadius: 10, background: 'repeating-linear-gradient(135deg, var(--ink-100) 0 6px, #DCE3EA 6px 12px)' }} />
+              )
+            }
+            titel={e.name}
+            untertitel={e.besuchtAm ?? e.bezirk ?? ''}
+            chip={
+              e.rating > 0 ? (
+                <span className="wn-tnum" style={{ flex: 'none', fontSize: 14, fontWeight: 800, color: 'var(--navy)', whiteSpace: 'nowrap' }}>
+                  {e.rating.toLocaleString('de-DE', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} <span style={{ color: 'var(--gold)' }}>★</span>
+                </span>
+              ) : null
+            }
             onClick={() => setDetail(e)}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 12,
-              padding: '10px 8px',
-              borderBottom: i < eintraege.length - 1 ? '1px solid var(--ink-100)' : 'none',
-              cursor: 'pointer',
-            }}
-          >
-            <span style={{ color: 'var(--gold-700)', display: 'inline-flex' }}>
-              <Icon name="pin" size={17} />
-            </span>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--ink-900)' }}>{e.name}</div>
-              <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink-500)' }}>
-                {e.bezirk ?? '—'} · {e.besuchtAm}
-              </div>
-            </div>
-            {e.rating > 0 && (
-              <Badge tone="gold">
-                ★ {e.rating.toLocaleString('de-DE', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}
-              </Badge>
-            )}
-            <span style={{ color: 'var(--ink-300)', display: 'inline-flex' }}>
-              <Icon name="chevron" size={16} />
-            </span>
-          </div>
+            letzte={i === eintraege.length - 1}
+          />
         ))}
-      </Card>
+      </ZeilenKarte>
       {detail && <DetailModal e={detail} rank={null} onClose={() => setDetail(null)} />}
     </>
   );

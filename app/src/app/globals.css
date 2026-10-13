@@ -348,6 +348,14 @@ details[open] > summary .wn-klappe-pfeil {
   .wn-pop { animation: wnPop 600ms cubic-bezier(0.34, 1.56, 0.64, 1) both; }
 }
 
+/* Bottom-Sheet (Runde schmeißen): gleitet von unten rein */
+@keyframes wnSheetAuf {
+  from { transform: translateY(100%); }
+}
+.wn-sheet-auf {
+  animation: wnSheetAuf 280ms cubic-bezier(0.32, 0.72, 0, 1) both;
+}
+
 /* Tab-Wechsel: das frisch aktive Icon hüpft kurz */
 @keyframes wnTabPop {
   0% { transform: scale(0.85); }

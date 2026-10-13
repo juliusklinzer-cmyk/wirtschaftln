@@ -15,11 +15,11 @@ export function Switch({
   checked?: boolean;
   onChange?: (checked: boolean) => void;
   disabled?: boolean;
-  tone?: 'blau' | 'gold';
+  tone?: 'blau' | 'gold' | 'erfolg';
   label?: React.ReactNode;
   style?: React.CSSProperties;
 }) {
-  const onColor = tone === 'gold' ? 'var(--gold)' : 'var(--muc-blau)';
+  const onColor = tone === 'gold' ? 'var(--gold)' : tone === 'erfolg' ? 'var(--erfolg)' : 'var(--muc-blau)';
   const toggle = (
     <button
       type="button"

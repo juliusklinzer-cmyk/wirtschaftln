@@ -5,6 +5,7 @@ import { useFormStatus } from 'react-dom';
 import { KlappenKopf } from '@/components/ds';
 import { PTS } from '@/lib/punkte';
 import type { BewertungErgebnis } from '@/app/(app)/termin/actions';
+import { WertungFelder } from '@/components/domain/WertungFelder';
 
 export type MeiBewertungWerte = {
   sterne: number | null;
@@ -25,8 +26,9 @@ const dez = (n: number) => n.toFixed(1).replace('.', ',');
  * die probiert haben; die Freitexte landen alle im Archiv). Klappe schließt
  * sich nach dem Speichern und meldet die verdienten WP.
  *
- * Varianten: 'karte' = eigenständige weiße Klappe (Termin-Seite).
- * 'eingebettet' = lebt in der „So is' glaufen"-Karte auf der Startseite:
+ * Varianten: 'karte' = eigenständige weiße Klappe. 'abend' = die immer
+ * offene Redesign-Karte auf der Termin-Seite (WertungFelder + Speichern).
+ * 'eingebettet' = lebt in der „Letzter Stammtisch"-Karte auf der Startseite:
  * ohne Bewertung ein goldener „Abend bewerten"-Knopf, mit Bewertung die
  * eigene Wertung samt Team-Schnitt und „Ändern".
  */
@@ -44,7 +46,7 @@ export function MeiBewertung({
   /** Bisheriger Team-Schnitt (alle abgegebenen Sterne), zeigt, wo der Abend steht. */
   team: { schnitt: number; anzahl: number };
   action: (formData: FormData) => Promise<BewertungErgebnis>;
-  variante?: 'karte' | 'eingebettet';
+  variante?: 'karte' | 'eingebettet' | 'abend';
   /** Klappe von Anfang an offen (Stammtisch-Abend, solang no ned bewertet is) */
   startOffen?: boolean;
   /** Stammhaus-Abend: koa Wirtshaus-Wertung (des kennt jeder), nur Brodn/Schmarrn + a Wort zum Abend */
@@ -77,6 +79,33 @@ export function MeiBewertung({
     });
     setOffen(false);
   };
+
+  if (variante === 'abend') {
+    return (
+      <div>
+        <form
+          action={speichern}
+          style={{ background: 'var(--weiss)', borderRadius: 'var(--r-lg)', border: '1px solid var(--ink-100)', boxShadow: 'var(--sh-sm)', padding: 16, display: 'flex', flexDirection: 'column' }}
+        >
+          <WertungFelder werte={initial} ohneSterne={ohneSterne} />
+          <SpeichernKnopf schonBewertet={schonBewertet} />
+        </form>
+        {meldung && (
+          <div
+            className="wn-toast-in"
+            style={{
+              marginTop: 8, padding: '10px 14px', borderRadius: 'var(--r-md)', textAlign: 'center',
+              background: meldung.ok ? 'var(--erfolg-bg)' : 'var(--strafe-bg)',
+              border: `1px solid ${meldung.ok ? 'var(--erfolg)' : 'var(--strafe)'}`,
+              fontSize: 13, fontWeight: 800, color: meldung.ok ? 'var(--erfolg)' : 'var(--strafe)',
+            }}
+          >
+            {meldung.text}
+          </div>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div>

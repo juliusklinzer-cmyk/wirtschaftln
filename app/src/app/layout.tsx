@@ -51,8 +51,8 @@ export async function generateMetadata(): Promise<Metadata> {
     appleWebApp: {
       capable: true,
       title: name,
-      // 'default' + weißer theme-color: iOS färbt die Statusleiste wie den
-      // Header (nahtlos weiß). black-translucent war ein Irrweg: iOS gibt
+      // 'default' + theme-color in Header-Farbe: iOS färbt die Statusleiste wie
+      // den Header (seit Hoam-Redesign 13.10.2026 Navy, davor weiß). black-translucent war ein Irrweg: iOS gibt
       // Web-Apps die unteren ~62px dann nicht her, d'Tab-Leiste kann nie
       // an d'Bildschirmkante (ausprobiert & gemessen, 29.08.2026).
       statusBarStyle: 'default',
@@ -65,7 +65,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   viewportFit: 'cover',
-  themeColor: '#FFFFFF',
+  themeColor: '#07193A',
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {

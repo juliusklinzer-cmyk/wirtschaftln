@@ -8,22 +8,27 @@ import { PTS, WACKELT_AB_UNENTSCHULDIGT, ABSCHLUSS_SPERRE_STUNDEN, anwesenheitsB
  * Werte und Staffeln kommen aus lib/punkte.ts, damit die Erklärung nie von
  * den echten Regeln abweicht.
  */
-export function PunkteInfo() {
+export function PunkteInfo({ knopf }: { knopf?: (oeffnen: () => void) => React.ReactNode } = {}) {
   const [offen, setOffen] = useState(false);
 
   return (
     <>
-      <button
-        type="button"
-        onClick={() => setOffen(true)}
-        style={{
-          alignSelf: 'center', display: 'inline-flex', alignItems: 'center', gap: 6,
-          border: 'none', background: 'none', padding: '2px 4px', cursor: 'pointer',
-          fontFamily: 'var(--font-ui)', fontSize: 12, fontWeight: 800, color: 'var(--muc-blau)',
-        }}
-      >
-        ℹ️ Punktesystem
-      </button>
+      {knopf ? (
+        /* Eigener Auslöser (z. B. Zeile im Profil-Menü) */
+        knopf(() => setOffen(true))
+      ) : (
+        <button
+          type="button"
+          onClick={() => setOffen(true)}
+          style={{
+            alignSelf: 'center', display: 'inline-flex', alignItems: 'center', gap: 6,
+            border: 'none', background: 'none', padding: '2px 4px', cursor: 'pointer',
+            fontFamily: 'var(--font-ui)', fontSize: 12, fontWeight: 800, color: 'var(--muc-blau)',
+          }}
+        >
+          ℹ️ Punktesystem
+        </button>
+      )}
 
       {offen && (
         <div className="wn-scroll-still" style={{ position: 'fixed', inset: 0, zIndex: 70, overflowY: 'auto', overscrollBehavior: 'contain', background: 'var(--weiss)', animation: 'wnPunkteRein 240ms ease-out both' }}>

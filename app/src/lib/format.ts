@@ -12,6 +12,13 @@ export function datumLang(iso: string): string {
   });
 }
 
+/** "Do, 23. Juli" aus ISO-Datum (kurzer Wochentag ohne Punkt, langer Monat), für die Termin-Karte auf Hoam. */
+export function datumMittel(iso: string): string {
+  return new Date(`${iso}T12:00:00`)
+    .toLocaleDateString('de-DE', { weekday: 'short', day: 'numeric', month: 'long' })
+    .replace('.,', ',');
+}
+
 /** "11. Apr" aus ISO-Datum. */
 export function datumKurz(iso: string): string {
   return new Date(`${iso}T12:00:00`).toLocaleDateString('de-DE', { day: '2-digit', month: 'short' });

@@ -145,7 +145,9 @@ export default async function ProfilPage() {
       </Card>
       </SchrumpfKopf>
 
-      {/* ── D'Auszeichnungen: große Grafiken, koa Text, Details stehen im Badge ── */}
+      {/* ── D'Auszeichnungen: große Grafiken, koa Text, Details stehen im Badge ──
+          (Anker #badges fürs Profil-Menü „Badges & Ämter") */}
+      <span id="badges" aria-hidden style={{ scrollMarginTop: 12 }} />
       {(badges.length > 0 || serien.length > 0) && (
         <Card pad={14}>
           <div style={{ fontFamily: 'var(--font-fraktur)', fontSize: 21, color: 'var(--navy)', marginBottom: 10 }}>D’Auszeichnungen</div>
@@ -202,6 +204,7 @@ export default async function ProfilPage() {
       {/* 🔔 Benachrichtigungen pro Gerät an/aus (auch der Weg zurück nach am „Nein“ in der Browser-Abfrage) */}
       {!me.erstanmeldung && (
         <Card pad={14}>
+          <span id="push" aria-hidden style={{ scrollMarginTop: 12 }} />
           <PushEinstellung />
         </Card>
       )}

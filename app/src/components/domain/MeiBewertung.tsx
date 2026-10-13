@@ -101,38 +101,33 @@ export function MeiBewertung({
             className="wn-press"
             style={{
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-              minHeight: 46, padding: '0 16px', borderRadius: 'var(--r-md)', cursor: 'pointer',
-              listStyle: 'none', userSelect: 'none', background: 'var(--grad-gold)', boxShadow: 'var(--sh-gold)',
-              fontSize: 14, fontWeight: 800, color: 'var(--navy-900)',
+              minHeight: 48, padding: '0 16px', borderRadius: 'var(--r-md)', cursor: 'pointer',
+              listStyle: 'none', userSelect: 'none', background: 'var(--pergament)', border: '1.5px solid var(--gold)',
+              fontSize: 15, fontWeight: 800, color: 'var(--navy)',
             }}
           >
-            Abend bewerten
-            <span className="wn-tnum" style={{ fontSize: 12, fontWeight: 800, padding: '2px 8px', borderRadius: 999, background: 'rgba(7,25,58,0.14)' }}>
-              +{PTS.bewertung} WP
-            </span>
+            <span style={{ color: 'var(--gold)', fontSize: 18, lineHeight: 1 }}>★</span>
+            {ohneSterne ? 'Mei Abend' : 'Abend bewerten'}
+            {!ohneSterne && <span className="wn-tnum"> · +{PTS.bewertung} WP</span>}
           </summary>
         ) : eingebettet ? (
           /* Scho bewertet: eigene Wertung + Team-Schnitt, antippen zum Ändern */
           <summary
             style={{
-              display: 'flex', alignItems: 'center', gap: 10, minHeight: 44, padding: '10px 12px',
-              borderRadius: 'var(--r-md)', cursor: 'pointer', listStyle: 'none', userSelect: 'none',
-              background: 'var(--pergament)',
+              display: 'flex', alignItems: 'center', gap: 10, minHeight: 44, padding: '12px 14px',
+              borderRadius: 12, cursor: 'pointer', listStyle: 'none', userSelect: 'none',
+              background: 'var(--ink-50)', fontSize: 13,
             }}
           >
-            <span style={{ flex: 1, minWidth: 0 }}>
-              <span style={{ display: 'block', fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--ink-500)' }}>
-                Dei Wertung
-              </span>
-              <span className="wn-tnum" style={{ fontSize: 16, fontWeight: 800, color: 'var(--navy)' }}>
+            <span style={{ flex: 1, minWidth: 0, fontWeight: 700, color: 'var(--ink-700)' }}>Deine Wertung</span>
+            {!ohneSterne && (
+              <span className="wn-tnum" style={{ fontWeight: 800, color: 'var(--navy)', whiteSpace: 'nowrap' }}>
                 {dez(initial.sterne ?? 0)} <span style={{ color: 'var(--gold)' }}>★</span>
                 {team.anzahl > 1 && (
-                  <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink-500)' }}>
-                    {' '}· Team Ø {dez(team.schnitt)}
-                  </span>
+                  <span style={{ fontWeight: 700, color: 'var(--ink-300)' }}> · Team Ø {dez(team.schnitt)}</span>
                 )}
               </span>
-            </span>
+            )}
             <span style={{ flex: 'none', fontSize: 12, fontWeight: 800, color: 'var(--muc-blau)' }}>Ändern</span>
           </summary>
         ) : (
@@ -155,7 +150,7 @@ export function MeiBewertung({
           </KlappenKopf>
         )}
 
-        <div style={{ padding: eingebettet ? '12px 0 0' : '4px 18px 18px' }}>
+        <div style={eingebettet ? { marginTop: 10, padding: 14, borderRadius: 'var(--r-md)', background: 'var(--pergament)' } : { padding: '4px 18px 18px' }}>
           <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink-500)', marginBottom: 12 }}>
             {ohneSterne ? (
               <>S’Stammhaus kennt jeder, des bewert ma ned. Sag nur, ob’st an Brodn oder an Schmarrn ghabt hast (zählt in d’Ranglisten), und a Wort zum Abend, wenn’st magst.</>

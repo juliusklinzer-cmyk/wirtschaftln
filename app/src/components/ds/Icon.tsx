@@ -23,6 +23,23 @@ const ICON_PATHS: Record<string, string> = {
   // Google-Maps-Wegbeschreibung: aufgestellte Raute mit rechtwinklig abknickendem Pfeil
   richtung:
     '<path d="M12 2.6 21.4 12 12 21.4 2.6 12 12 2.6z"/><path d="M9.5 15.5v-2.5a1.8 1.8 0 0 1 1.8-1.8h3.4"/><path d="m12.6 9.1 2.4 2.1-2.4 2.1"/>',
+  // Hoam-Redesign (13.10.2026): Glocke mit Schallwellen, Warndreieck, Pin mit Plus, Lupe, Kreuz,
+  // Medaille, Person(+), Info, Abmelden, Pfeil rechts, Kalender mit Plus, Navigationspfeil, Münzen, Zahnrad
+  'bell-ring': '<path d="M6 9a6 6 0 0 1 12 0c0 5 2 6 2 6H4s2-1 2-6z"/><path d="M10 20a2 2 0 0 0 4 0"/><path d="M3.5 8a8 8 0 0 1 2.3-4.5M20.5 8a8 8 0 0 0-2.3-4.5"/>',
+  warning: '<path d="M12 3 2.5 20h19L12 3z"/><path d="M12 10v4M12 17.3h.01"/>',
+  'pin-plus': '<path d="M12 21s-7-6.3-7-11a7 7 0 1 1 14 0c0 4.7-7 11-7 11z"/><path d="M12 7.5v5M9.5 10h5"/>',
+  search: '<circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.3-4.3"/>',
+  x: '<path d="M6 6l12 12M18 6 6 18"/>',
+  medal: '<circle cx="12" cy="15" r="5"/><path d="M8.6 10.6 6 3h5l1 3 1-3h5l-2.6 7.6"/>',
+  user: '<circle cx="12" cy="8" r="4"/><path d="M4.5 21a7.5 7.5 0 0 1 15 0"/>',
+  'user-plus': '<circle cx="10" cy="8" r="4"/><path d="M2.5 21a7.5 7.5 0 0 1 15 0"/><path d="M19 8v6M16 11h6"/>',
+  info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/>',
+  logout: '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5M21 12H9"/>',
+  'arrow-right': '<path d="M5 12h14M13 6l6 6-6 6"/>',
+  'calendar-plus': '<rect x="3" y="4.5" width="18" height="16" rx="2"/><path d="M3 9h18M8 2.5v4M16 2.5v4M12 12v5M9.5 14.5h5"/>',
+  navigation: '<path d="m3 11 18-8-8 18-2-8-8-2z"/>',
+  coins: '<circle cx="8" cy="8" r="6"/><path d="M18.1 10.4A6 6 0 1 1 10.3 18"/><path d="M7 6h1v4"/>',
+  settings: '<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1"/>',
 };
 
 export type IconName = keyof typeof ICON_PATHS;

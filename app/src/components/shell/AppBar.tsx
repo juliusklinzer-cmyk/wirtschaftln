@@ -4,7 +4,8 @@ import { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Avatar } from '@/components/ds';
+import { Avatar, Icon } from '@/components/ds';
+import { PunkteInfo } from '@/components/domain/PunkteInfo';
 
 const TITLES: Record<string, string> = {
   '/termin': 'Termin & Abstimmung',
@@ -16,6 +17,11 @@ const TITLES: Record<string, string> = {
   '/einladen': 'Spezln einladen',
 };
 
+/**
+ * Kopfzeile (Hoam-Redesign 13.10.2026, Basis 1a/1b): Navy wia die Tab-Leiste,
+ * Wortmarke in Fraktur, rechts die eigene WP-Pill und das Profilbild. Drunter
+ * das Rautenband. Antippen vom Profilbild öffnet das Profil-Menü als Vollbild.
+ */
 export function AppBar({
   appName = 'Wirtschaftln',
   logoSrc = '/brand/shield-256.png',
@@ -24,6 +30,9 @@ export function AppBar({
   isAdmin,
   saison,
   wp,
+  rang,
+  badges,
+  amt,
   onLogout,
 }: {
   /** Name des Stammtischs (Tenant-Config), Wortmarke im Header */
@@ -36,36 +45,20 @@ export function AppBar({
   saison: string;
   /** Eigene Saison-WP, steht als Pill neben dem Profilbild. */
   wp: number;
+  /** Eigener Platz in der Saison-Rangliste (0 = no koane Punkte). */
+  rang: number;
+  /** Getragene Badges + Ämter (fürs Profil-Menü). */
+  badges: number;
+  /** Aktuelles Amt („Präsident“), falls eins. */
+  amt: string | null;
   onLogout: () => Promise<void>;
 }) {
   const [menu, setMenu] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
-  const buttonRef = useRef<HTMLButtonElement>(null);
   const pathname = usePathname();
   const title = Object.entries(TITLES).find(([p]) => pathname.startsWith(p) && p !== '/')?.[1];
 
-  // Menü schließen bei Tap außerhalb ODER beim Scrollen, OHNE ein Vollbild-Overlay,
-  // das sonst die Scroll-Geste vom Seiteninhalt abfängt (nerviger Handy-Bug).
-  useEffect(() => {
-    if (!menu) return;
-    const geoeffnetAm = Date.now();
-    const ausserhalb = (e: Event) => {
-      const t = e.target as Node;
-      if (menuRef.current?.contains(t) || buttonRef.current?.contains(t)) return;
-      setMenu(false);
-    };
-    // Nachlaufendes Scroll-Momentum direkt nach dem Öffnen ignorieren,
-    // sonst klappt's Menü sofort wieder zua
-    const beiScroll = () => {
-      if (Date.now() - geoeffnetAm > 350) setMenu(false);
-    };
-    document.addEventListener('pointerdown', ausserhalb);
-    window.addEventListener('scroll', beiScroll, true);
-    return () => {
-      document.removeEventListener('pointerdown', ausserhalb);
-      window.removeEventListener('scroll', beiScroll, true);
-    };
-  }, [menu]);
+  // Seitenwechsel aus dem Menü raus → Menü zua
+  useEffect(() => setMenu(false), [pathname]);
 
   // Frisch verdiente Punkte zählen sichtbar hoch: kleiner „+n WP"-Flug an der Pill
   const [wpDelta, setWpDelta] = useState<number | null>(null);
@@ -87,13 +80,9 @@ export function AppBar({
   return (
     <header
       style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        padding: 'calc(8px + env(safe-area-inset-top)) 16px 12px',
         flex: 'none',
-        borderBottom: '1px solid var(--ink-100)',
-        background: 'var(--weiss)',
+        background: 'var(--navy-900)',
+        color: 'var(--pergament)',
         position: 'relative',
         zIndex: 20,
         // Header is Bedien-Chrome: ned markierbar, koa Callout beim Draufhalten
@@ -102,170 +91,240 @@ export function AppBar({
         WebkitTouchCallout: 'none',
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        {logoSrc.startsWith('/brand/') ? (
-          <Image src={logoSrc} alt="" width={34} height={34} style={{ height: 34, width: 'auto' }} />
-        ) : (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={logoSrc} alt="" width={34} height={34} style={{ width: 34, height: 34, borderRadius: 9, objectFit: 'cover' }} />
-        )}
-        <div>
-          {title ? (
-            <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--ink-900)' }}>{title}</div>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 10,
+          padding: 'calc(10px + env(safe-area-inset-top)) 16px 12px',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+          {logoSrc.startsWith('/brand/') ? (
+            <Image src={logoSrc} alt="" width={30} height={30} style={{ height: 30, width: 'auto' }} />
           ) : (
-            <>
-              <div style={{ fontFamily: 'var(--font-fraktur)', fontSize: 22, color: 'var(--navy)', lineHeight: 1 }}>
-                {appName}
-              </div>
-              <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--gold-700)' }}>
-                {saison}
-              </div>
-            </>
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={logoSrc} alt="" width={30} height={30} style={{ width: 30, height: 30, borderRadius: 8, objectFit: 'cover' }} />
           )}
-        </div>
-      </div>
-
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        <div style={{ position: 'relative' }}>
-          {wpDelta != null && (
-            <>
-              <style>{`@keyframes wnWpFlug { 0% { transform: translateY(4px); opacity: 0; } 25% { opacity: 1; } 100% { transform: translateY(-18px); opacity: 0; } }`}</style>
-              <span
-                className="wn-tnum"
-                style={{
-                  position: 'absolute', right: 4, top: -14, fontSize: 12, fontWeight: 800,
-                  color: 'var(--gold-700)', pointerEvents: 'none', whiteSpace: 'nowrap',
-                  animation: 'wnWpFlug 1.4s ease-out both',
-                }}
-              >
-                +{wpDelta} WP
-              </span>
-            </>
-          )}
-          <Link
-            href="/spezln"
-            className="wn-tnum"
-            style={{
-              display: 'inline-flex', alignItems: 'baseline', gap: 4, padding: '4px 11px',
-              borderRadius: 999, background: 'var(--pergament)', border: '1px solid var(--pergament-edge)',
-              fontSize: 13, fontWeight: 800, color: 'var(--navy)', textDecoration: 'none',
-              transform: wpDelta != null ? 'scale(1.08)' : 'scale(1)',
-              transition: 'transform 300ms cubic-bezier(0.22, 1, 0.36, 1)',
-            }}
-          >
-            {wp}
-            <span style={{ fontSize: 10, fontWeight: 800, color: 'var(--gold-700)' }}>WP</span>
-          </Link>
-        </div>
-        <button
-          ref={buttonRef}
-          onClick={() => setMenu((m) => !m)}
-          style={{ border: 'none', background: 'transparent', padding: 0, cursor: 'pointer' }}
-          aria-label="Profil"
-        >
-          <Avatar src={photoUrl} name={name} size={36} ring={isAdmin} />
-        </button>
-      </div>
-
-      {menu && (
-        <>
-          <div
-            ref={menuRef}
-            className="wn-menu-auf"
-            style={{
-              position: 'absolute',
-              top: 54,
-              right: 16,
-              zIndex: 31,
-              width: 210,
-              background: 'var(--weiss)',
-              borderRadius: 'var(--r-lg)',
-              boxShadow: 'var(--sh-lg)',
-              border: '1px solid var(--ink-100)',
-              overflow: 'hidden',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: 14, background: 'var(--pergament)' }}>
-              <Avatar src={photoUrl} name={name} size={40} ring={isAdmin} />
-              <div style={{ minWidth: 0 }}>
-                <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--ink-900)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                  {name}
-                </div>
-                <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--gold-700)' }}>
-                  {isAdmin ? 'Verwaltung' : 'Mitglied'}
-                </div>
-              </div>
+          {title ? (
+            <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--pergament)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{title}</div>
+          ) : (
+            <div style={{ fontFamily: 'var(--font-fraktur)', fontSize: 30, lineHeight: 1, color: 'var(--pergament)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {appName}
             </div>
-            <Link
-              href="/einladen"
-              onClick={() => setMenu(false)}
-              style={{
-                display: 'block',
-                padding: '13px 14px',
-                fontFamily: 'var(--font-ui)',
-                fontSize: 14,
-                fontWeight: 700,
-                color: 'var(--ink-900)',
-                textDecoration: 'none',
-                borderBottom: '1px solid var(--ink-100)',
-              }}
-            >
-              Spezln einladen
-            </Link>
-            {isAdmin && (
-              <Link
-                href="/stammtisch"
-                onClick={() => setMenu(false)}
-                style={{
-                  display: 'block',
-                  padding: '13px 14px',
-                  fontFamily: 'var(--font-ui)',
-                  fontSize: 14,
-                  fontWeight: 700,
-                  color: 'var(--ink-900)',
-                  textDecoration: 'none',
-                  borderBottom: '1px solid var(--ink-100)',
-                }}
-              >
-                Stammtisch verwalten
-              </Link>
+          )}
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 'none' }}>
+          <div style={{ position: 'relative' }}>
+            {wpDelta != null && (
+              <>
+                <style>{`@keyframes wnWpFlug { 0% { transform: translateY(4px); opacity: 0; } 25% { opacity: 1; } 100% { transform: translateY(-18px); opacity: 0; } }`}</style>
+                <span
+                  className="wn-tnum"
+                  style={{
+                    position: 'absolute', right: 4, top: -14, fontSize: 12, fontWeight: 800,
+                    color: 'var(--gold-bright)', pointerEvents: 'none', whiteSpace: 'nowrap',
+                    animation: 'wnWpFlug 1.4s ease-out both',
+                  }}
+                >
+                  +{wpDelta} WP
+                </span>
+              </>
             )}
             <Link
-              href="/profil"
-              onClick={() => setMenu(false)}
+              href="/spezln"
+              className="wn-tnum"
               style={{
-                display: 'block',
-                padding: '13px 14px',
-                fontFamily: 'var(--font-ui)',
-                fontSize: 14,
-                fontWeight: 700,
-                color: 'var(--ink-900)',
-                textDecoration: 'none',
-                borderBottom: '1px solid var(--ink-100)',
+                display: 'inline-flex', alignItems: 'center', gap: 4, height: 30, padding: '0 12px',
+                borderRadius: 999, border: '1.5px solid rgba(208,173,102,0.5)',
+                fontSize: 13, fontWeight: 800, color: 'var(--gold-bright)', textDecoration: 'none',
+                transform: wpDelta != null ? 'scale(1.08)' : 'scale(1)',
+                transition: 'transform 300ms cubic-bezier(0.22, 1, 0.36, 1)',
               }}
             >
-              Mei Profil
+              {wp}
+              <span>WP</span>
             </Link>
-            <button
-              onClick={() => onLogout()}
-              style={{
-                width: '100%',
-                textAlign: 'left',
-                border: 'none',
-                background: 'transparent',
-                cursor: 'pointer',
-                padding: '13px 14px',
-                fontFamily: 'var(--font-ui)',
-                fontSize: 14,
-                fontWeight: 700,
-                color: 'var(--strafe)',
-              }}
-            >
-              Abmelden
-            </button>
           </div>
-        </>
+          <button
+            onClick={() => setMenu(true)}
+            className="wn-press"
+            style={{
+              border: '2px solid var(--gold)', background: 'var(--muc-blau)', padding: 0, cursor: 'pointer',
+              width: 36, height: 36, borderRadius: '50%', display: 'inline-flex', overflow: 'hidden',
+            }}
+            aria-label="Profil-Menü öffnen"
+          >
+            <Avatar src={photoUrl} name={name} size={32} style={{ margin: 0 }} />
+          </button>
+        </div>
+      </div>
+      <div className="wn-raute wn-raute--sm" aria-hidden style={{ height: 8 }} />
+
+      {menu && (
+        <ProfilMenue
+          name={name}
+          photoUrl={photoUrl}
+          isAdmin={isAdmin}
+          saison={saison}
+          wp={wp}
+          rang={rang}
+          badges={badges}
+          amt={amt}
+          onLogout={onLogout}
+          onClose={() => setMenu(false)}
+        />
       )}
     </header>
+  );
+}
+
+/**
+ * Profil-Menü als Vollbild (Basis 1b): Kopf mit Profilbild und Amt, drei
+ * Kacheln (Punkte, Platz, Badges), die Menü-Zeilen und ganz unten Abmelden.
+ */
+function ProfilMenue({
+  name,
+  photoUrl,
+  isAdmin,
+  saison,
+  wp,
+  rang,
+  badges,
+  amt,
+  onLogout,
+  onClose,
+}: {
+  name: string;
+  photoUrl: string | null;
+  isAdmin: boolean;
+  saison: string;
+  wp: number;
+  rang: number;
+  badges: number;
+  amt: string | null;
+  onLogout: () => Promise<void>;
+  onClose: () => void;
+}) {
+  // Benachrichtigungen: An/Aus pro Gerät (Push-Abo vorhanden?)
+  const [push, setPush] = useState<'An' | 'Aus' | ''>('');
+  useEffect(() => {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+    navigator.serviceWorker.getRegistration().then(async (reg) => {
+      const sub = await reg?.pushManager.getSubscription();
+      setPush(sub ? 'An' : 'Aus');
+    }).catch(() => {});
+  }, []);
+
+  // Für Link UND Button gleich: nur a Haarlinie unten, sonst koa Rahmen
+  const zeileStil: React.CSSProperties = {
+    display: 'flex', alignItems: 'center', gap: 14, minHeight: 54, padding: '0 16px',
+    borderWidth: '0 0 1px 0', borderStyle: 'solid', borderColor: 'var(--ink-50)',
+    textDecoration: 'none', color: 'var(--ink-900)', fontFamily: 'var(--font-ui)',
+    background: 'transparent', width: '100%', textAlign: 'left', cursor: 'pointer',
+  };
+  const Zeile = ({ icon, label, hint }: { icon: string; label: string; hint?: string }) => (
+    <>
+      <span style={{ width: 32, height: 32, flex: 'none', borderRadius: 10, background: 'var(--info-bg)', color: 'var(--muc-blau)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+        <Icon name={icon} size={18} />
+      </span>
+      <span style={{ flex: 1, minWidth: 0, fontSize: 15, fontWeight: 700 }}>{label}</span>
+      {hint && <span className="wn-tnum" style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink-300)' }}>{hint}</span>}
+      <Icon name="chevron" size={16} color="var(--ink-200)" />
+    </>
+  );
+  const kachel: React.CSSProperties = { borderRadius: 16, padding: 12, display: 'flex', flexDirection: 'column', gap: 2 };
+  const kachelLabel: React.CSSProperties = { fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase' };
+
+  return (
+    <div
+      className="wn-profil-auf"
+      role="dialog"
+      aria-label="Profil-Menü"
+      style={{
+        position: 'fixed', inset: 0, zIndex: 60, maxWidth: 'var(--container-app)', margin: '0 auto',
+        background: 'var(--ink-50)', color: 'var(--ink-900)', display: 'flex', flexDirection: 'column',
+        userSelect: 'none', WebkitUserSelect: 'none',
+      }}
+    >
+      <div
+        className="wn-scroll-still"
+        style={{
+          flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 16,
+          padding: 'calc(16px + env(safe-area-inset-top)) 16px calc(24px + env(safe-area-inset-bottom))',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '6px 4px 0' }}>
+          <span style={{ display: 'inline-flex', borderRadius: '50%', border: '2.5px solid var(--gold)', flex: 'none' }}>
+            <Avatar src={photoUrl} name={name} size={60} />
+          </span>
+          <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3 }}>
+            <span style={{ fontFamily: 'var(--font-fraktur)', fontSize: 28, lineHeight: 1, color: 'var(--navy)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {name}
+            </span>
+            <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--gold-700)' }}>
+              {amt ?? (isAdmin ? 'Verwaltung' : 'Spezl')} · {saison}
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Menü schließen"
+            className="wn-press"
+            style={{ width: 36, height: 36, flex: 'none', borderRadius: '50%', border: 'none', background: 'var(--ink-100)', color: 'var(--ink-500)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: 0, cursor: 'pointer' }}
+          >
+            <Icon name="x" size={18} />
+          </button>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
+          <div style={{ ...kachel, background: 'var(--navy)' }}>
+            <span className="wn-tnum" style={{ fontSize: 22, fontWeight: 800, color: 'var(--gold-bright)' }}>{wp}</span>
+            <span style={{ ...kachelLabel, color: 'rgba(246,240,226,0.7)' }}>Punkte</span>
+          </div>
+          <div style={{ ...kachel, background: 'var(--weiss)' }}>
+            <span className="wn-tnum" style={{ fontSize: 22, fontWeight: 800, color: 'var(--navy)' }}>{rang > 0 ? `${rang}.` : '–'}</span>
+            <span style={{ ...kachelLabel, color: 'var(--ink-500)' }}>Platz</span>
+          </div>
+          <div style={{ ...kachel, background: 'var(--weiss)' }}>
+            <span className="wn-tnum" style={{ fontSize: 22, fontWeight: 800, color: 'var(--navy)' }}>{badges}</span>
+            <span style={{ ...kachelLabel, color: 'var(--ink-500)' }}>Badges</span>
+          </div>
+        </div>
+
+        <div style={{ background: 'var(--weiss)', borderRadius: 18, overflow: 'hidden' }}>
+          <Link href="/profil" style={zeileStil}><Zeile icon="user" label="Mein Profil" hint="Steckbrief" /></Link>
+          <Link href="/profil#badges" style={zeileStil}><Zeile icon="medal" label="Badges & Ämter" hint={String(badges)} /></Link>
+          <Link href="/einladen" style={zeileStil}><Zeile icon="user-plus" label="Spezl einladen" /></Link>
+          <Link href="/profil#push" style={zeileStil}><Zeile icon="bell" label="Benachrichtigungen" hint={push || undefined} /></Link>
+          <PunkteInfo
+            knopf={(oeffnen) => (
+              <button type="button" onClick={oeffnen} style={zeileStil}>
+                <Zeile icon="info" label="Punktesystem" />
+              </button>
+            )}
+          />
+          {isAdmin && (
+            <Link href="/stammtisch" style={{ ...zeileStil, borderWidth: 0 }}><Zeile icon="settings" label="Stammtisch verwalten" /></Link>
+          )}
+        </div>
+
+        <button
+          type="button"
+          onClick={() => onLogout()}
+          className="wn-press"
+          style={{
+            marginTop: 'auto', minHeight: 52, borderRadius: 16, border: 'none', background: 'var(--weiss)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, cursor: 'pointer',
+            fontFamily: 'var(--font-ui)', fontSize: 15, fontWeight: 800, color: 'var(--strafe)',
+          }}
+        >
+          <Icon name="logout" size={18} />
+          Abmelden
+        </button>
+      </div>
+    </div>
   );
 }

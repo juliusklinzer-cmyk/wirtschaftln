@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { Icon } from '@/components/ds';
 import { pushAbonnieren } from '@/app/(app)/termin/actions';
 
 function base64ToUint8Array(base64: string): Uint8Array {
@@ -10,8 +11,8 @@ function base64ToUint8Array(base64: string): Uint8Array {
 }
 
 /**
- * Dezenter Hinweis, solange das Gerät noch keine Push-Benachrichtigungen
- * abonniert hat (z. B. für „Reserviert"-Meldungen). Verschwindet nach dem Abo.
+ * Hinweis-Zeile über der Termin-Karte (Zustand 3b), solange das Gerät noch
+ * keine Push-Benachrichtigungen abonniert hat. Verschwindet nach dem Einschalten.
  */
 export function PushAktivieren() {
   const [zeigen, setZeigen] = useState(false);
@@ -48,24 +49,25 @@ export function PushAktivieren() {
   };
 
   return (
-    <button
-      onClick={aktivieren}
-      disabled={laeuft}
-      style={{
-        display: 'flex', alignItems: 'center', gap: 10, width: '100%', textAlign: 'left',
-        padding: '12px 14px', background: 'var(--weiss)', border: '1.5px dashed var(--ink-200)',
-        borderRadius: 'var(--r-lg)', cursor: 'pointer', fontFamily: 'var(--font-ui)',
-      }}
-    >
-      <span style={{ fontSize: 20 }}>🔔</span>
-      <span style={{ flex: 1, minWidth: 0 }}>
-        <span style={{ display: 'block', fontSize: 14, fontWeight: 800, color: 'var(--ink-900)' }}>
-          {laeuft ? 'Moment…' : 'Benachrichtigungen aktivieren'}
-        </span>
-        <span style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink-500)' }}>
-          Bescheid kriegen, wenn’s nächste Wirtshaus reserviert is.
-        </span>
-      </span>
-    </button>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px', borderRadius: 'var(--r-md)', background: 'var(--info-bg)' }}>
+      <Icon name="bell-ring" size={22} color="var(--muc-blau)" />
+      <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
+        <span style={{ fontSize: 14, fontWeight: 800, color: 'var(--navy)' }}>Benachrichtigungen an?</span>
+        <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink-500)' }}>Wir sagen dir, sobald reserviert ist.</span>
+      </div>
+      <button
+        type="button"
+        className="wn-press"
+        onClick={aktivieren}
+        disabled={laeuft}
+        style={{
+          flex: 'none', height: 34, padding: '0 14px', border: 'none', borderRadius: 'var(--r-sm)',
+          background: 'var(--muc-blau)', color: '#fff', fontFamily: 'var(--font-ui)', fontSize: 13, fontWeight: 800,
+          cursor: laeuft ? 'default' : 'pointer', opacity: laeuft ? 0.7 : 1,
+        }}
+      >
+        {laeuft ? 'Moment…' : 'Einschalten'}
+      </button>
+    </div>
   );
 }

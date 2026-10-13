@@ -187,9 +187,10 @@ body {
 }
 
 body {
-  /* Weiß wie d'Tab-Leiste: falls a Betriebssystem unterm App-Rahmen an
-     Spalt lasst (iOS-Vollbild), blitzt koa Grau mehr durch */
-  background: var(--weiss);
+  /* Navy wie Kopf und Tab-Leiste (Hoam-Redesign 13.10.2026): falls a
+     Betriebssystem unterm App-Rahmen an Spalt lasst (iOS-Vollbild), blitzt
+     koa anderer Ton durch */
+  background: var(--navy-900);
   color: var(--text-body);
   font-family: var(--font-ui);
   font-size: var(--fs-body);
@@ -327,6 +328,24 @@ details[open] > summary .wn-klappe-pfeil {
 .wn-menu-auf {
   transform-origin: top right;
   animation: wnMenuAuf 180ms cubic-bezier(0.23, 1, 0.32, 1) backwards;
+}
+
+/* Profil-Menü als Vollbild (Hoam-Redesign): gleitet von unten rein */
+@keyframes wnProfilAuf {
+  from { opacity: 0; transform: translateY(14px); }
+}
+.wn-profil-auf {
+  animation: wnProfilAuf 220ms cubic-bezier(0.23, 1, 0.32, 1) backwards;
+}
+
+/* Bestätigungs-Kreis (Zusage, Check-in): poppt mit Schwung rein */
+@keyframes wnPop {
+  0% { transform: scale(0) rotate(-20deg); opacity: 0; }
+  60% { transform: scale(1.15) rotate(6deg); opacity: 1; }
+  100% { transform: scale(1) rotate(0); opacity: 1; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .wn-pop { animation: wnPop 600ms cubic-bezier(0.34, 1.56, 0.64, 1) both; }
 }
 
 /* Tab-Wechsel: das frisch aktive Icon hüpft kurz */

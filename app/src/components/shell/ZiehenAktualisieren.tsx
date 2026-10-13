@@ -13,7 +13,7 @@ const MAX = 96;
  * sich der Pfeil um, loslassen → Seite wird frisch geladen (router.refresh,
  * Server-Daten neu, Formulare bleiben). Dazu liegt ein weißer Block über
  * dem Inhalt (negativ versetzt), damit beim Überziehen oben koa anderer
- * Farbton als der Header rausschaut.
+ * Farbton als der Header rausschaut (Navy wia der Kopf).
  */
 export function ZiehenAktualisieren() {
   const router = useRouter();
@@ -75,8 +75,8 @@ export function ZiehenAktualisieren() {
       <style>{`
         @keyframes wnZiehDreh { to { transform: rotate(360deg); } }
       `}</style>
-      {/* Überzieh-Deckung: gleicher Ton wia der Header, sitzt oberhalb vom Inhalt */}
-      <div style={{ position: 'absolute', left: 0, right: 0, top: '-100vh', height: '100vh', background: 'var(--weiss)' }} />
+      {/* Überzieh-Deckung: gleicher Ton wia der Header (seit Hoam-Redesign Navy), sitzt oberhalb vom Inhalt */}
+      <div style={{ position: 'absolute', left: 0, right: 0, top: '-100vh', height: '100vh', background: 'var(--navy-900)' }} />
       <div
         style={{
           position: 'absolute', left: '50%', top: 0,

@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation';
 import { anzeigeName } from '@/lib/namen';
 import { getCurrentMember } from '@/lib/session';
-import { getStats } from '@/lib/queries';
+import { getStats, getVergabeStand } from '@/lib/queries';
 import { aktuelleSaison } from '@/lib/saison';
 import { logout } from '@/app/login/actions';
 import { AppBar } from '@/components/shell/AppBar';
@@ -16,9 +16,16 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   if (!me) redirect('/login');
   // Tenant-Config einmal fürs Layout + als Props für Client-Komponenten
   const config = publicTenantConfig();
-  // Eigene Saison-WP für die Anzeige im Header
+  // Eigene Saison-WP + Platz für Header-Pill und Profil-Menü
   const saison = aktuelleSaison();
-  const meineWp = getStats({ abDatum: saison.start }).find((s) => s.member.id === me.id)?.punkte ?? 0;
+  const rangliste = getStats({ abDatum: saison.start }).sort((a, b) => b.punkte - a.punkte);
+  const meineWp = rangliste.find((s) => s.member.id === me.id)?.punkte ?? 0;
+  const meinRang = rangliste.findIndex((s) => s.member.id === me.id) + 1;
+  // Badges & Ämter, die i grad trag (fürs Profil-Menü), Amt-Titel fürs Kopf-Untertitel
+  const vergabe = getVergabeStand();
+  const meineBadges = [...vergabe.values()].filter((id) => id === me.id).length;
+  const AMT_TITEL: Record<string, string> = { 'amt:praesident': 'Präsident', 'amt:schriftfuehrer': 'Schriftführer', 'amt:kassenwart': 'Kassenwart' };
+  const meinAmt = [...vergabe.entries()].find(([key, id]) => id === me.id && AMT_TITEL[key])?.[0];
 
   return (
     <TenantProvider config={config}>
@@ -39,7 +46,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     >
       {/* 🤳 Dani-Modus: der weiße Streifen liegt über der ganzen App (nur beim Gründer) */}
       {config.features.daniModus && <DaniStreifen />}
-      {/* Header scrollt MIT dem Inhalt weg (bewusst ned sticky, Julius 29.08.) —
+      {/* Header scrollt MIT dem Inhalt weg (bewusst ned sticky, Julius 29.08.),
           nur d'Tab-Leiste unten bleibt stehen */}
       <main className="wn-scroll-still" style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', position: 'relative', overscrollBehavior: 'contain' }}>
         {/* Runterziehen zum Aktualisieren + weiße Überzieh-Deckung oberhalb vom Header */}
@@ -52,6 +59,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           isAdmin={me.role === 'admin'}
           saison={saison.label}
           wp={meineWp}
+          rang={meinRang}
+          badges={meineBadges}
+          amt={meinAmt ? AMT_TITEL[meinAmt] : null}
           onLogout={logout}
         />
         {children}

@@ -47,6 +47,7 @@ const ICON_PATHS: Record<string, string> = {
   'arrows-out': '<path d="M15 4h5v5M9 20H4v-5M20 4l-6 6M4 20l6-6"/>',
   hand: '<path d="M7 11V7.5a1.5 1.5 0 0 1 3 0V11M10 10V5.5a1.5 1.5 0 0 1 3 0V11M13 10.5V6.5a1.5 1.5 0 0 1 3 0V12M16 11a1.5 1.5 0 0 1 3 0v4a6 6 0 0 1-6 6h-2a6 6 0 0 1-5.3-3.2L4 15.5a1.4 1.4 0 0 1 2.3-1.6L7 15"/>',
   'check-circle': '<circle cx="12" cy="12" r="9"/><path d="m8.5 12 2.5 2.5 4.5-5"/>',
+  compass: '<circle cx="12" cy="12" r="9"/><path d="m15.5 8.5-2 5-5 2 2-5z"/>',
   'arrow-left': '<path d="M19 12H5M11 18l-6-6 6-6"/>',
   wine: '<path d="M8 3h8l-1 7a3 3 0 0 1-6 0L8 3z"/><path d="M12 13v7M8.5 21h7"/>',
   bowl: '<path d="M3 11h18a9 9 0 0 1-18 0z"/><path d="M8 11c0-3 2-5 4-6M12 11c0-2.5 1.5-4 3-5"/>',

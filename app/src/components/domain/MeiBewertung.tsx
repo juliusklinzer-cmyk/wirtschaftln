@@ -5,7 +5,7 @@ import { useFormStatus } from 'react-dom';
 import { KlappenKopf } from '@/components/ds';
 import { PTS } from '@/lib/punkte';
 import type { BewertungErgebnis } from '@/app/(app)/termin/actions';
-import { WertungFelder } from '@/components/domain/WertungFelder';
+import { WertungFelder, StammhausFelder, stammhausFrage } from '@/components/domain/WertungFelder';
 
 export type MeiBewertungWerte = {
   sterne: number | null;
@@ -80,6 +80,45 @@ export function MeiBewertung({
     setOffen(false);
   };
 
+  const meldungBox = meldung && (
+    <div
+      className="wn-toast-in"
+      style={{
+        marginTop: 8, padding: '10px 14px', borderRadius: 'var(--r-md)', textAlign: 'center',
+        background: meldung.ok ? 'var(--erfolg-bg)' : 'var(--strafe-bg)',
+        border: `1px solid ${meldung.ok ? 'var(--erfolg)' : 'var(--strafe)'}`,
+        fontSize: 13, fontWeight: 800, color: meldung.ok ? 'var(--erfolg)' : 'var(--strafe)',
+      }}
+    >
+      {meldung.text}
+    </div>
+  );
+
+  // Stammhaus-Abend in der „Letzter Stammtisch“-Karte (Hoam · Stammhaus 5a/5d): scho abgegeben →
+  // stille Zeile „Brodn ✓ · Schmarrn –“ mit „Ändern“, sonst die kleine Karte mit zwei Schaltern und Satz.
+  if (ohneSterne && eingebettet) {
+    const haken = (an: boolean, text: string) => <span style={{ color: an ? 'var(--erfolg)' : 'var(--ink-300)' }}>{text} {an ? '✓' : '–'}</span>;
+    return (
+      <div>
+        {schonBewertet && !offen ? (
+          <button type="button" onClick={() => { setOffen(true); setMeldung(null); }} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px', borderRadius: 12, border: 'none', background: 'var(--ink-50)', cursor: 'pointer', fontFamily: 'var(--font-ui)', fontSize: 13, textAlign: 'left' }}>
+            <span style={{ flex: 1, minWidth: 0, fontWeight: 700, color: 'var(--ink-700)' }}>Brodn & Schmarrn</span>
+            <span style={{ fontWeight: 800, color: 'var(--navy)', whiteSpace: 'nowrap', display: 'flex', gap: 10 }}>
+              {haken(initial.brodnGessen, 'Brodn')}{haken(initial.kaisiProbiert, 'Schmarrn')}
+            </span>
+            <span style={{ flex: 'none', fontSize: 12, fontWeight: 800, color: 'var(--muc-blau)' }}>Ändern</span>
+          </button>
+        ) : (
+          <form action={speichern} style={{ padding: 14, borderRadius: 'var(--r-md)', background: 'var(--pergament)', border: '1px solid var(--pergament-edge)', display: 'flex', flexDirection: 'column' }}>
+            <StammhausFelder werte={initial} titel={stammhausFrage(wirtshausName)} />
+            <SpeichernKnopf schonBewertet={schonBewertet} />
+          </form>
+        )}
+        {meldungBox}
+      </div>
+    );
+  }
+
   if (variante === 'abend') {
     return (
       <div>
@@ -87,7 +126,7 @@ export function MeiBewertung({
           action={speichern}
           style={{ background: 'var(--weiss)', borderRadius: 'var(--r-lg)', border: '1px solid var(--ink-100)', boxShadow: 'var(--sh-sm)', padding: 16, display: 'flex', flexDirection: 'column' }}
         >
-          <WertungFelder werte={initial} ohneSterne={ohneSterne} />
+          {ohneSterne ? <StammhausFelder werte={initial} titel={stammhausFrage(wirtshausName)} /> : <WertungFelder werte={initial} />}
           <SpeichernKnopf schonBewertet={schonBewertet} />
         </form>
         {meldung && (

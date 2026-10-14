@@ -17,6 +17,7 @@ import {
   getBekannteWirtshaeuser,
   getCheckinsFuerTermin,
   nachtragsfristOffen,
+  getWirtshausById,
 } from '@/lib/queries';
 import { PTS, WACKELT_AB_UNENTSCHULDIGT, checkinOffen, bierdeckelOffen, abschlussOffen, berlinTag } from '@/lib/punkte';
 import { nowIso } from '@/lib/ids';
@@ -35,7 +36,7 @@ import { BadgeFeier, type FeierBadge } from '@/components/domain/BadgeFeier';
 import { CheckinKarte } from '@/components/domain/CheckinKarte';
 import { MeiBewertung } from '@/components/domain/MeiBewertung';
 import { bewertungsDaten } from '@/lib/bewertungs-daten';
-import { meineBewertung, orgaSchnappen } from './termin/actions';
+import { meineBewertung, orgaSchnappen, wirtshausFestlegen } from './termin/actions';
 import { UmfrageKarte } from '@/components/domain/UmfrageKarte';
 import { UmfragenBereich } from '@/components/domain/UmfrageNeu';
 import { HoamTitel } from '@/components/domain/HoamTitel';
@@ -70,6 +71,8 @@ export default async function HomePage() {
   const wackelt = unentschuldigt >= WACKELT_AB_UNENTSCHULDIGT;
   const termin = getAktuellerTermin();
   const letzter = getLetzterAbgeschlossenerTermin();
+  // Stammtisch-Typ „Stammhaus“ (Hoam · Stammhaus 5a–5c): immer dasselbe Wirtshaus, Ausflüge als Ausnahme
+  const stammhaus = config.typ === 'stammhaus' && config.stammhausWirtshausId ? getWirtshausById(config.stammhausWirtshausId) : null;
 
   // Umfragen: offene (no ned abgstimmt) stehen prominent unter der Termin-Karte,
   // scho beantwortete rutschen mit Ergebnis ans Seitenende.
@@ -195,7 +198,30 @@ export default async function HomePage() {
       /* 2b: Planung, Wirtshaus wird gesucht */
       const ichPlane = planer?.id === me.id;
       const planerName = planer ? anzeigeName(planer) : 'der Organisator';
-      heroInhalt = (
+      heroInhalt = stammhaus ? (
+        /* 5b: Stammhaus steht scho drin, ein Tipp bestätigt den Tisch, oder man trägt einen Ausflug ein */
+        <>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+            <span style={eyebrowStil}>{datumMittel(termin.datum)} · {termin.zeit}</span>
+            {kalenderKnopf}
+          </div>
+          <h2 style={{ ...titelStil, fontSize: 36 }}>{ichPlane ? 'Wo geht’s hin?' : `${planerName} reglt’s`}</h2>
+          <span style={zeileStil}>{ichPlane ? 'Du organisierst diesmal.' : 'Der Tisch wird noch bestätigt.'}</span>
+          {ichPlane && (
+            <>
+              <form action={wirtshausFestlegen.bind(null, termin.id)} style={{ display: 'flex', flexDirection: 'column' }}>
+                <input type="hidden" name="vorhandenesWirtshausId" value={stammhaus.id} />
+                <button type="submit" className="wn-press" style={{ ...goldKnopfStil, minHeight: 52 }}>
+                  <Icon name="check-circle" size={20} />Wie immer im {stammhaus.name}
+                </button>
+              </form>
+              <Link href="/termin" className="wn-press" style={{ ...goldKnopfStil, minHeight: 48, background: 'transparent', boxShadow: 'none', border: '1.5px solid rgba(246,240,226,0.3)', color: 'var(--pergament)', fontSize: 15, fontWeight: 700 }}>
+                <Icon name="pin-plus" size={18} />Ausflug: heute mal woanders
+              </Link>
+            </>
+          )}
+        </>
+      ) : (
         <>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
             <span style={eyebrowStil}>Nächster Stammtisch · Planung</span>
@@ -229,19 +255,28 @@ export default async function HomePage() {
         : [];
       const meinBesuch = abend ? getBesucheFuerTermin(termin.id).find((b) => b.memberId === me.id) : undefined;
       const name = wirtshaus?.name ?? (planer ? `${anzeigeName(planer)} reglt’s` : 'Stammtisch');
+      // Stammhaus-Abend („wie immer“) oder Ausflug woanders hin (5a/5c)
+      const stammhausAbend = !!stammhaus && wirtshaus?.id === stammhaus.id;
+      const ausflug = !!stammhaus && !!wirtshaus && !stammhausAbend;
       heroInhalt = (
         <>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0 }}>
               <span style={eyebrowStil}>
-                {heuteTag ? 'Heute ist Stammtisch' : vorbei ? 'Der Abend ist vorbei' : 'Nächster Stammtisch'}
+                {heuteTag ? 'Heute ist Stammtisch' : vorbei ? 'Der Abend ist vorbei' : stammhausAbend ? 'Nächster Stammtisch · Stammhaus' : 'Nächster Stammtisch'}
               </span>
               <h2 style={{ ...titelStil, fontSize: name.length > 16 ? 30 : 40, overflowWrap: 'anywhere' }}>{name}</h2>
               <span style={zeileStil}>
                 {heuteTag ? 'Heute' : datumMittel(termin.datum)} · {termin.zeit}
-                {wirtshaus?.bezirk ? ` · ${wirtshaus.bezirk}` : ''}
+                {stammhausAbend ? ' · wie immer' : wirtshaus?.bezirk ? ` · ${wirtshaus.bezirk}` : ''}
               </span>
             </div>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8, flex: 'none' }}>
+              {ausflug && (
+                <span style={{ fontSize: 11, fontWeight: 800, padding: '4px 10px', borderRadius: 999, background: 'var(--grad-gold)', color: 'var(--navy-900)', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                  <Icon name="compass" size={13} />Ausflug
+                </span>
+              )}
             <div style={{ display: 'flex', gap: 8, flex: 'none' }}>
               {!stammtischTag && kalenderKnopf}
               {wirtshaus && (
@@ -251,10 +286,14 @@ export default async function HomePage() {
                 />
               )}
             </div>
+            </div>
           </div>
 
           {/* Vorher: Zusagen/Absagen. Am Stammtisch-Tag is die Abstimmung durch. */}
           {!stammtischTag && <AbstimmungsStand terminId={termin.id} terminDatum={termin.datum} meinVote={meinVote} />}
+          {!stammtischTag && stammhausAbend && planer && (
+            <span style={hinweisStil}>Tisch bestätigt von {anzeigeName(planer)}</span>
+          )}
 
           {/* Stammtisch-Tag ab 2 Stund’ vor Beginn: Wer is scho da? */}
           {checkin && <CheckinKarte terminId={termin.id} eingecheckte={eingecheckte} />}
@@ -507,6 +546,8 @@ function LetzterStammtisch({
   const wechsel = vergabeWechsel(getVergabeStand(letzter.id), getVergabeStand());
   const kachelLabel: React.CSSProperties = { fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase' };
   const config = tenantConfig();
+  // Stammhaus-Abend: „Euer Stammhaus“ statt Bezirk, koa Sterne, nur Brodn & Schmarrn (Hoam · Stammhaus 5a)
+  const stammhausAbend = config.typ === 'stammhaus' && !!wirtshaus && wirtshaus.id === config.stammhausWirtshausId;
 
   return (
     <section style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -526,8 +567,8 @@ function LetzterStammtisch({
               <span style={{ fontFamily: 'var(--font-fraktur)', fontSize: 28, lineHeight: 1, color: 'var(--gold-bright)', textShadow: '0 1px 4px rgba(0,0,0,0.4)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {wirtshaus?.name ?? 'Stammtisch'}
               </span>
-              {wirtshaus?.bezirk && (
-                <span style={{ fontSize: 12, fontWeight: 600, color: 'rgba(246,240,226,0.85)', marginTop: 2 }}>{wirtshaus.bezirk}</span>
+              {(stammhausAbend || wirtshaus?.bezirk) && (
+                <span style={{ fontSize: 12, fontWeight: 600, color: 'rgba(246,240,226,0.85)', marginTop: 2 }}>{stammhausAbend ? 'Euer Stammhaus' : wirtshaus?.bezirk}</span>
               )}
             </div>
             <span className="wn-tnum" style={{ flex: 'none', fontSize: 11, fontWeight: 800, color: 'var(--pergament)', background: 'rgba(255,255,255,0.16)', border: '1px solid rgba(255,255,255,0.3)', borderRadius: 999, padding: '3px 10px', whiteSpace: 'nowrap' }}>
@@ -577,10 +618,19 @@ function LetzterStammtisch({
               initial={bewertung.initial}
               team={bewertung.team}
               action={meineBewertung.bind(null, letzter.id)}
-              ohneSterne={config.typ === 'stammhaus' && !!wirtshaus && wirtshaus.id === config.stammhausWirtshausId}
+              ohneSterne={stammhausAbend}
             />
           )}
-          {dabei && !bewertungsFenster && bewertung.initial.sterne != null && (
+          {dabei && !bewertungsFenster && stammhausAbend && (bewertung.initial.brodnGessen || bewertung.initial.kaisiProbiert || bewertung.initial.kommentar) && (
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, padding: '12px 14px', borderRadius: 12, background: 'var(--ink-50)', fontSize: 13 }}>
+              <span style={{ fontWeight: 700, color: 'var(--ink-700)' }}>Brodn & Schmarrn</span>
+              <span style={{ fontWeight: 800, color: 'var(--navy)', whiteSpace: 'nowrap', display: 'flex', gap: 10 }}>
+                <span style={{ color: bewertung.initial.brodnGessen ? 'var(--erfolg)' : 'var(--ink-300)' }}>Brodn {bewertung.initial.brodnGessen ? '✓' : '–'}</span>
+                <span style={{ color: bewertung.initial.kaisiProbiert ? 'var(--erfolg)' : 'var(--ink-300)' }}>Schmarrn {bewertung.initial.kaisiProbiert ? '✓' : '–'}</span>
+              </span>
+            </div>
+          )}
+          {dabei && !bewertungsFenster && !stammhausAbend && bewertung.initial.sterne != null && (
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, padding: '12px 14px', borderRadius: 12, background: 'var(--ink-50)', fontSize: 13 }}>
               <span style={{ fontWeight: 700, color: 'var(--ink-700)' }}>Deine Wertung</span>
               <span className="wn-tnum" style={{ fontWeight: 800, color: 'var(--navy)', whiteSpace: 'nowrap' }}>

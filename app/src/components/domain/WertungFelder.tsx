@@ -107,3 +107,54 @@ export function WertungFelder({
     </div>
   );
 }
+
+/** „Wie war’s im Hirsch?“ aus dem Wirtshaus-Namen (Hoam · Stammhaus 5d). */
+export function stammhausFrage(name: string | null): string {
+  if (!name) return 'Wie war’s heute?';
+  const n = name.trim();
+  if (/^zum /i.test(n)) return `Wie war’s im ${n.slice(4)}?`;
+  if (/^zur /i.test(n)) return `Wie war’s in der ${n.slice(4)}?`;
+  if (/^beim /i.test(n)) return `Wie war’s ${n.charAt(0).toLowerCase()}${n.slice(1)}?`;
+  const kurz = n.replace(/^(Gasthaus|Gasthof|Gaststätte|Wirtshaus|Restaurant|Bräustüberl)\s+/i, '');
+  return `Wie war’s im ${kurz}?`;
+}
+
+/**
+ * Stammhaus-Abend (Hoam · Stammhaus 5d): koa Sterne, nur zwei Schalter
+ * (Brodn gegessen, Schmarrn probiert) und ein Satz zum Abend. Schreibt
+ * dieselben Feldnamen wie WertungFelder (abend, brodnGessen, kaisiProbiert, kommentar).
+ */
+export function StammhausFelder({ werte, titel }: { werte: MeiBewertungWerte; titel: string }) {
+  const [brodn, setBrodn] = useState(werte.brodnGessen);
+  const [kaisi, setKaisi] = useState(werte.kaisiProbiert);
+  const [kommentar, setKommentar] = useState(werte.kommentar);
+  const schalter = (an: boolean, umschalten: () => void, icon: string, text: string) => (
+    <button
+      type="button"
+      onClick={umschalten}
+      aria-pressed={an}
+      className="wn-press"
+      style={{
+        height: 48, borderRadius: 14, cursor: 'pointer', fontFamily: 'var(--font-ui)', fontSize: 14, fontWeight: 800,
+        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+        border: an ? '2px solid var(--muc-blau)' : '1.5px solid var(--ink-100)',
+        background: an ? 'var(--info-bg)' : 'var(--weiss)', color: an ? 'var(--muc-blau)' : 'var(--ink-500)',
+      }}
+    >
+      <Icon name={icon} size={18} />{text}
+    </button>
+  );
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <input type="hidden" name="abend" value="on" />
+      {brodn && <input type="hidden" name="brodnGessen" value="on" />}
+      {kaisi && <input type="hidden" name="kaisiProbiert" value="on" />}
+      <span style={{ fontSize: 15, fontWeight: 800, color: 'var(--navy)' }}>{titel}</span>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+        {schalter(brodn, () => setBrodn(!brodn), 'bowl', 'Brodn gegessen')}
+        {schalter(kaisi, () => setKaisi(!kaisi), 'cookie', 'Schmarrn probiert')}
+      </div>
+      <input name="kommentar" value={kommentar} onChange={(e) => setKommentar(e.target.value)} maxLength={500} placeholder="Ein Satz zum Abend …" style={{ ...feld, borderRadius: 14, minHeight: 48 }} />
+    </div>
+  );
+}

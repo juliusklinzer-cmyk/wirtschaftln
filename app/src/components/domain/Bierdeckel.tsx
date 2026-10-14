@@ -158,7 +158,8 @@ function Sterne({ anzahl }: { anzahl: number }) {
 }
 
 /** Alles, was mit Tinte am Deckel steht: Hoibe unten, WB + Schnaps oben, Sterne rechts, +/− als Wegweiser. */
-function Tinte({ hoiben, schnaps, sterne, schnapsAn }: { hoiben: number; schnaps: number; sterne: number; schnapsAn: boolean }) {
+/** Striche, WB und Sterne als SVG überm Deckel (aa für die Erklär-Slides). */
+export function Tinte({ hoiben, schnaps, sterne, schnapsAn }: { hoiben: number; schnaps: number; sterne: number; schnapsAn: boolean }) {
   return (
     <svg viewBox="0 0 264 264" fill="none" aria-hidden style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none', overflow: 'visible' }}>
       <Strichgruppen anzahl={hoiben} winkel={HOIBE_WINKEL} salz={0} />

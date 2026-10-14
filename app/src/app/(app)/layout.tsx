@@ -14,6 +14,8 @@ import { ZiehenAktualisieren } from '@/components/shell/ZiehenAktualisieren';
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const me = await getCurrentMember();
   if (!me) redirect('/login');
+  // Neue sehen zuerst die Erklär-Slides, dann kommt das Profil (Onboarding Slides, 14.10.2026)
+  if (me.erstanmeldung && !me.onboardingGesehen) redirect('/willkommen');
   // Tenant-Config einmal fürs Layout + als Props für Client-Komponenten
   const config = publicTenantConfig();
   // Eigene Saison-WP + Platz für Header-Pill und Profil-Menü

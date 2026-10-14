@@ -30,6 +30,8 @@ export const members = sqliteTable('members', {
   beschreibung: text('beschreibung'),
   // true, bis der Spezl beim ersten Login Passwort gesetzt + Profil ausgefüllt hat
   erstanmeldung: integer('erstanmeldung', { mode: 'boolean' }).notNull().default(false),
+  /** Erklär-Slides (/willkommen) scho gsehen? Wird beim ersten Login einmal gezeigt. */
+  onboardingGesehen: integer('onboarding_gesehen', { mode: 'boolean' }).notNull().default(false),
   createdAt: text('created_at').notNull(),
 });
 

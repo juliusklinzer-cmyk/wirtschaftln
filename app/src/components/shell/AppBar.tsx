@@ -13,6 +13,7 @@ import { UserPlus } from '@phosphor-icons/react/dist/ssr/UserPlus';
 import { Bell } from '@phosphor-icons/react/dist/ssr/Bell';
 import { Info } from '@phosphor-icons/react/dist/ssr/Info';
 import { Gear } from '@phosphor-icons/react/dist/ssr/Gear';
+import { BookOpen } from '@phosphor-icons/react/dist/ssr/BookOpen';
 import { SignOut } from '@phosphor-icons/react/dist/ssr/SignOut';
 import { X } from '@phosphor-icons/react/dist/ssr/X';
 import { CaretRight } from '@phosphor-icons/react/dist/ssr/CaretRight';
@@ -317,6 +318,7 @@ function ProfilMenue({
               </button>
             )}
           />
+          <Link href="/willkommen" style={{ ...zeileStil, ...(isAdmin ? {} : { borderWidth: 0 }) }}><Zeile icon={BookOpen} label="So geht’s" hint="Erklär-Slides" /></Link>
           {isAdmin && (
             <Link href="/stammtisch" style={{ ...zeileStil, borderWidth: 0 }}><Zeile icon={Gear} label="Stammtisch verwalten" /></Link>
           )}

@@ -19,6 +19,9 @@ export function ZiehenAktualisieren() {
   const pathname = usePathname();
   // Auf der Karte wird gewischt und gezogen, da soll's ned aus Versehen neu laden (Julius, 14.10.2026)
   const aus = pathname.startsWith('/karte');
+  // Rang und Kasse haben koan Navy-Kopf: dort gar ned runterziehen lassen (koa Gummiband, koa
+  // Blau überm hellen Inhalt), also aa koa Aktualisieren (Julius, 14.10.2026)
+  const gesperrt = /^\/(spezln|kasse)(\/|$)/.test(pathname);
   const anker = useRef<HTMLDivElement>(null);
   const [laedt, startTransition] = useTransition();
   const aktiv = useRef(false);
@@ -29,10 +32,16 @@ export function ZiehenAktualisieren() {
     const scroller = anker.current?.parentElement;
     if (!scroller) return;
     const setzen = (v: number) => { zugRef.current = v; };
+    scroller.style.overscrollBehaviorY = gesperrt ? 'none' : '';
+    // Sperre: ganz oben nach unten ziehen wird abgefangen (nicht-passiv, damit preventDefault greift)
+    const sperren = (e: TouchEvent) => {
+      if (!gesperrt || scroller.scrollTop > 0 || e.touches.length !== 1) return;
+      if (e.touches[0].clientY - startY.current > 0 && e.cancelable) e.preventDefault();
+    };
     const start = (e: TouchEvent) => {
-      if (aus || scroller.scrollTop > 0 || e.touches.length !== 1) return;
+      if (e.touches.length === 1) startY.current = e.touches[0].clientY;
+      if (aus || gesperrt || scroller.scrollTop > 0 || e.touches.length !== 1) return;
       aktiv.current = true;
-      startY.current = e.touches[0].clientY;
     };
     const bewegen = (e: TouchEvent) => {
       if (!aktiv.current) return;
@@ -52,16 +61,19 @@ export function ZiehenAktualisieren() {
       }
     };
     scroller.addEventListener('touchstart', start, { passive: true });
+    scroller.addEventListener('touchmove', sperren, { passive: false });
     scroller.addEventListener('touchmove', bewegen, { passive: true });
     scroller.addEventListener('touchend', ende, { passive: true });
     scroller.addEventListener('touchcancel', ende, { passive: true });
     return () => {
       scroller.removeEventListener('touchstart', start);
+      scroller.removeEventListener('touchmove', sperren);
       scroller.removeEventListener('touchmove', bewegen);
+      scroller.style.overscrollBehaviorY = '';
       scroller.removeEventListener('touchend', ende);
       scroller.removeEventListener('touchcancel', ende);
     };
-  }, [router, aus]);
+  }, [router, aus, gesperrt]);
 
   // Fertig geladen → Zug zurücksetzen
   useEffect(() => {

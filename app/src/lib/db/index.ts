@@ -113,9 +113,14 @@ export function tenantVerfuegbar(id: string): boolean {
   return !!gruppe && gruppe.status === 'aktiv';
 }
 
-/** Mandanten für einen Callback binden (Route-Handler, Skripte). */
-export function runWithTenant<T>(id: string, fn: () => T): T {
-  if (!tenantVerfuegbar(id)) throw new Error(`Unbekannter oder gesperrter Stammtisch: ${JSON.stringify(id)}`);
+/**
+ * Mandanten für einen Callback binden (Route-Handler, Skripte). Mit
+ * `auchGesperrt` auch für gesperrte Stammtische (Verzeichnis, Einlader-Name,
+ * Login-Meldung), sonst nur für aktive.
+ */
+export function runWithTenant<T>(id: string, fn: () => T, opts: { auchGesperrt?: boolean } = {}): T {
+  const ok = opts.auchGesperrt ? !!findGruppe(id) : tenantVerfuegbar(id);
+  if (!ok) throw new Error(`Unbekannter oder gesperrter Stammtisch: ${JSON.stringify(id)}`);
   return als.run(openTenantDb(id), fn);
 }
 

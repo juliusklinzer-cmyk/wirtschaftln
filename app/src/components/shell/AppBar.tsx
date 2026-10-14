@@ -14,6 +14,7 @@ import { Bell } from '@phosphor-icons/react/dist/ssr/Bell';
 import { Info } from '@phosphor-icons/react/dist/ssr/Info';
 import { Gear } from '@phosphor-icons/react/dist/ssr/Gear';
 import { BookOpen } from '@phosphor-icons/react/dist/ssr/BookOpen';
+import { TreeStructure } from '@phosphor-icons/react/dist/ssr/TreeStructure';
 import { SignOut } from '@phosphor-icons/react/dist/ssr/SignOut';
 import { X } from '@phosphor-icons/react/dist/ssr/X';
 import { CaretRight } from '@phosphor-icons/react/dist/ssr/CaretRight';
@@ -27,6 +28,7 @@ const TITLES: Record<string, string> = {
   '/profil': 'Mei Profil',
   '/stammtisch': 'Stammtisch',
   '/einladen': 'Spezln einladen',
+  '/verzeichnis': 'Verzeichnis',
 };
 
 /**
@@ -45,6 +47,7 @@ export function AppBar({
   rang,
   badges,
   amt,
+  verzeichnis = null,
   onLogout,
 }: {
   /** Name des Stammtischs (Tenant-Config), Wortmarke im Header */
@@ -63,6 +66,8 @@ export function AppBar({
   badges: number;
   /** Aktuelles Amt („Präsident“), falls eins. */
   amt: string | null;
+  /** Nur Gründer-Admins: Zeile „Alle Stammtische“ mit offenen Anfragen */
+  verzeichnis?: { anfragen: number } | null;
   onLogout: () => Promise<void>;
 }) {
   const [menu, setMenu] = useState(false);
@@ -184,6 +189,7 @@ export function AppBar({
           rang={rang}
           badges={badges}
           amt={amt}
+          verzeichnis={verzeichnis}
           onLogout={onLogout}
           onClose={() => setMenu(false)}
         />
@@ -205,6 +211,7 @@ function ProfilMenue({
   rang,
   badges,
   amt,
+  verzeichnis = null,
   onLogout,
   onClose,
 }: {
@@ -216,6 +223,7 @@ function ProfilMenue({
   rang: number;
   badges: number;
   amt: string | null;
+  verzeichnis?: { anfragen: number } | null;
   onLogout: () => Promise<void>;
   onClose: () => void;
 }) {
@@ -319,6 +327,11 @@ function ProfilMenue({
             )}
           />
           <Link href="/willkommen" style={{ ...zeileStil, ...(isAdmin ? {} : { borderWidth: 0 }) }}><Zeile icon={BookOpen} label="So geht’s" hint="Erklär-Slides" /></Link>
+          {isAdmin && verzeichnis && (
+            <Link href="/verzeichnis" style={zeileStil}>
+              <Zeile icon={TreeStructure} label="Alle Stammtische" hint={verzeichnis.anfragen > 0 ? `${verzeichnis.anfragen} Anfrage${verzeichnis.anfragen === 1 ? '' : 'n'} offen` : 'Verzeichnis'} />
+            </Link>
+          )}
           {isAdmin && (
             <Link href="/stammtisch" style={{ ...zeileStil, borderWidth: 0 }}><Zeile icon={Gear} label="Stammtisch verwalten" /></Link>
           )}

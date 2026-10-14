@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation';
+import { eq } from 'drizzle-orm';
 import { Flame } from '@phosphor-icons/react/dist/ssr/Flame';
 import { Snowflake } from '@phosphor-icons/react/dist/ssr/Snowflake';
 import { MapPin } from '@phosphor-icons/react/dist/ssr/MapPin';
@@ -18,11 +19,13 @@ import { ProfilBearbeiten } from './profil-bearbeiten';
 import { ProfilForm, type ProfilWerte } from './profil-form';
 import { Einstellungen } from './einstellungen';
 import { Schliessen } from './schliessen';
-import { tokenErzeugen } from './actions';
+import { tokenErzeugen, tokenWidmen, tokenAnfragen } from './actions';
 import { logout } from '@/app/login/actions';
 import { tenantConfig } from '@/lib/tenant-config';
-import { tokensFuerGruenderMitglied, tokenLink, gruppenName } from '@/lib/gruendung';
-import { datumKurz } from '@/lib/format';
+import { tokensFuerProfil, tokenLink, tokenAnspruch } from '@/lib/gruendung';
+import { findGruppe } from '@/lib/db/directory';
+import { currentTenant, db, members } from '@/lib/db';
+import { datumKurz, datumMitJahr } from '@/lib/format';
 
 export const metadata = { title: 'Mei Profil · Wirtschaftln' };
 
@@ -37,9 +40,9 @@ export default async function ProfilPage() {
   const me = await getCurrentMember();
   if (!me) redirect('/login');
   const config = tenantConfig();
-  // 🏰 Gründungs-Token: nur Mitglieder des Gründer-Stammtischs, lazy gemünzt
-  // (der Gründer-Admin derf beliebig viele; alle anderen genau einen)
-  const tokens = config.istGruender && !me.erstanmeldung ? tokensFuerGruenderMitglied(me.id) : [];
+  // 🎟️ Gründungs-Token (Token-Verzeichnis-Redesign): beim Gründer die eigenen, sonst
+  // (nur Admins) die des Stammtischs samt Fristen und Anfragen, lazy gemünzt
+  const tokenProfil = me.erstanmeldung ? null : tokensFuerProfil(me);
   const saison = aktuelleSaison();
   const statsSaison = getStats({ abDatum: saison.start });
   const statsAllzeit = getStats();
@@ -105,6 +108,46 @@ export default async function ProfilPage() {
   }
 
   const leer = steckbriefLeer(me);
+
+  // Token-Bereich fürs Einstellungs-Blatt (Namen der Widmenden aus dem eigenen Mandanten)
+  const gruppe = currentTenant().gruppe;
+  const nameVon = (id: string) => {
+    if (id === me.id) return 'dir';
+    const m = db.select().from(members).where(eq(members.id, id)).get();
+    return m ? anzeigeName(m) : '—';
+  };
+  const tokenBereich = tokenProfil
+    ? {
+        tokens: tokenProfil.tokens.map((t) => {
+          const g = t.eingeloestVonGruppeId ? findGruppe(t.eingeloestVonGruppeId) : null;
+          return {
+            token: t.token,
+            link: tokenLink(t.token),
+            widmung: t.widmung,
+            gewidmetZeile: t.widmung ? `von ${nameVon(t.memberId)}${t.gewidmetAm ? ` · ${datumKurz(t.gewidmetAm.slice(0, 10))}` : ''}` : null,
+            eingeloest: t.status === 'eingeloest' ? { gruppeName: g?.name ?? '—', stadt: g?.stadt ?? null, am: t.eingeloestAm ? datumKurz(t.eingeloestAm.slice(0, 10)) : '—' } : null,
+          };
+        }),
+        fristen: gruppe.istGruender
+          ? []
+          : (() => {
+              const { gesperrt } = tokenAnspruch(gruppe);
+              return [2, 6].map((monate, i) => {
+                const offen = gesperrt.find((f) => f.nr === i + 1);
+                const ab = offen ? offen.ab : null;
+                const d = ab ?? new Date(new Date(gruppe.createdAt).setMonth(new Date(gruppe.createdAt).getMonth() + monate)).toISOString();
+                return { nr: i + 1, monate, abLang: datumMitJahr(d.slice(0, 10)), abKurz: datumKurz(d.slice(0, 10)), offen: !!offen };
+              });
+            })(),
+        gruendung: datumKurz(gruppe.createdAt.slice(0, 10)),
+        anfragen: tokenProfil.anfragen.map((a) => ({ id: a.id, status: a.status, am: datumKurz((a.entschiedenAm ?? a.createdAt).slice(0, 10)), grund: a.grund })),
+        darfAnfragen: tokenProfil.darfAnfragen,
+        eigene: gruppe.istGruender && me.role !== 'admin',
+        widmen: tokenWidmen,
+        anfrageSchicken: tokenProfil.darfAnfragen || tokenProfil.anfragen.length > 0 ? tokenAnfragen : undefined,
+        neuerToken: tokenProfil.darfMuenzen ? tokenErzeugen : undefined,
+      }
+    : null;
 
   return (
     <div className="wn-eintritt" style={{ padding: 'calc(14px + env(safe-area-inset-top)) 16px 32px', display: 'flex', flexDirection: 'column', gap: 24, position: 'relative' }}>
@@ -218,16 +261,7 @@ export default async function ProfilPage() {
       {/* ── Einstellungen ── */}
       <section style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         <HoamTitel>Einstellungen</HoamTitel>
-        <Einstellungen
-          tokens={tokens.map((t) => ({
-            token: t.token,
-            link: tokenLink(t.token),
-            eingeloest: t.status === 'eingeloest' ? { gruppeName: gruppenName(t.eingeloestVonGruppeId) ?? '—', am: t.eingeloestAm ? datumKurz(t.eingeloestAm.slice(0, 10)) : '—' } : null,
-          }))}
-          neuerToken={me.role === 'admin' && config.istGruender ? tokenErzeugen : undefined}
-          gaudi={config.features.daniModus}
-          logout={logout}
-        />
+        <Einstellungen token={tokenBereich} gaudi={config.features.daniModus} logout={logout} />
       </section>
     </div>
   );

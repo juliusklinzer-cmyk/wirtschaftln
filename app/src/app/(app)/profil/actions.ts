@@ -8,7 +8,8 @@ import { getCurrentMember, destroyOtherSessions } from '@/lib/session';
 import { hashPassword, verifyPassword } from '@/lib/password';
 import { tenantConfig } from '@/lib/tenant-config';
 import { fotoAblegen } from '@/lib/foto';
-import { neuerToken } from '@/lib/gruendung';
+import { neuerToken, tokenWidmenFuer, anfrageStellen } from '@/lib/gruendung';
+import { gruenderGruppeId } from '@/lib/db/directory';
 
 export type ProfilState = { error?: string; ok?: boolean };
 
@@ -24,8 +25,28 @@ function weisswuerste(v: FormDataEntryValue | null): number | null {
 export async function tokenErzeugen() {
   const me = await getCurrentMember();
   if (!me || me.role !== 'admin' || !tenantConfig().istGruender) return;
-  neuerToken(me.id);
+  neuerToken(me.id, gruenderGruppeId(), 'admin');
   revalidatePath('/profil');
+}
+
+/** Token widmen („Sepp aus Regensburg“), erst danach lässt er sich teilen. */
+export async function tokenWidmen(token: string, widmung: string): Promise<{ fehler?: string }> {
+  const me = await getCurrentMember();
+  if (!me) return { fehler: 'Ned angemeldet.' };
+  const fehler = tokenWidmenFuer(me, String(token ?? ''), String(widmung ?? ''));
+  if (fehler) return { fehler };
+  revalidatePath('/profil');
+  return {};
+}
+
+/** Weiteren Token anfragen (Admin eines Stammtischs), die Wirtschaftln-Admins entscheiden. */
+export async function tokenAnfragen(grund: string): Promise<{ fehler?: string }> {
+  const me = await getCurrentMember();
+  if (!me) return { fehler: 'Ned angemeldet.' };
+  const fehler = anfrageStellen(me, String(grund ?? ''));
+  if (fehler) return { fehler };
+  revalidatePath('/profil');
+  return {};
 }
 
 /**

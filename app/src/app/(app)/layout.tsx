@@ -9,6 +9,7 @@ import { TabBar, TABS_STAMMHAUS, TABS_WANDERND } from '@/components/shell/TabBar
 import { DaniStreifen } from '@/components/domain/DaniModus';
 import { TenantProvider } from '@/components/shell/TenantProvider';
 import { publicTenantConfig } from '@/lib/tenant-config';
+import { offeneAnfragen } from '@/lib/db/directory';
 import { ZiehenAktualisieren } from '@/components/shell/ZiehenAktualisieren';
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
@@ -28,6 +29,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const meineBadges = [...vergabe.values()].filter((id) => id === me.id).length;
   const AMT_TITEL: Record<string, string> = { 'amt:praesident': 'Präsident', 'amt:schriftfuehrer': 'Schriftführer', 'amt:kassenwart': 'Kassenwart' };
   const meinAmt = [...vergabe.entries()].find(([key, id]) => id === me.id && AMT_TITEL[key])?.[0];
+  // Verzeichnis (nur Gründer-Admins): offene Token-Anfragen als Hinweis im Profil-Menü
+  const verzeichnis = config.istGruender && me.role === 'admin' ? { anfragen: offeneAnfragen().length } : null;
 
   return (
     <TenantProvider config={config}>
@@ -68,6 +71,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           rang={meinRang}
           badges={meineBadges}
           amt={meinAmt ? AMT_TITEL[meinAmt] : null}
+          verzeichnis={verzeichnis}
           onLogout={logout}
         />
         {children}

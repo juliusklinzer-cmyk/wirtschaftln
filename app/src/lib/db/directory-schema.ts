@@ -23,6 +23,8 @@ export const gruppen = sqliteTable(
     /** Tenant-Config als JSON (fehlende Keys → Gründer-Defaults, siehe tenant-config.ts) */
     config: text('config').notNull().default('{}'),
     status: text('status', { enum: ['aktiv', 'gesperrt'] }).notNull().default('aktiv'),
+    /** Wann gesperrt (Verzeichnis), null = nie / wieder entsperrt */
+    gesperrtAm: text('gesperrt_am'),
     createdAt: text('created_at').notNull(),
   },
   (t) => [uniqueIndex('gruppen_gruendungscode').on(t.gruendungscode)],
@@ -41,25 +43,52 @@ export const konten = sqliteTable(
   (t) => [uniqueIndex('konten_email_gruppe').on(t.email, t.gruppeId), index('konten_email').on(t.email)],
 );
 
-// Jedes Gründer-Mitglied kriegt genau EINEN Token, mit dem es genau EINEN
-// neuen Stammtisch in d'Welt setzen derf (nicht viral). Der Gründer-Admin
-// derf beliebig viele Tokens erzeugen (Migration 0001: Unique → normaler Index).
+// Gründungs-Token = Ehren-Einladung (Token-Verzeichnis-Redesign 14.10.2026):
+// Jeder Token gehört einem Stammtisch (gruppe_id). Beim Gründer kriegt jedes
+// Mitglied genau einen (quelle 'mitglied'), der Gründer-Admin beliebig viele
+// ('admin'). Jeder andere Stammtisch bekommt nach 2 und 6 Monaten je einen
+// ('anspruch') und kann weitere anfragen ('anfrage'). Vor dem Teilen wird der
+// Token gewidmet („Sepp aus Regensburg“); member_id = wer ihn hält bzw. gewidmet hat.
 export const gruendungsTokens = sqliteTable(
   'gruendungs_tokens',
   {
   token: text('token').primaryKey(), // lesbar, z. B. WIRT-XXXX-XXXX
   memberId: text('member_id').notNull(),
+  gruppeId: text('gruppe_id').references(() => gruppen.id),
+  quelle: text('quelle', { enum: ['mitglied', 'admin', 'anspruch', 'anfrage'] }).notNull().default('mitglied'),
+  widmung: text('widmung'),
+  gewidmetAm: text('gewidmet_am'),
   status: text('status', { enum: ['offen', 'eingeloest'] }).notNull().default('offen'),
   eingeloestVonGruppeId: text('eingeloest_von_gruppe_id').references(() => gruppen.id),
   eingeloestAm: text('eingeloest_am'),
   createdAt: text('created_at').notNull(),
   },
-  (t) => [index('gruendungs_tokens_member_id').on(t.memberId)],
+  (t) => [index('gruendungs_tokens_member_id').on(t.memberId), index('gruendungs_tokens_gruppe_id').on(t.gruppeId), index('gruendungs_tokens_eingeloest_von').on(t.eingeloestVonGruppeId)],
+);
+
+// Token-Anfragen: ein Stammtisch-Admin bittet um einen weiteren Token (mit
+// Grund), die Wirtschaftln-Admins geben frei (dann wird der Token gemünzt) oder lehnen ab.
+export const tokenAnfragen = sqliteTable(
+  'token_anfragen',
+  {
+    id: text('id').primaryKey(),
+    gruppeId: text('gruppe_id').notNull().references(() => gruppen.id, { onDelete: 'cascade' }),
+    memberId: text('member_id').notNull(),
+    grund: text('grund').notNull(),
+    status: text('status', { enum: ['offen', 'freigegeben', 'abgelehnt'] }).notNull().default('offen'),
+    entschiedenVonMemberId: text('entschieden_von_member_id'),
+    entschiedenAm: text('entschieden_am'),
+    token: text('token').references(() => gruendungsTokens.token),
+    createdAt: text('created_at').notNull(),
+  },
+  (t) => [index('token_anfragen_gruppe_status').on(t.gruppeId, t.status)],
 );
 
 export type Gruppe = typeof gruppen.$inferSelect;
 export type Konto = typeof konten.$inferSelect;
 export type GruendungsToken = typeof gruendungsTokens.$inferSelect;
+export type TokenAnfrage = typeof tokenAnfragen.$inferSelect;
+export type TokenQuelle = GruendungsToken['quelle'];
 
 // „Passwort vergessen“: Link-Token per Mail, eine Stunde gültig, ein Token je
 // Konto (E-Mail + Stammtisch). Wird beim Setzen des neuen Passworts gelöscht.

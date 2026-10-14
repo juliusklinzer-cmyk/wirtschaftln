@@ -1,9 +1,9 @@
 import { drizzle, type BetterSQLite3Database } from 'drizzle-orm/better-sqlite3';
-import { and, eq } from 'drizzle-orm';
+import { and, asc, desc, eq } from 'drizzle-orm';
 import type Database from 'better-sqlite3';
 import { randomBytes } from 'node:crypto';
 import * as dirSchema from './directory-schema';
-import { gruppen, konten, gruendungsTokens, passwortTokens, type Gruppe, type Konto, type GruendungsToken, type PasswortToken } from './directory-schema';
+import { gruppen, konten, gruendungsTokens, passwortTokens, tokenAnfragen, type Gruppe, type Konto, type GruendungsToken, type PasswortToken, type TokenAnfrage, type TokenQuelle } from './directory-schema';
 import { ensureGruender, openDirectorySqlite } from './core';
 
 /**
@@ -66,13 +66,87 @@ export function tokensFuerMitglied(memberId: string): GruendungsToken[] {
   return getDirectory().db.select().from(gruendungsTokens).where(eq(gruendungsTokens.memberId, memberId)).orderBy(gruendungsTokens.createdAt).all();
 }
 
-export function tokenAnlegen(token: string, memberId: string): GruendungsToken {
+export function tokenAnlegen(token: string, memberId: string, gruppeId: string, quelle: TokenQuelle): GruendungsToken {
   getDirectory()
     .db.insert(gruendungsTokens)
-    .values({ token, memberId, status: 'offen', createdAt: new Date().toISOString() })
+    .values({ token, memberId, gruppeId, quelle, status: 'offen', createdAt: new Date().toISOString() })
     .onConflictDoNothing()
     .run();
   return findToken(token)!;
+}
+
+/** Alle Tokens eines Stammtischs (Besitzer), älteste zuerst. */
+export function tokensFuerGruppe(gruppeId: string): GruendungsToken[] {
+  return getDirectory().db.select().from(gruendungsTokens).where(eq(gruendungsTokens.gruppeId, gruppeId)).orderBy(asc(gruendungsTokens.createdAt)).all();
+}
+
+export function alleTokens(): GruendungsToken[] {
+  return getDirectory().db.select().from(gruendungsTokens).orderBy(asc(gruendungsTokens.createdAt)).all();
+}
+
+/** Der Token, mit dem dieser Stammtisch gegründet wurde (null = ohne Token angelegt). */
+export function tokenFuerGegruendeteGruppe(gruppeId: string): GruendungsToken | null {
+  return getDirectory().db.select().from(gruendungsTokens).where(eq(gruendungsTokens.eingeloestVonGruppeId, gruppeId)).get() ?? null;
+}
+
+/** Token widmen („Sepp aus Regensburg“); member_id = wer gewidmet hat. Nur solange offen. */
+export function tokenWidmen(token: string, widmung: string, memberId: string): boolean {
+  const r = getDirectory()
+    .db.update(gruendungsTokens)
+    .set({ widmung, gewidmetAm: new Date().toISOString(), memberId })
+    .where(and(eq(gruendungsTokens.token, token), eq(gruendungsTokens.status, 'offen')))
+    .run();
+  return r.changes === 1;
+}
+
+/** Stammtisch sperren / entsperren (Verzeichnis). Der Gründer-Stammtisch is tabu. */
+export function gruppeStatusSetzen(id: string, status: 'aktiv' | 'gesperrt'): void {
+  const g = findGruppe(id);
+  if (!g) throw new Error('Unbekannter Stammtisch');
+  if (g.istGruender) throw new Error('Der Gründer-Stammtisch lässt sich ned sperren');
+  getDirectory()
+    .db.update(gruppen)
+    .set({ status, gesperrtAm: status === 'gesperrt' ? new Date().toISOString() : null })
+    .where(eq(gruppen.id, id))
+    .run();
+}
+
+/* ── Token-Anfragen ── */
+
+export function anfrageAnlegen(zeile: { id: string; gruppeId: string; memberId: string; grund: string }): TokenAnfrage {
+  getDirectory().db.insert(tokenAnfragen).values({ ...zeile, status: 'offen', createdAt: new Date().toISOString() }).run();
+  return findAnfrage(zeile.id)!;
+}
+
+export function findAnfrage(id: string): TokenAnfrage | null {
+  return getDirectory().db.select().from(tokenAnfragen).where(eq(tokenAnfragen.id, id)).get() ?? null;
+}
+
+/** Anfragen eines Stammtischs, neueste zuerst. */
+export function anfragenFuerGruppe(gruppeId: string): TokenAnfrage[] {
+  return getDirectory().db.select().from(tokenAnfragen).where(eq(tokenAnfragen.gruppeId, gruppeId)).orderBy(desc(tokenAnfragen.createdAt)).all();
+}
+
+export function offeneAnfragen(): TokenAnfrage[] {
+  return getDirectory().db.select().from(tokenAnfragen).where(eq(tokenAnfragen.status, 'offen')).orderBy(asc(tokenAnfragen.createdAt)).all();
+}
+
+/**
+ * Anfrage entscheiden. Bei Freigabe wird der Token in derselben Transaktion
+ * gemünzt (quelle 'anfrage', Halter = Antragsteller). false = war scho entschieden.
+ */
+export function anfrageEntscheiden(id: string, status: 'freigegeben' | 'abgelehnt', entschiedenVon: string, token: string | null): boolean {
+  const d = getDirectory();
+  const tx = d.sqlite.transaction((): boolean => {
+    const a = findAnfrage(id);
+    if (!a || a.status !== 'offen') return false;
+    if (status === 'freigegeben' && token) {
+      d.db.insert(gruendungsTokens).values({ token, memberId: a.memberId, gruppeId: a.gruppeId, quelle: 'anfrage', status: 'offen', createdAt: new Date().toISOString() }).run();
+    }
+    d.db.update(tokenAnfragen).set({ status, entschiedenVonMemberId: entschiedenVon, entschiedenAm: new Date().toISOString(), token: status === 'freigegeben' ? token : null }).where(eq(tokenAnfragen.id, id)).run();
+    return true;
+  });
+  return tx();
 }
 
 export function findToken(token: string): GruendungsToken | null {
@@ -106,8 +180,9 @@ export function gruppeGruendenMitToken(zeile: typeof gruppen.$inferInsert, token
   }
 }
 
+/** Alle Stammtische, der Gründer zuerst, dann nach Gründungsdatum. */
 export function alleGruppen(): Gruppe[] {
-  return getDirectory().db.select().from(gruppen).all();
+  return getDirectory().db.select().from(gruppen).orderBy(desc(gruppen.istGruender), asc(gruppen.createdAt)).all();
 }
 
 /** Alle Stammtische, in denen die E-Mail ein Konto hat (Login-Routing). */
@@ -181,4 +256,4 @@ export function passwortTokensLoeschen(email: string): void {
   getDirectory().db.delete(passwortTokens).where(eq(passwortTokens.email, email)).run();
 }
 
-export type { Gruppe, Konto, GruendungsToken, PasswortToken } from './directory-schema';
+export type { Gruppe, Konto, GruendungsToken, PasswortToken, TokenAnfrage, TokenQuelle } from './directory-schema';

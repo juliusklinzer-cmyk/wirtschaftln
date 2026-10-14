@@ -2,7 +2,7 @@
 
 import { redirect } from 'next/navigation';
 import { eq } from 'drizzle-orm';
-import { db, members, bindTenant } from '@/lib/db';
+import { db, members, bindTenant, runWithTenant } from '@/lib/db';
 import { findGruppe, kontenFuerEmail } from '@/lib/db/directory';
 import { hashPassword, verifyPassword } from '@/lib/password';
 import { createSession, destroySession } from '@/lib/session';
@@ -51,7 +51,16 @@ export async function login(_prev: LoginState, formData: FormData): Promise<Logi
   let konten = kontenFuerEmail(email);
   if (gewaehlt) konten = konten.filter((k) => k.gruppeId === gewaehlt);
   const kandidaten: Kandidat[] = [];
+  // Gesperrter Stammtisch (Verzeichnis): nur bei richtigem Passwort sagen wir's (4c), sonst die normale Meldung
+  let gesperrtTreffer = false;
   for (const konto of konten.slice(0, MAX_KANDIDATEN)) {
+    if (findGruppe(konto.gruppeId)?.status === 'gesperrt') {
+      try {
+        const m = runWithTenant(konto.gruppeId, () => db.select().from(members).where(eq(members.email, email)).get(), { auchGesperrt: true });
+        if (m && verifyPassword(password, m.passwordHash)) gesperrtTreffer = true;
+      } catch { /* DB fehlt → wia unbekannt */ }
+      continue;
+    }
     if (!bindTenant(konto.gruppeId)) continue;
     const member = db.select().from(members).where(eq(members.email, email)).get();
     if (member) kandidaten.push({ gruppeId: konto.gruppeId, member });
@@ -59,8 +68,9 @@ export async function login(_prev: LoginState, formData: FormData): Promise<Logi
 
   const passende = kandidaten.filter((k) => verifyPassword(password, k.member.passwordHash));
   // Unbekannte E-Mail: trotzdem einmal scrypt rechnen (gleiches Timing)
-  if (kandidaten.length === 0) verifyPassword(password, DUMMY_HASH);
+  if (kandidaten.length === 0 && !gesperrtTreffer) verifyPassword(password, DUMMY_HASH);
 
+  if (passende.length === 0 && gesperrtTreffer) return { error: 'Dieser Stammtisch ist gesperrt. Frag beim Wirtschaftln nach.' };
   if (passende.length === 0) {
     if (fehlversuche.size > 500) {
       for (const [k, v] of fehlversuche) if (Date.now() >= v.bis) fehlversuche.delete(k);

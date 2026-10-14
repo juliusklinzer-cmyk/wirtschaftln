@@ -9,6 +9,7 @@ import { Trophy } from '@phosphor-icons/react/dist/ssr/Trophy';
 import { MapPin } from '@phosphor-icons/react/dist/ssr/MapPin';
 import { CrownSimple } from '@phosphor-icons/react/dist/ssr/CrownSimple';
 import { Ticket } from '@phosphor-icons/react/dist/ssr/Ticket';
+import { SealCheck } from '@phosphor-icons/react/dist/ssr/SealCheck';
 import { ImageSquare } from '@phosphor-icons/react/dist/ssr/ImageSquare';
 import { Wine } from '@phosphor-icons/react/dist/ssr/Wine';
 import { Path } from '@phosphor-icons/react/dist/ssr/Path';
@@ -41,7 +42,7 @@ const LOGO_GRUND = 'radial-gradient(120% 90% at 50% 20%, #1B4C8A, #07193A)';
  * Ende gehen alle Felder gemeinsam an die Server Action. Geprüft wird pro
  * Schritt beim „Weiter“, Server-Fehler springen zum Schritt.
  */
-export function GruendungsWizard({ token, von }: { token: string; /** „Von Hansi aus Giesing“ */ von: string }) {
+export function GruendungsWizard({ token, von, fuer = null }: { token: string; /** „Von Hansi · Wirtschaftln, München“ */ von: string; /** Widmung „Sepp aus Regensburg“ (Chip „Für Sepp aus Regensburg“) */ fuer?: string | null }) {
   const [state, action, pending] = useActionState<GruendungsState, FormData>(gruenden.bind(null, token), {});
   const [schritt, setSchritt] = useState<Schritt>(0);
   const [typ, setTyp] = useState<'wandernd' | 'stammhaus'>('wandernd');
@@ -163,7 +164,14 @@ export function GruendungsWizard({ token, von }: { token: string; /** „Von Han
           {/* 0 · Ehren-Einladung (1a) */}
           <div data-schritt="0" style={{ ...sichtbar(0), gap: 16 }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              <span style={{ fontSize: 12, fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--gold-700)' }}>{von}</span>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                {fuer && (
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 800, padding: '4px 10px', borderRadius: 99, background: 'var(--grad-gold)', color: 'var(--navy-900)', whiteSpace: 'nowrap' }}>
+                    <SealCheck size={13} weight="fill" />Für {fuer}
+                  </span>
+                )}
+                <span style={{ display: 'inline-flex', alignItems: 'center', fontSize: 11, fontWeight: 800, padding: '4px 10px', borderRadius: 99, background: 'var(--pergament)', color: 'var(--gold-700)' }}>{von}</span>
+              </div>
               <h1 style={{ fontFamily: 'var(--font-fraktur)', fontWeight: 400, fontSize: 32, lineHeight: 1, color: 'var(--navy)', margin: 0 }}>Gründe deinen Stammtisch</h1>
               <span style={{ fontSize: 14, fontWeight: 600, lineHeight: 1.5, color: 'var(--ink-500)' }}>Eure eigene App, nur für eure Runde. Du wirst Gründer und Admin.</span>
             </div>

@@ -21,8 +21,8 @@ export type StammtischWerte = {
   schnaps: boolean;
 };
 
-export function StammtischForm({ werte }: { werte: StammtischWerte }) {
-  const [state, action, pending] = useActionState<StammtischState, FormData>(stammtischSpeichern, {});
+export function StammtischForm({ werte, speichern = stammtischSpeichern }: { werte: StammtischWerte; /** Server Action, Standard = eigener Stammtisch; das Verzeichnis gibt die gebundene Variante rein */ speichern?: (prev: StammtischState, fd: FormData) => Promise<StammtischState> }) {
+  const [state, action, pending] = useActionState<StammtischState, FormData>(speichern, {});
   const [bier, setBier] = useState(werte.bierName);
   const [schnaps, setSchnaps] = useState(werte.schnaps);
   return (

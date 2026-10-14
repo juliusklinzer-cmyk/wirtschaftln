@@ -234,6 +234,20 @@ function stiftTon(ctx: AudioContext | null) {
   } catch { /* koa Ton, aa guad */ }
 }
 
+/**
+ * Plopp: Bügelverschluss auf (freesound, Julius 14.10.2026), kommt bei jeder
+ * Hoibe, die dazukommt. Eine Audio-Instanz, von vorn abgespielt; muss aus
+ * einer Berührung heraus starten, drum liegt der Aufruf direkt im Tipp-Handler.
+ */
+let ploppAudio: HTMLAudioElement | null = null;
+function ploppTon() {
+  try {
+    if (!ploppAudio) { ploppAudio = new Audio('/sounds/plopp.mp3'); ploppAudio.preload = 'auto'; }
+    ploppAudio.currentTime = 0;
+    void ploppAudio.play().catch(() => { /* koa Ton, aa guad */ });
+  } catch { /* koa Ton, aa guad */ }
+}
+
 const TIPP_KEY = 'wn-deckel-tipp-gsehn';
 
 /**
@@ -337,6 +351,7 @@ export function Bierdeckel({
     const neu = Math.max(0, Math.min(30, hoibenRef.current + delta));
     if (neu === hoibenRef.current) return;
     hoibenRef.current = neu;
+    if (delta > 0) ploppTon(); // Bügelverschluss auf: a Hoibe dazu
     // Weißbier-Anteil: a Weiße dazu zählt mit, beim Wegnehmen nie mehr Weiße als Hoibe
     weissbierRef.current = Math.max(0, Math.min(neu, weissbierRef.current + (weisse && delta > 0 ? 1 : 0)));
     setHoiben(neu);
@@ -459,7 +474,7 @@ export function Bierdeckel({
     // Über den Rand raus in Richtung Ziel → Strich, Stift-Ton, fertig
     if (draussen && z) {
       strichSetzen(z);
-      stiftTon(audio.current);
+      if (z === 'schnaps') stiftTon(audio.current); // Hoibe ploppt scho in hoibeAendern
       try { navigator.vibrate?.(12); } catch { /* egal */ }
       gesteEnde();
     }
@@ -475,7 +490,7 @@ export function Bierdeckel({
     if (kurz) { zonenTipp(e.clientX, e.clientY); return; }
     if (zug?.ziel && zug.entschieden) {
       strichSetzen(zug.ziel);
-      stiftTon(audio.current);
+      if (zug.ziel === 'schnaps') stiftTon(audio.current);
       try { navigator.vibrate?.(12); } catch { /* egal */ }
     }
   };

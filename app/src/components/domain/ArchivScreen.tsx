@@ -153,7 +153,12 @@ export function ArchivScreen({
   const ort = geo?.suchSuffix ?? null;
   const [view, setView] = useState<'karte' | MetrikKey>(ohneKarte ? 'rang' : 'karte');
   const [idx, setIdx] = useState(0);
-  const [detail, setDetail] = useState<{ e: ArchivEintrag; rank: number | null } | null>(null);
+  // Nur ID + Rang merken, den Eintrag selber jedes Mal frisch aus den Props holen:
+  // nach dem Nachbewerten kommen neue Daten vom Server, a Kopie wär veraltet (Julius, 14.10.2026)
+  const [detailWahl, setDetailWahl] = useState<{ id: string; rank: number | null } | null>(null);
+  const detailEintrag = detailWahl ? eintraege.find((x) => x.id === detailWahl.id) ?? null : null;
+  const detail = detailWahl && detailEintrag ? { e: detailEintrag, rank: detailWahl.rank } : null;
+  const setDetail = (w: { e: ArchivEintrag; rank: number | null } | null) => setDetailWahl(w ? { id: w.e.id, rank: w.rank } : null);
   const [legende, setLegende] = useState(false);
   const [standort, setStandort] = useState<Standort | null>(null);
   const [standortHinweis, setStandortHinweis] = useState<string | null>(null);
@@ -379,7 +384,7 @@ function Wischbar({ onPrev, onNext, children }: { onPrev: () => void; onNext: ()
         if (delta > 40) onPrev();
         else if (delta < -40) onNext();
       }}
-      style={{ background: 'var(--weiss)', borderRadius: 22, boxShadow: '0 14px 36px rgba(7,25,58,0.3)', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}
+      style={{ background: 'var(--weiss)', borderRadius: 22, border: '1.5px solid var(--gold)', boxShadow: '0 14px 36px rgba(7,25,58,0.3)', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}
     >
       {children}
     </div>

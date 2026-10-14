@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState, useTransition } from 'react';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 
 const SCHWELLE = 64;
 const MAX = 96;
@@ -16,6 +16,9 @@ const MAX = 96;
  */
 export function ZiehenAktualisieren() {
   const router = useRouter();
+  const pathname = usePathname();
+  // Auf der Karte wird gewischt und gezogen, da soll's ned aus Versehen neu laden (Julius, 14.10.2026)
+  const aus = pathname.startsWith('/karte');
   const anker = useRef<HTMLDivElement>(null);
   const [zug, setZug] = useState(0);
   const [laedt, startTransition] = useTransition();
@@ -28,7 +31,7 @@ export function ZiehenAktualisieren() {
     if (!scroller) return;
     const setzen = (v: number) => { zugRef.current = v; setZug(v); };
     const start = (e: TouchEvent) => {
-      if (scroller.scrollTop > 0 || e.touches.length !== 1) return;
+      if (aus || scroller.scrollTop > 0 || e.touches.length !== 1) return;
       aktiv.current = true;
       startY.current = e.touches[0].clientY;
     };
@@ -59,7 +62,7 @@ export function ZiehenAktualisieren() {
       scroller.removeEventListener('touchend', ende);
       scroller.removeEventListener('touchcancel', ende);
     };
-  }, [router]);
+  }, [router, aus]);
 
   // Fertig geladen → Kreis wieder einziehen
   useEffect(() => {

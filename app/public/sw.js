@@ -1,9 +1,10 @@
 // Wirtschaftln Service Worker — minimal: macht die App installierbar
 // und hält Brand-Assets offline vor. Daten bleiben network-first.
+// v5: Plopp-Sound fürn Bierdeckel im Precache (14.10.2026)
 // v4: Precache ohne München-Assets (Kindl, Panorama laufen beim Gründer über
 // stale-while-revalidate), Push-Icon kommt pro Stammtisch im Payload mit.
-const CACHE = 'wirtschaftln-v4';
-const ASSETS = ['/brand/shield-256.png', '/brand/shield-512.png', '/brand/rauten-256.png', '/brand/rauten-512.png'];
+const CACHE = 'wirtschaftln-v5';
+const ASSETS = ['/brand/shield-256.png', '/brand/shield-512.png', '/brand/rauten-256.png', '/brand/rauten-512.png', '/sounds/plopp.mp3'];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS)));

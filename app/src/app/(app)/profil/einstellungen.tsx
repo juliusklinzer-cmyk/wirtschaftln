@@ -7,6 +7,7 @@ import { CaretRight } from '@phosphor-icons/react/dist/ssr/CaretRight';
 import { CaretDown } from '@phosphor-icons/react/dist/ssr/CaretDown';
 import { EinstellungZeile } from '@/components/domain/EinstellungZeile';
 import { PushEinstellung } from '@/components/domain/PushEinstellung';
+import { AppInstallieren } from '@/components/domain/AppInstallieren';
 import { DaniModusSchalter } from '@/components/domain/DaniModus';
 import { TokenKarte, type TokenAnzeige, type FristAnzeige, type AnfrageAnzeige } from '@/components/domain/TokenKarte';
 
@@ -38,6 +39,8 @@ export function Einstellungen({ token, gaudi, logout }: { token: TokenBereich | 
       <div style={{ background: 'var(--weiss)', borderRadius: 20, border: '1px solid var(--ink-100)', boxShadow: 'var(--sh-sm)', padding: '2px 16px' }}>
         <span id="push" aria-hidden style={{ display: 'block', scrollMarginTop: 12 }} />
         <PushEinstellung />
+        {/* Nur im Browser sichtbar (2b): Anleitung zum Home-Bildschirm */}
+        <AppInstallieren variante="profil" />
         {zeigen && (
           <EinstellungZeile
             icon={<Ticket size={19} weight="fill" />}

@@ -29,6 +29,7 @@ import { Card, Avatar, Icon, KlappenKopf } from '@/components/ds';
 import { AbstimmungsStand } from '@/components/domain/AbstimmungsStand';
 import { StreakChip } from '@/components/domain/StreakChip';
 import { PushAktivieren } from '@/components/domain/PushAktivieren';
+import { AppInstallieren } from '@/components/domain/AppInstallieren';
 import { WirtshausGfunden } from '@/components/domain/WirtshausGfunden';
 import { tenantConfig } from '@/lib/tenant-config';
 import { RichtungsKnopf } from '@/components/domain/RichtungsKnopf';
@@ -367,6 +368,8 @@ export default async function HomePage() {
     <div className="wn-eintritt" style={{ padding: '20px 16px 28px', display: 'flex', flexDirection: 'column', gap: 24 }}>
       {letzter && feiern.length > 0 && <BadgeFeier terminId={letzter.id} feiern={feiern} />}
 
+      {/* Nur im Browser: App aufs Handy (am iPhone gehen Benachrichtigungen erst nach der Installation) */}
+      <AppInstallieren variante="hoam" />
       <PushAktivieren />
 
       {hero}

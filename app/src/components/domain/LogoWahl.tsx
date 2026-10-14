@@ -154,7 +154,7 @@ export function EigenesBild({ onErgebnis, titel = 'Profilbild' }: { onErgebnis: 
   }, [tick, onErgebnis]);
   return (
     <div>
-      <FotoZuschnitt name="_logoRoh" aktuellesFoto={null} titel={titel} />
+      <FotoZuschnitt name="_logoRoh" aktuellesFoto={null} titel={titel} durchsichtig />
     </div>
   );
 }

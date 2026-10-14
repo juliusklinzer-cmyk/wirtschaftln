@@ -12,7 +12,7 @@ const EXPORT = 512; // Kantenlänge des exportierten Quadrats
  * zurechtschieben und zoomen, exportiert wird ein kleines Quadrat als
  * Data-URL im Hidden-Field `name`, der Server verkleinert final auf 256px.
  */
-export function FotoZuschnitt({ name, aktuellesFoto, anzeigeName = '', titel = 'Profilbild' }: { name: string; aktuellesFoto: string | null; /** für die Initialen, wenn no koa Foto da is */ anzeigeName?: string; /** Wort im Auslöser („Profilbild“ oder „Logo“) */ titel?: string }) {
+export function FotoZuschnitt({ name, aktuellesFoto, anzeigeName = '', titel = 'Profilbild', durchsichtig = false }: { name: string; aktuellesFoto: string | null; /** für die Initialen, wenn no koa Foto da is */ anzeigeName?: string; /** Wort im Auslöser („Profilbild“ oder „Logo“) */ titel?: string; /** Logo: koa Hintergrund drunter, Export als PNG, damit Transparenz bleibt */ durchsichtig?: boolean }) {
   const [bild, setBild] = useState<HTMLImageElement | null>(null);
   const [zoom, setZoom] = useState(1);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
@@ -44,11 +44,14 @@ export function FotoZuschnitt({ name, aktuellesFoto, anzeigeName = '', titel = '
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
     const s = EXPORT / VORSCHAU;
-    ctx.fillStyle = '#F6F0E2';
-    ctx.fillRect(0, 0, EXPORT, EXPORT);
+    if (!durchsichtig) {
+      ctx.fillStyle = '#F6F0E2';
+      ctx.fillRect(0, 0, EXPORT, EXPORT);
+    }
     ctx.drawImage(bild, ((VORSCHAU - breite) / 2 + offset.x) * s, ((VORSCHAU - hoehe) / 2 + offset.y) * s, breite * s, hoehe * s);
-    setErgebnis(canvas.toDataURL('image/jpeg', 0.85));
-  }, [bild, breite, hoehe, offset]);
+    // Logos als PNG (Transparenz bleibt), Profilbilder als JPEG (kleiner)
+    setErgebnis(durchsichtig ? canvas.toDataURL('image/png') : canvas.toDataURL('image/jpeg', 0.85));
+  }, [bild, breite, hoehe, offset, durchsichtig]);
 
   const dateiWaehlen = (f: File | undefined) => {
     if (!f) return;

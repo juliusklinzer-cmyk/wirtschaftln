@@ -22,7 +22,10 @@ export async function GET(req: Request, ctx: { params: Promise<{ datei: string }
   }
   if (!logo || logoHash(logo) !== m[2]) return new Response('Not found', { status: 404 });
   const s = Number(new URL(req.url).searchParams.get('s') ?? 512);
-  const png = await logoPng(logo, Number.isFinite(s) ? s : 512);
+  // App-Icons (≥ 180: Apple-Touch-Icon, Manifest) auf Navy flachlegen, iOS macht Transparentes sonst schwarz;
+  // kleine Größen (AppBar, Verzeichnis) behalten die Transparenz
+  const groesse = Number.isFinite(s) ? s : 512;
+  const png = await logoPng(logo, groesse, groesse >= 180 ? '#0C2B5A' : null);
   return new Response(new Uint8Array(png), {
     headers: {
       'Content-Type': 'image/png',

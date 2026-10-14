@@ -35,9 +35,15 @@ export function logoUrlFuer(slug: string, dataUrl: string | null): string | null
   return dataUrl ? `/logo/${slug}-${logoHash(dataUrl)}.png` : null;
 }
 
-/** Logo-Data-URL → PNG-Bytes in gewünschter Kantenlänge (für Manifest/App-Icon). */
-export async function logoPng(dataUrl: string, groesse: number): Promise<Buffer> {
+/**
+ * Logo-Data-URL → PNG-Bytes in gewünschter Kantenlänge. Mit `hintergrund`
+ * (z. B. Navy fürs App-Icon) wird Transparentes drauf flachgelegt, sonst
+ * bleibt die Transparenz (AppBar, Verzeichnis).
+ */
+export async function logoPng(dataUrl: string, groesse: number, hintergrund: string | null = null): Promise<Buffer> {
   const buf = Buffer.from(dataUrl.slice(dataUrl.indexOf(',') + 1), 'base64');
   const g = Math.max(32, Math.min(1024, Math.round(groesse)));
-  return sharp(buf).resize(g, g, { fit: 'cover' }).png().toBuffer();
+  let bild = sharp(buf).resize(g, g, { fit: 'cover' });
+  if (hintergrund) bild = bild.flatten({ background: hintergrund });
+  return bild.png().toBuffer();
 }

@@ -40,7 +40,7 @@ export async function melden(formData: FormData) {
     .values({
       id: newId('k'),
       memberId,
-      grund: `${grund}, des kost ${hoibe === 1 ? 'a Hoibe' : `${hoibe} Hoibe`} 🍺`,
+      grund,
       betragCents: -(hoibe * hoibePreisCents()),
       kind: 'strafe',
       status: 'offen',
@@ -114,12 +114,12 @@ export async function spenden(formData: FormData) {
   const hoibe = hoibeAnzahl(formData);
   const anlass = String(formData.get('grund') ?? '').trim().slice(0, 200);
   if (!hoibe) return;
-  const hoibeText = hoibe === 1 ? 'a Hoibe' : `${hoibe} Hoibe`;
+  const hoibeText = hoibe === 1 ? '1 Hoibe' : `${hoibe} Hoibe`;
   db.insert(kasse)
     .values({
       id: newId('k'),
       memberId: me.id,
-      grund: anlass ? `💝 ${hoibeText} gspendt, ${anlass}` : `💝 ${hoibeText} gspendt`,
+      grund: anlass ? `${hoibeText} gespendet, ${anlass}` : `${hoibeText} gespendet`,
       betragCents: hoibe * hoibePreisCents(),
       kind: 'einzahlung',
       status: 'beglichen',
@@ -144,7 +144,7 @@ export async function auslage(formData: FormData) {
     .values({
       id: newId('k'),
       memberId: me.id,
-      grund: `Auslage, ${grund}`,
+      grund,
       betragCents: -Math.round(betrag * 100),
       kind: 'ausgabe',
       status: 'beglichen',

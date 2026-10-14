@@ -59,6 +59,15 @@ const ICON_PATHS: Record<string, string> = {
   clipboard: '<rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V2.5h6V4M8.5 10h7M8.5 14h7M8.5 18h4"/>',
   chair: '<path d="M6 11V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v6"/><path d="M4 11h16v4H4zM6 15v6M18 15v6"/>',
   'arrows-left-right': '<path d="M4 9h16M16 5l4 4-4 4M20 15H4M8 11l-4 4 4 4"/>',
+  // Kasse-Redesign (14.10.2026): Hammer, Herz, Quittung, Hand mit Münze, Einkaufswagen, Bank, Sanduhr, Buch, Euro
+  heart: '<path d="M12 20.5s-7.5-4.6-7.5-10A4.3 4.3 0 0 1 12 7.8a4.3 4.3 0 0 1 7.5 2.7c0 5.4-7.5 10-7.5 10z"/>',
+  receipt: '<path d="M5 3h14v18l-2.3-1.5L14.3 21 12 19.5 9.7 21l-2.4-1.5L5 21V3z"/><path d="M8.5 8h7M8.5 12h7M8.5 16h4"/>',
+  'hand-coins': '<circle cx="15.5" cy="5.5" r="2.5"/><path d="M3 13.5h3l4 2.5h4a1.5 1.5 0 0 1 0 3h-4"/><path d="M14 17.5 19 15a1.6 1.6 0 0 1 2 2.4l-5 3.3a3 3 0 0 1-2.2.6L6 20H3"/>',
+  cart: '<circle cx="9" cy="20" r="1.3"/><circle cx="17" cy="20" r="1.3"/><path d="M3 4h2.5l2.2 10.5h10.8L20.5 7H6.4"/>',
+  bank: '<path d="M3 9.5 12 4l9 5.5H3z"/><path d="M5 9.5V17M9.5 9.5V17M14.5 9.5V17M19 9.5V17M3 20h18"/>',
+  hourglass: '<path d="M6 3h12M6 21h12M7 3v3.5a5 5 0 0 0 2.5 4.3L12 12l2.5-1.2A5 5 0 0 0 17 6.5V3M7 21v-3.5a5 5 0 0 1 2.5-4.3L12 12l2.5 1.2a5 5 0 0 1 2.5 4.3V21"/>',
+  'book-open': '<path d="M12 6.5A5 5 0 0 0 7 4H3v15h4.5a4.5 4.5 0 0 1 4.5 2 4.5 4.5 0 0 1 4.5-2H21V4h-4a5 5 0 0 0-5 2.5z"/><path d="M12 6.5V21"/>',
+  euro: '<path d="M18 6.5A7 7 0 0 0 7.5 9.5M18 17.5A7 7 0 0 1 7.5 14.5M4 10.5h10M4 13.5h9"/>',
   settings: '<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1"/>',
 };
 

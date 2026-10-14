@@ -84,9 +84,8 @@ export function AppBar({
     }
   }, [wp]);
 
-  // Karte und Rang: Vollbild mit eigener Ansichts-Wahl oben, da braucht's
-  // koan Header (Julius, 29.08.2026 bzw. Rang-Redesign 13.10.2026)
-  if (pathname.startsWith('/karte') || pathname.startsWith('/spezln')) return null;
+  // Karte, Rang und Kasse: Vollbild ohne Kopfleiste (Julius, 29.08.2026 bzw. Redesign 13./14.10.2026)
+  if (pathname.startsWith('/karte') || pathname.startsWith('/spezln') || pathname.startsWith('/kasse')) return null;
 
   return (
     <header

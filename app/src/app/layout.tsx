@@ -33,10 +33,12 @@ export async function generateMetadata(): Promise<Metadata> {
     title: name,
     description: beschreibung(c),
     robots: { index: false, follow: false },
-    icons: c?.logoUrl
-      ? { icon: `${c.logoUrl}?s=192`, apple: `${c.logoUrl}?s=180` }
-      : muenchen
-        ? { icon: '/brand/kindl-favicon.png', apple: '/brand/kindl-apple-icon.png' }
+    // Beim Gründer bleibt das Kindl als App-Icon (Julius, 14.10.2026), das Wappen is nur oben in der AppBar;
+    // neue Stammtische: Logo und App-Icon sind dasselbe Bild
+    icons: muenchen
+      ? { icon: '/brand/kindl-favicon.png', apple: '/brand/kindl-apple-icon.png' }
+      : c?.logoUrl
+        ? { icon: `${c.logoUrl}?s=192`, apple: `${c.logoUrl}?s=180` }
         : { icon: '/brand/rauten-256.png', apple: '/brand/rauten-512.png' },
     // Link-Vorschau (WhatsApp & Co.): Wappen auf Navy statt schwarzem Nichts
     openGraph: {

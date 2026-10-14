@@ -52,21 +52,21 @@ async function manifest(): Promise<MetadataRoute.Manifest> {
     background_color: '#07193A',
     theme_color: '#07193A', // Statusleiste (Uhrzeit, 5G) in Header-Navy, Hoam-Redesign 13.10.2026
     lang: 'de',
-    // App-Icon: beim Gründer das Münchner Kindl mit der Hoibe (seit 09.08.2026),
-    // sonst das Wirtschaftln-Wappen (eigenes Design, lizenzfrei)
-    icons: c?.logoUrl
-      ? [
-          { src: `${c.logoUrl}?s=192`, sizes: '192x192', type: 'image/png' },
-          { src: `${c.logoUrl}?s=256`, sizes: '256x256', type: 'image/png' },
-          { src: `${c.logoUrl}?s=512`, sizes: '512x512', type: 'image/png' },
-          { src: `${c.logoUrl}?s=512`, sizes: '512x512', type: 'image/png', purpose: 'maskable' },
-        ]
-      : muenchen
+    // App-Icon: beim Gründer bleibt das Münchner Kindl mit der Hoibe (seit 09.08.2026, aa mit eigenem
+    // Logo), sonst das hochgeladene Logo oder das Wirtschaftln-Wappen (eigenes Design, lizenzfrei)
+    icons: muenchen
       ? [
           { src: '/brand/kindl-192.png', sizes: '192x192', type: 'image/png' },
           { src: '/brand/kindl-256.png', sizes: '256x256', type: 'image/png' },
           { src: '/brand/kindl-512.png', sizes: '512x512', type: 'image/png' },
           { src: '/brand/kindl-maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+        ]
+      : c?.logoUrl
+      ? [
+          { src: `${c.logoUrl}?s=192`, sizes: '192x192', type: 'image/png' },
+          { src: `${c.logoUrl}?s=256`, sizes: '256x256', type: 'image/png' },
+          { src: `${c.logoUrl}?s=512`, sizes: '512x512', type: 'image/png' },
+          { src: `${c.logoUrl}?s=512`, sizes: '512x512', type: 'image/png', purpose: 'maskable' },
         ]
       : [
           { src: '/brand/rauten-192.png', sizes: '192x192', type: 'image/png' },

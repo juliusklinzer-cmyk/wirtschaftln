@@ -62,7 +62,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         <div style={{ minHeight: '100%', background: 'var(--bg-app)', display: 'flex', flexDirection: 'column' }}>
         <AppBar
           appName={config.name}
-          logoSrc={config.logoUrl ? `${config.logoUrl}?s=128` : config.istGruender ? '/brand/shield-256.png' : '/brand/rauten-256.png'}
+          logoSrc={config.istGruender ? '/brand/wappen-256.png' : config.logoUrl ? `${config.logoUrl}?s=128` : '/brand/rauten-256.png'}
           name={anzeigeName(me)}
           photoUrl={me.photoUrl}
           isAdmin={me.role === 'admin'}

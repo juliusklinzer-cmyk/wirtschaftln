@@ -21,25 +21,20 @@ function beschreibung(c: { motto: string | null; stadt: string | null; gruendung
 
 /**
  * Metadaten pro Mandant (aus dem Cookie): Name, Beschreibung, Icons. Das
- * Münchner Kindl bleibt dem Gründer (Feature muenchenBranding), alle anderen
+ * Münchner Kindl als App-Icon für alle (solang geschlossen, Julius 14.10.2026), alle anderen
  * kriegen das neutrale Wirtschaftln-Wappen.
  */
 export async function generateMetadata(): Promise<Metadata> {
   const c = await tenantConfigAusCookie();
   const name = c?.name ?? 'Wirtschaftln';
-  const muenchen = c?.features.muenchenBranding ?? false;
   return {
     metadataBase: new URL(appUrl()),
     title: name,
     description: beschreibung(c),
     robots: { index: false, follow: false },
-    // Beim Gründer bleibt das Kindl als App-Icon (Julius, 14.10.2026), das Wappen is nur oben in der AppBar;
-    // neue Stammtische: Logo und App-Icon sind dasselbe Bild
-    icons: muenchen
-      ? { icon: '/brand/kindl-favicon.png', apple: '/brand/kindl-apple-icon.png' }
-      : c?.logoUrl
-        ? { icon: `${c.logoUrl}?s=192`, apple: `${c.logoUrl}?s=180` }
-        : { icon: '/brand/rauten-256.png', apple: '/brand/rauten-512.png' },
+    // App-Icon: bei ALLEN Stammtischen das Münchner Kindl, solang wir geschlossen san und nix
+    // monetarisieren (Julius, 14.10.2026). Das eigene Logo steht nur oben in der AppBar.
+    icons: { icon: '/brand/kindl-favicon.png', apple: '/brand/kindl-apple-icon.png' },
     // Link-Vorschau (WhatsApp & Co.): Wappen auf Navy statt schwarzem Nichts
     openGraph: {
       siteName: name,

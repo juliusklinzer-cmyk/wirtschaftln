@@ -34,7 +34,7 @@ const STERN_PFAD = '<path d="m12 3 2.9 5.9 6.5.9-4.7 4.6 1.1 6.5L12 18.4 6.2 21.
 /**
  * Bierkrug-Tropfen-Pin (Archiv-Redesign 13.10.2026): Gold = Top 3, nächstes
  * Ziel und Stammhaus · Navy = besucht (auch vor der App) · Blau und größer
- * mit Namensschild = ausgewählt · weiß gestrichelt = Vorschlag.
+ * = ausgewählt · weiß gestrichelt = Vorschlag.
  */
 function pinElement(pin: KartenPin, aktiv: boolean, onClick: () => void): HTMLButtonElement {
   const vorschlag = !!pin.offen || !!pin.vorbewertet;
@@ -57,12 +57,8 @@ function pinElement(pin: KartenPin, aktiv: boolean, onClick: () => void): HTMLBu
   const pfad = pin.stammhaus ? HAUS_PFAD : pin.vorbewertet && !pin.naechstes ? STERN_PFAD : BIER_PFAD;
   tropfen.innerHTML = `<svg width="${iconGroesse}" height="${iconGroesse}" viewBox="0 0 24 24" fill="none" stroke="${iconFarbe}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="transform:rotate(45deg)">${pfad}</svg>`;
   btn.appendChild(tropfen);
-  if (aktiv) {
-    const schild = document.createElement('span');
-    schild.textContent = pin.name;
-    schild.style.cssText = 'font-family:var(--font-ui),sans-serif;font-size:10px;font-weight:800;padding:2px 6px;border-radius:6px;background:#fff;color:#0C2B5A;box-shadow:0 1px 3px rgba(0,0,0,.2);white-space:nowrap;max-width:160px;overflow:hidden;text-overflow:ellipsis;';
-    btn.appendChild(schild);
-  }
+  // Koa Namensschild unterm Pin mehr (Julius, 14.10.2026): der Name steht eh in der Karte drunter,
+  // und das Schild hat den Knopf bis 160px breit gemacht, sodass Nachbar-Pins ned mehr antippbar waren.
   btn.addEventListener('click', (e) => {
     e.stopPropagation();
     onClick();

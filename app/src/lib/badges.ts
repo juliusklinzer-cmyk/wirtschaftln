@@ -194,3 +194,33 @@ export function amtInfo(titel: string): { icon: string; slug?: string; patron?: 
   if (stamm) return AEMTER_INFO[stamm];
   return { icon: '🍺', mode: 'Gewählt', duties: null };
 }
+
+/* ── Badge-Feier & Urkunde (Redesign 14.10.2026) ──────────────────────── */
+
+/**
+ * Texte für die Vollbild-Feier und die Urkunde: der Spruch sagt in einem Satz,
+ * wofür es das Badge gibt, der Urkunden-Grund steht formell auf der Urkunde.
+ * Generische Sets bekommen einen neutralen Satz aus dem Badge-Tag.
+ */
+export function feierTexte(key: string, label: string, tag?: string): { spruch: string; urkundeGrund: string } {
+  const muenchen: Record<string, { spruch: string; urkundeGrund: string }> = {
+    zacherHund: { spruch: 'Am öftesten dabei von allen. Bei Schnee, Bahnstreik und Männergrippe.', urkundeGrund: 'Für die meisten Abende der Saison.' },
+    maximator: { spruch: 'Die meisten Hoibe der Saison. Respekt, und trink a Wasser dazwischen.', urkundeGrund: 'Für die meisten Hoibe der Saison.' },
+    moshammer: { spruch: 'Die meisten Runden geschmissen. Spendabler geht’s nimmer.', urkundeGrund: 'Für die meisten Runden der Saison.' },
+    heiwong: { spruch: 'Die wenigsten Abende der Saison. Schau, dass’d wieder öfter kommst!', urkundeGrund: 'Für die wenigsten Abende der Saison.' },
+    meisterEder: { spruch: 'Dei Wirtshaus hat die beste Bewertung der Saison.', urkundeGrund: 'Für das bestbewertete Wirtshaus der Saison.' },
+    taxler: { spruch: 'Am öftesten den Heimweg organisiert.', urkundeGrund: 'Für die meisten Heimfahrten der Saison.' },
+    dieSau: { spruch: 'Die meisten Schweinsbraten der Saison. Kruste, Knödl, Soß, nix bleibt über.', urkundeGrund: 'Für die meisten Schweinsbraten der Saison.' },
+    schnapsler: { spruch: 'Die meisten Stamperl der Saison. Zum Wohl, und morgen a Aspirin.', urkundeGrund: 'Für die meisten Stamperl der Saison.' },
+    gschaftler: { spruch: 'Am öftesten z’spät kemma. Wenn du eini gehst, is d’erste Runde scho leer.', urkundeGrund: 'Für die meisten Verspätungen der Saison.' },
+    alterPeter: { spruch: 'Die längste Serie, seit’s den Stammtisch gibt.', urkundeGrund: 'Für die längste Serie seit Stammtischgründung.' },
+    'amt:praesident': { spruch: 'Die meisten WP der Saison. Führung, Zusammenhalt und Tradition liegen jetzt bei dir.', urkundeGrund: 'Für die meisten Wirtschaftln-Punkte der Saison.' },
+    'amt:schriftfuehrer': { spruch: 'Die meisten Abende zusammengefasst. Was ned aufgschrieben is, is nie passiert.', urkundeGrund: 'Für die meisten abgeschlossenen Abende der Saison.' },
+    'amt:kassenwart': { spruch: 'Vom Stammtisch gewählt. Die Kasse is jetzt dei Sach’.', urkundeGrund: 'Für das Vertrauen des Stammtischs.' },
+  };
+  const passt = tenantConfig().features.muenchenBadges || key.startsWith('amt:');
+  const t = passt ? muenchen[key] : undefined;
+  if (t) return t;
+  const grund = tag ? tag.charAt(0).toUpperCase() + tag.slice(1) : label;
+  return { spruch: `${grund} der Saison.`, urkundeGrund: `Für ${tag ?? label} in dieser Saison.` };
+}

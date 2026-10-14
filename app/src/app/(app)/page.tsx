@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { anzeigeName } from '@/lib/namen';
+import { anzeigeName, urkundenName } from '@/lib/namen';
 import { getCurrentMember, erzwingeProfil } from '@/lib/session';
 import {
   getAktuellerTermin,
@@ -21,7 +21,8 @@ import {
 import { PTS, WACKELT_AB_UNENTSCHULDIGT, checkinOffen, bierdeckelOffen, abschlussOffen, berlinTag } from '@/lib/punkte';
 import { nowIso } from '@/lib/ids';
 import { aktuelleSaison } from '@/lib/saison';
-import { vergabeWechsel, wechselTexte, AEMTER_INFO, saisonBadges } from '@/lib/badges';
+import { vergabeWechsel, wechselTexte, AEMTER_INFO, saisonBadges, feierTexte } from '@/lib/badges';
+import { SERIEN_ABZEICHEN } from '@/lib/serien';
 import { datumMittel, datumKurz, euro } from '@/lib/format';
 import { Card, Avatar, Icon, KlappenKopf } from '@/components/ds';
 import { AbstimmungsStand } from '@/components/domain/AbstimmungsStand';
@@ -76,30 +77,73 @@ export default async function HomePage() {
   const offeneUmfragen = alleUmfragen.filter((u) => !u.stimmen.some((s) => s.memberId === me.id));
   const beantworteteUmfragen = alleUmfragen.filter((u) => u.stimmen.some((s) => s.memberId === me.id));
 
-  // Neues Badge/Amt durch den letzten Stammtisch? → große Feier beim Öffnen (einmalig pro Gerät).
-  // Bei Ämtern: Patron-Grafik groß, Patron + Pflichten drunter, und wer abglöst wurde.
+  // Neues Badge, Amt oder Serien-Abzeichen durch den letzten Stammtisch? → Vollbild-Feier beim
+  // Öffnen (einmalig pro Gerät). Bei Ämtern: Patron-Grafik groß, Patron + Pflichten drunter, und wer
+  // abgelöst wurde. Zu Badges und Ämtern gibt's eine Urkunde zum Teilen (Badge-Feier-Redesign 14.10.2026).
   const AMT_TITEL: Record<string, string> = { 'amt:praesident': 'Präsident', 'amt:schriftfuehrer': 'Schriftführer', 'amt:kassenwart': 'Kassenwart' };
   const mitglieder = getAktiveMitglieder();
   const nameVon = (id: string | null) => {
     const m = mitglieder.find((x) => x.id === id);
     return m ? anzeigeName(m) : null;
   };
-  const feiern: FeierBadge[] = letzter
-    ? vergabeWechsel(getVergabeStand(letzter.id), getVergabeStand())
-        .filter((w) => w.neuId === me.id)
-        .map((w) => {
-          const amt = AMT_TITEL[w.key] ? AEMTER_INFO[AMT_TITEL[w.key]] : null;
-          return {
-            key: w.key,
-            slug: amt ? amt.slug : (saisonBadges().find((b) => b.key === w.key)?.slug ?? null),
-            icon: w.icon,
-            name: w.label,
-            spruch: wechselTexte(w, anzeigeName(me)).anNeuen,
-            infos: amt ? [`Dei Patron: ${amt.patron}`, `Deine Pflichten: ${amt.duties}`] : null,
-            vorherName: nameVon(w.altId),
-          };
-        })
-    : [];
+  const feiern: FeierBadge[] = [];
+  if (letzter) {
+    const standVor = getVergabeStand(letzter.id);
+    const standNach = getVergabeStand();
+    const abendDatum = new Date(`${letzter.datum}T12:00:00`);
+    const saisonAbend = aktuelleSaison(abendDatum);
+    const urkundeBasis = {
+      stammtisch: /stammtisch/i.test(config.name) ? config.name : `Stammtisch ${config.name}`,
+      name: urkundenName(me) ?? anzeigeName(me),
+      saison: `${saisonAbend.label.includes('Herbst') ? 'Herbst' : 'Frühjahrs'}-Saison ${saisonAbend.jahr}`,
+      praesident: nameVon(standNach.get('amt:praesident') ?? null),
+      datum: abendDatum.toLocaleDateString('de-DE', { day: 'numeric', month: 'long', year: 'numeric' }),
+      ort: config.stadt,
+    };
+    for (const w of vergabeWechsel(standVor, standNach)) {
+      if (w.neuId !== me.id) continue;
+      const amt = AMT_TITEL[w.key] ? AEMTER_INFO[AMT_TITEL[w.key]] : null;
+      const badge = saisonBadges().find((b) => b.key === w.key);
+      const slug = amt ? amt.slug : (badge?.slug ?? null);
+      const texte = feierTexte(w.key, w.label, badge?.tag);
+      const artikel = w.label.startsWith('Die ') ? `die neue ${w.label.slice(4)}` : `der neue ${w.label}`;
+      const pflichten = amt ? amt.duties.split(' · ').map((t) => t.trim()).filter(Boolean) : [];
+      const heiwong = w.key === 'heiwong';
+      feiern.push({
+        key: w.key,
+        art: amt ? 'amt' : 'badge',
+        slug,
+        icon: w.icon,
+        name: w.label,
+        titel1: 'Du bist jetzt',
+        titel2: `${artikel}!`,
+        spruch: texte.spruch,
+        infos: amt ? [{ icon: 'patron', text: `Patron: ${amt.patron}` }, ...pflichten.map((t, i) => ({ icon: i === 0 ? ('modus' as const) : ('pflicht' as const), text: t }))] : null,
+        vorherName: nameVon(w.altId),
+        urkunde: heiwong ? null : { ...urkundeBasis, badgeName: w.label, slug, icon: w.icon, grund: texte.urkundeGrund },
+        knopf: heiwong ? 'Passt, i kimm wieder!' : undefined,
+      });
+    }
+    // Serien-Abzeichen: Rekord-Serie vor und nach dem Abend vergleichen, neue Stufen feiern (kleiner, ruhiger)
+    const rekordVor = getStats({ ohneTerminId: letzter.id }).find((s) => s.member.id === me.id)?.bestStreak ?? 0;
+    const rekordNach = meineAllzeit?.bestStreak ?? 0;
+    for (const a of SERIEN_ABZEICHEN) {
+      if (rekordNach >= a.ab && rekordVor < a.ab) {
+        feiern.push({
+          key: `serie-${a.ab}`,
+          art: 'serie',
+          slug: `serie-${a.ab}`,
+          icon: a.icon,
+          name: a.name,
+          eyebrow: 'Serien-Abzeichen',
+          titel1: `${a.name}!`,
+          titel2: `${a.ab} Abende in Folge`,
+          spruch: 'Dieses Abzeichen bleibt für immer, auch wenn die Serie reißt.',
+          knopf: 'Weiter geht’s',
+        });
+      }
+    }
+  }
 
   /* ---------- Termin-Karte: a Karte, alle Phasen (Zustände 2a–2h) ---------- */
   let heroInhalt: React.ReactNode;

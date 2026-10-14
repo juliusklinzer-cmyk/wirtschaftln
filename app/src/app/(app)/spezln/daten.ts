@@ -50,6 +50,8 @@ export function ladeRanglisteDaten(meId: string): {
   saison: ReturnType<typeof aktuelleSaison>;
   /** Aktueller Präsident (Saison-Rang 1), darf den Kassenwart eintragen. */
   praesidentId: string | null;
+  /** Letzter abgeschlossener Abend (Bezug der Deltas), null vor'm ersten. */
+  letzterTerminId: string | null;
 } {
   const saison = aktuelleSaison();
   const statsAllzeit = getStats();
@@ -255,5 +257,5 @@ export function ladeRanglisteDaten(meId: string): {
     })),
   };
 
-  return { eintraege, aemterListe, galerie, badgeInfos, mitglieder: statsAllzeit.map((s) => s.member), saison, praesidentId: praesident?.id ?? null };
+  return { eintraege, aemterListe, galerie, badgeInfos, mitglieder: statsAllzeit.map((s) => s.member), saison, praesidentId: praesident?.id ?? null, letzterTerminId: letzter?.id ?? null };
 }

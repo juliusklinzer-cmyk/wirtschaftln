@@ -1,72 +1,18 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { Avatar, Icon, Segment, Zeile, ZeilenKarte } from '@/components/ds';
+import { useState } from 'react';
+import { Avatar, Icon, Segment, ZeilenKarte } from '@/components/ds';
 import { BadgeInfo, amtKey, type BadgeInfoDaten } from '@/components/domain/BadgeInfo';
 import { PunkteInfo } from '@/components/domain/PunkteInfo';
 import { BadgeBild } from '@/components/domain/BadgeBild';
+import { SpezlAvatar, DeltaText, anzeigeName, RANG_FARBE, PodestSpalte, ListenZeile, PODEST_H, PODEST_HOEHE, PODEST_AVATAR } from './rang-bausteine';
+import { useRangWechsel, PodestWechsel, ListeWechsel, RangToast, ENDE_EBENE } from './rang-wechsel';
 import { HoamTitel } from '@/components/domain/HoamTitel';
 import { steckbriefLeer } from '@/components/domain/Steckbrief';
 import { SteckbriefClient as Steckbrief } from '@/components/domain/SteckbriefClient';
 import { bereichHinweisStil } from '@/components/domain/hero-stil';
 import { SERIEN_ABZEICHEN } from '@/lib/serien';
-import {
-  VEREIN_LOGO,
-  METRIKEN,
-  type Metrik,
-  type SpezlEintrag,
-  type AmtEintrag,
-  type GalerieBadge,
-  type StatsBlock,
-} from './rangliste';
-
-const RANG_FARBE: Record<number, { bg: string; fg: string }> = {
-  1: { bg: 'var(--gold)', fg: 'var(--navy-900)' },
-  2: { bg: '#C7D0DA', fg: 'var(--ink-900)' },
-  3: { bg: '#C98B5A', fg: 'var(--ink-900)' },
-};
-
-/** Avatar mit Vereins-Logo unten rechts (oder Brezn), optional mit Ring in Gold/Blau. */
-function SpezlAvatar({ e, size, ring = null }: { e: { photoUrl: string | null; name: string; steckbrief: { verein: string | null } }; size: number; ring?: 'gold' | 'blau' | null }) {
-  const logo = e.steckbrief.verein ? VEREIN_LOGO[e.steckbrief.verein] : null;
-  const l = Math.round(size * 0.4);
-  return (
-    <span style={{ position: 'relative', display: 'inline-block', width: size, height: size, flex: 'none', borderRadius: '50%', boxShadow: ring === 'gold' ? '0 0 0 3px var(--gold)' : ring === 'blau' ? '0 0 0 3px var(--muc-blau)' : 'none' }}>
-      <Avatar src={e.photoUrl} name={e.name} size={size} verein={e.steckbrief.verein} />
-      {logo ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={logo} alt="" style={{ position: 'absolute', right: -3, bottom: -2, width: l, height: l, objectFit: 'contain', background: '#fff', borderRadius: '50%', padding: 2, boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }} />
-      ) : (
-        <span style={{ position: 'absolute', right: -3, bottom: -2, width: l, height: l, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: Math.max(9, l * 0.6), background: '#fff', borderRadius: '50%', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }}>🥨</span>
-      )}
-    </span>
-  );
-}
-
-/** ▲1 / ▼1 in Grün/Rot, optional mit ±Punkten davor. */
-function DeltaText({ s, mitPunkten = false, size = 11 }: { s: StatsBlock; mitPunkten?: boolean; size?: number }) {
-  if (s.deltaRang === 0 && (!mitPunkten || s.deltaPunkte === 0)) return null;
-  const farbe = s.deltaRang > 0 || (s.deltaRang === 0 && s.deltaPunkte > 0) ? 'var(--erfolg)' : 'var(--strafe)';
-  const teile: string[] = [];
-  if (mitPunkten && s.deltaPunkte !== 0) teile.push(`${s.deltaPunkte > 0 ? '+' : ''}${s.deltaPunkte}`);
-  if (s.deltaRang !== 0) teile.push(s.deltaRang > 0 ? `▲${s.deltaRang}` : `▼${-s.deltaRang}`);
-  return <span className="wn-tnum" style={{ fontSize: size, fontWeight: 800, color: farbe, whiteSpace: 'nowrap' }}>{teile.join(' · ')}</span>;
-}
-
-/** Serie als Chip: Flamme (positiv, Pergament-Gold) oder Schneeflocke (negativ, Info-Blau). */
-function SerieChip({ s }: { s: StatsBlock }) {
-  if (s.streak === 0) return null;
-  const positiv = s.streak > 0;
-  const wackelt = s.unentschuldigtStreak >= 3;
-  return (
-    <span className="wn-tnum" style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 11, fontWeight: 800, padding: '2px 8px', borderRadius: 999, background: wackelt ? 'var(--strafe-bg)' : positiv ? 'var(--warnung-bg)' : 'var(--info-bg)', color: wackelt ? 'var(--strafe)' : positiv ? 'var(--gold-700)' : 'var(--muc-blau)' }}>
-      <Icon name={wackelt ? 'warning' : positiv ? 'flame' : 'snowflake'} size={12} stroke={2.4} />
-      {Math.abs(s.streak)}
-    </span>
-  );
-}
-
-const anzeigeName = (e: SpezlEintrag) => (e.istIch ? 'Du' : e.name.split(' ').length > 1 && e.name.split(' ')[0].length <= 3 ? e.name : e.name.split(' ')[0]);
+import { METRIKEN, type Metrik, type SpezlEintrag, type AmtEintrag, type GalerieBadge, type StatsBlock } from './rangliste';
 
 /**
  * D’Rangliste (Rang-Redesign 13.10.2026, 1a): oben nur Wertung und
@@ -79,29 +25,23 @@ export function Rangliste({
   galerie,
   badgeInfos,
   saisonLabel,
+  letzterTerminId,
 }: {
   eintraege: SpezlEintrag[];
   aemter: AmtEintrag[];
   galerie: GalerieBadge[];
   badgeInfos: Record<string, BadgeInfoDaten>;
   saisonLabel: string;
+  /** Letzter abgeschlossener Abend, Schlüssel für die einmalige Rangwechsel-Animation */
+  letzterTerminId: string | null;
 }) {
   const [zeitraum, setZeitraum] = useState<'saison' | 'allzeit'>('saison');
   const [metrik, setMetrik] = useState<Metrik>('punkte');
   const [detailId, setDetailId] = useState<string | null>(null);
   const [infoKey, setInfoKey] = useState<string | null>(null);
-  const [eingeschwungen, setEingeschwungen] = useState(false);
-  useEffect(() => {
-    setEingeschwungen(false);
-    let raf2 = 0;
-    const raf1 = requestAnimationFrame(() => {
-      raf2 = requestAnimationFrame(() => setEingeschwungen(true));
-    });
-    return () => {
-      cancelAnimationFrame(raf1);
-      cancelAnimationFrame(raf2);
-    };
-  }, [zeitraum, metrik]);
+  // Rangwechsel-Animation: nur in der Saison-WP-Ansicht, einmal pro Gerät und Abend
+  const wechsel = useRangWechsel(eintraege, letzterTerminId, zeitraum === 'saison' && metrik === 'punkte' && !detailId);
+  const ebene = wechsel.t !== null && wechsel.t < ENDE_EBENE && zeitraum === 'saison' && metrik === 'punkte';
 
   const einheit = METRIKEN.find((m) => m.value === metrik)!.einheit;
   const ranked = [...eintraege].sort((a, b) => b[zeitraum][metrik] - a[zeitraum][metrik]);
@@ -113,25 +53,20 @@ export function Rangliste({
 
   const podestSpalte = (e: SpezlEintrag) => {
     const rang = ranked.indexOf(e) + 1;
-    const s = e[zeitraum];
-    const erster = rang === 1;
-    const groesse = erster ? 76 : 60;
-    const hoehe = rang === 1 ? 100 : rang === 2 ? 80 : 66;
     return (
-      <div key={e.id} onClick={() => setDetailId(e.id)} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, cursor: 'pointer', minWidth: 0 }}>
-        {erster && <Icon name="crown" size={22} color="var(--gold-bright)" stroke={2.4} />}
-        <div style={{ position: 'relative' }}>
-          <SpezlAvatar e={e} size={groesse} ring={erster ? 'gold' : e.istIch ? 'blau' : null} />
-          <span className="wn-tnum" style={{ position: 'absolute', left: -4, top: -4, width: 24, height: 24, borderRadius: '50%', background: RANG_FARBE[rang].bg, color: RANG_FARBE[rang].fg, border: '2px solid var(--navy)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 800 }}>{rang}</span>
-        </div>
-        <span style={{ fontFamily: 'var(--font-fraktur)', fontSize: erster ? 24 : 20, lineHeight: 1, color: e.istIch ? 'var(--gold-bright)' : 'var(--pergament)', maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{anzeigeName(e)}</span>
-        <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--gold)', minHeight: 12, whiteSpace: 'nowrap' }}>{e.amt?.titel ?? ''}</span>
-        <div style={{ alignSelf: 'stretch', height: hoehe, borderRadius: '14px 14px 0 0', background: erster ? 'rgba(208,173,102,0.25)' : 'rgba(255,255,255,0.08)', border: '1px solid rgba(208,173,102,0.35)', borderBottom: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: 10, gap: 2 }}>
-          <span className="wn-tnum" style={{ fontSize: erster ? 26 : 22, fontWeight: 800, lineHeight: 1, color: 'var(--pergament)' }}>{s[metrik]}</span>
-          <span style={{ fontSize: 10, fontWeight: 800, color: 'rgba(246,240,226,0.6)' }}>{einheit}</span>
-          {metrik === 'punkte' && <DeltaText s={s} />}
-        </div>
-      </div>
+      <PodestSpalte
+        key={e.id}
+        e={e}
+        rang={rang}
+        s={e[zeitraum]}
+        metrik={metrik}
+        einheit={einheit}
+        groesse={PODEST_AVATAR[rang]}
+        hoehe={PODEST_HOEHE[rang]}
+        krone={rang === 1}
+        stil={{ flex: 1 }}
+        onClick={() => setDetailId(e.id)}
+      />
     );
   };
 
@@ -169,59 +104,32 @@ export function Rangliste({
               )}
             />
           </div>
-          <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, padding: '10px 14px 0' }}>
-            {podest.map(podestSpalte)}
+          <div style={{ position: 'relative', display: 'flex', alignItems: 'flex-end', gap: 8, margin: '10px 14px 0', height: PODEST_H, pointerEvents: ebene ? 'none' : 'auto' }}>
+            {ebene ? <PodestWechsel zeilen={wechsel.zeilen} t={wechsel.t!} einheit={einheit} /> : podest.map(podestSpalte)}
           </div>
         </div>
       )}
 
       {/* Ab Platz 4 die Liste, eigene Zeile außerhalb der Top 3 navy-gold */}
-      {rest.length > 0 && (
+      {(rest.length > 0 || ebene) && (
         <ZeilenKarte>
-          {rest.map((e, i) => {
-            const rang = i + 4;
-            const s = e[zeitraum];
-            const meine = e.istIch;
-            return (
-              <div
+          {ebene ? (
+            <ListeWechsel zeilen={wechsel.zeilen} t={wechsel.t!} einheit={einheit} />
+          ) : (
+            rest.map((e, i) => (
+              <ListenZeile
                 key={e.id}
+                e={e}
+                rang={i + 4}
+                s={e[zeitraum]}
+                metrik={metrik}
+                einheit={einheit}
+                letzte={i === rest.length - 1}
                 onClick={() => setDetailId(e.id)}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 12, minHeight: metrik === 'punkte' ? 66 : 60, padding: meine ? '0 12px' : '10px 0', cursor: 'pointer',
-                  margin: meine ? '4px -8px' : 0, borderRadius: meine ? 16 : 0,
-                  background: meine ? 'var(--grad-navy)' : 'transparent', border: meine ? '1.5px solid var(--gold)' : 'none',
-                  borderBottom: meine ? '1.5px solid var(--gold)' : i < rest.length - 1 ? '1px solid var(--ink-50)' : 'none',
-                  transform: eingeschwungen || metrik !== 'punkte' ? 'translateY(0)' : `translateY(${s.deltaRang * 66}px)`,
-                  transition: eingeschwungen ? 'transform 800ms cubic-bezier(0.22, 1, 0.36, 1)' : 'none',
-                  position: 'relative', zIndex: s.deltaRang !== 0 ? 2 : 1,
-                }}
-              >
-                <span className="wn-tnum" style={{ width: 24, textAlign: 'center', fontSize: 15, fontWeight: 800, color: meine ? 'rgba(246,240,226,0.6)' : 'var(--ink-300)', flex: 'none' }}>{rang}</span>
-                <SpezlAvatar e={e} size={metrik === 'punkte' ? 42 : 38} />
-                <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3 }}>
-                  <span style={{ fontSize: 15, fontWeight: 800, color: meine ? 'var(--gold-bright)' : 'var(--ink-900)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{anzeigeName(e)}</span>
-                  {metrik === 'punkte' && (e.amt || s.streak !== 0 || e.badges.length > 0) && (
-                    <div style={{ display: 'flex', gap: 5, alignItems: 'center', flexWrap: 'wrap' }}>
-                      {e.amt && <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--gold-700)' }}>{e.amt.titel}</span>}
-                      <SerieChip s={s} />
-                      {e.badges.map((b) => (
-                        <span key={b.key} onClick={(ev) => { ev.stopPropagation(); setInfoKey(b.key); }} style={{ display: 'inline-flex' }}>
-                          <BadgeBild slug={b.slug} icon={b.icon} name={b.name} size={26} />
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 1, flex: 'none' }}>
-                  <span className="wn-tnum" style={{ fontSize: metrik === 'punkte' ? 20 : 18, fontWeight: 800, lineHeight: 1, color: meine ? 'var(--pergament)' : 'var(--navy)' }}>
-                    {s[metrik]}{metrik !== 'punkte' && <span style={{ fontSize: 10, color: 'var(--gold-700)' }}> {einheit}</span>}
-                  </span>
-                  {metrik === 'punkte' && <span style={{ fontSize: 9, fontWeight: 800, letterSpacing: '0.08em', color: 'var(--gold-700)' }}>WP</span>}
-                  {metrik === 'punkte' && <DeltaText s={s} />}
-                </div>
-              </div>
-            );
-          })}
+                onBadge={setInfoKey}
+              />
+            ))
+          )}
         </ZeilenKarte>
       )}
 
@@ -322,6 +230,8 @@ export function Rangliste({
           </div>
         </section>
       )}
+
+      {wechsel.t !== null && wechsel.info && <RangToast info={wechsel.info} t={wechsel.t} onClose={wechsel.stopp} />}
 
       {detail && (
         <SpezlDetail

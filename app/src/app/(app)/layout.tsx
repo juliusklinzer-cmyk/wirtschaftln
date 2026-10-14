@@ -48,9 +48,13 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       {config.features.daniModus && <DaniStreifen />}
       {/* Header scrollt MIT dem Inhalt weg (bewusst ned sticky, Julius 29.08.),
           nur d'Tab-Leiste unten bleibt stehen */}
-      <main className="wn-scroll-still" style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', position: 'relative', overscrollBehavior: 'contain' }}>
-        {/* Runterziehen zum Aktualisieren + weiße Überzieh-Deckung oberhalb vom Header */}
+      {/* Der Scrollbereich selber is Navy: beim Runterziehen (iOS-Gummiband) blitzt
+          oberhalb vom Header der Container-Hintergrund durch, und der soll wia
+          Statusleiste und Kopf ausschauen (Julius, 14.10.2026). Der Inhalt liegt hell drauf. */}
+      <main className="wn-scroll-still" style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', position: 'relative', overscrollBehavior: 'contain', background: 'var(--navy-900)' }}>
+        {/* Runterziehen zum Aktualisieren */}
         <ZiehenAktualisieren />
+        <div style={{ minHeight: '100%', background: 'var(--bg-app)', display: 'flex', flexDirection: 'column' }}>
         <AppBar
           appName={config.name}
           logoSrc={config.logoUrl ? `${config.logoUrl}?s=128` : config.istGruender ? '/brand/shield-256.png' : '/brand/rauten-256.png'}
@@ -65,6 +69,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           onLogout={logout}
         />
         {children}
+        </div>
       </main>
       <TabBar tabs={config.typ === 'stammhaus' ? TABS_STAMMHAUS : TABS_WANDERND} />
     </div>

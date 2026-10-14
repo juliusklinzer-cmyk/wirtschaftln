@@ -1,20 +1,23 @@
 'use client';
 
 import { useActionState, useEffect, useState, useTransition } from 'react';
-import { Button, Input } from '@/components/ds';
+import { AuthFeld, AuthFehlerBox, AuthKnopf, AuthLink, GRUEN_HAKEN, type FeldMeldung } from '@/components/domain/AuthFeld';
 import { beitreten, codePruefen, type BeitrittState } from './actions';
+
+type Gruppe = { name: string; stadt: string | null };
 
 export function BeitrittForm({ codeVorbelegt = '' }: { codeVorbelegt?: string }) {
   const [state, action, pending] = useActionState<BeitrittState, FormData>(beitreten, {});
-  // Nach der Code-Eingabe steht dran, wem man beitritt (Verzeichnis-Lookup)
-  const [gruppe, setGruppe] = useState<{ name: string; stadt: string | null } | null>(null);
+  const [code, setCode] = useState(codeVorbelegt);
+  // undefined = no ned geprüft, null = unbekannt, sonst der Stammtisch (Verzeichnis-Lookup)
+  const [gruppe, setGruppe] = useState<Gruppe | null | undefined>(undefined);
   const [, starte] = useTransition();
-  const pruefen = (code: string) => {
-    if (code.trim().length < 3) {
-      setGruppe(null);
+  const pruefen = (c: string) => {
+    if (c.trim().length < 3) {
+      setGruppe(undefined);
       return;
     }
-    starte(async () => setGruppe(await codePruefen(code)));
+    starte(async () => setGruppe(await codePruefen(c)));
   };
   // Aus dem Einladungs-Link: Code steht scho drin → gleich nachschauen, wem man beitritt
   useEffect(() => {
@@ -22,35 +25,58 @@ export function BeitrittForm({ codeVorbelegt = '' }: { codeVorbelegt?: string })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [codeVorbelegt]);
 
+  const codeFehler = state.feld === 'code' ? state.error : gruppe === null ? 'Diesen Code kennen wir nicht. Frag in der Gruppe nach.' : null;
+  const codeZustand = codeFehler ? 'fehler' : gruppe ? 'ok' : null;
+  const codeMeldung: FeldMeldung = codeFehler
+    ? { art: 'fehler', text: codeFehler }
+    : gruppe
+      ? { art: 'ok', text: `${gruppe.name}${gruppe.stadt ? ` (${gruppe.stadt})` : ''}` }
+      : { art: 'hinweis', text: 'Steht in der WhatsApp-Gruppe eures Stammtischs.' };
+  const emailFehler = state.feld === 'email' ? state.error : null;
+  const sonstFehler = state.error && !state.feld ? state.error : null;
+
   return (
-    <form action={action} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-      <Input
+    <form action={action} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <AuthFeld
         label="Gründungscode"
         name="code"
-        defaultValue={codeVorbelegt}
-        inputMode="text"
-        placeholder="Der Code aus da Gruppe"
-        hint={gruppe ? `✓ Du trittst dem ${gruppe.name}${gruppe.stadt ? ` (${gruppe.stadt})` : ''} bei.` : 'Steht in der WhatsApp-Gruppe von eurem Stammtisch.'}
-        required
-        onChange={(e) => pruefen(e.target.value)}
+        value={code}
+        onChange={(e) => { setCode(e.target.value); pruefen(e.target.value); }}
         onBlur={(e) => pruefen(e.target.value)}
+        inputMode="text"
+        autoCapitalize="characters"
+        autoCorrect="off"
+        placeholder="Code aus der Gruppe"
+        required
+        mono
+        zustand={codeZustand}
+        meldung={codeMeldung}
+        rechts={gruppe ? GRUEN_HAKEN : undefined}
       />
-      <Input label="Nachname" name="nachname" placeholder="Klinzer" required />
-      <Input label="Vorname" name="vorname" placeholder="Julius" required />
-      <Input label="E-Mail" name="email" type="email" placeholder="julius@beispiel.de" required />
-
-      {state.error && (
-        <div style={{ padding: '10px 12px', background: 'var(--strafe-bg)', border: '1px solid var(--strafe)', borderRadius: 'var(--r-md)', fontSize: 13, fontWeight: 700, color: 'var(--strafe)' }}>
-          {state.error}
-        </div>
-      )}
-
-      <Button type="submit" fullWidth variant="gold" size="lg" disabled={pending}>
-        {pending ? 'Moment…' : 'Gründungsmitglied werden'}
-      </Button>
-      <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink-500)', textAlign: 'center' }}>
-        Danach setzt’d dei Passwort und stellst di kurz vor, dann geht’s eini.
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+        <AuthFeld label="Nachname" name="nachname" placeholder="Klinzer" autoComplete="family-name" required />
+        <AuthFeld label="Vorname" name="vorname" placeholder="Julius" autoComplete="given-name" required />
       </div>
+      <AuthFeld
+        label="E-Mail"
+        name="email"
+        type="email"
+        placeholder="julius@beispiel.de"
+        autoComplete="email"
+        required
+        zustand={emailFehler ? 'fehler' : null}
+      />
+
+      {emailFehler && (
+        <>
+          <AuthFehlerBox>{emailFehler}</AuthFehlerBox>
+          <AuthLink href="/login">Zur Anmeldung</AuthLink>
+        </>
+      )}
+      {sonstFehler && <AuthFehlerBox>{sonstFehler}</AuthFehlerBox>}
+
+      <AuthKnopf variante="gold" pending={pending} disabled={!gruppe}>Gründungsmitglied werden</AuthKnopf>
+      <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink-500)', textAlign: 'center', marginTop: -4 }}>Danach Passwort setzen und kurz vorstellen.</span>
     </form>
   );
 }

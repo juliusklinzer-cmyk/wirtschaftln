@@ -10,7 +10,7 @@ import { createSession, destroySession } from '@/lib/session';
 export type LoginState = {
   error?: string;
   /** Passwort passt in mehreren Stammtischen → der Spezl sucht sich einen aus */
-  gruppen?: Array<{ id: string; name: string }>;
+  gruppen?: Array<{ id: string; name: string; info: string | null }>;
 };
 
 // Brute-Force-Bremse: 5 Fehlversuche pro E-Mail → 15 Minuten Sperre.
@@ -67,13 +67,20 @@ export async function login(_prev: LoginState, formData: FormData): Promise<Logi
     }
     const f = fehlversuche.get(email) ?? { count: 0, bis: 0 };
     fehlversuche.set(email, { count: f.count + 1, bis: Date.now() + SPERRE_MS });
-    return { error: 'Des passt ned, E-Mail oder Passwort falsch.' };
+    return { error: 'E-Mail oder Passwort stimmt nicht.' };
   }
   fehlversuche.delete(email);
 
   if (passende.length > 1) {
+    // Auswahl-Karten: „München · 9 Spezln“ (Login-Redesign 2b)
     return {
-      gruppen: passende.map((k) => ({ id: k.gruppeId, name: findGruppe(k.gruppeId)?.name ?? k.gruppeId })),
+      gruppen: passende.map((k) => {
+        const g = findGruppe(k.gruppeId);
+        let spezln = 0;
+        if (bindTenant(k.gruppeId)) spezln = db.select({ id: members.id }).from(members).where(eq(members.status, 'aktiv')).all().length;
+        const info = [g?.stadt, spezln > 0 ? `${spezln} Spezln` : null].filter(Boolean).join(' · ') || null;
+        return { id: k.gruppeId, name: g?.name ?? k.gruppeId, info };
+      }),
     };
   }
 

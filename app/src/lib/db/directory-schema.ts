@@ -60,3 +60,21 @@ export const gruendungsTokens = sqliteTable(
 export type Gruppe = typeof gruppen.$inferSelect;
 export type Konto = typeof konten.$inferSelect;
 export type GruendungsToken = typeof gruendungsTokens.$inferSelect;
+
+// „Passwort vergessen“: Link-Token per Mail, eine Stunde gültig, ein Token je
+// Konto (E-Mail + Stammtisch). Wird beim Setzen des neuen Passworts gelöscht.
+export const passwortTokens = sqliteTable(
+  'passwort_tokens',
+  {
+    token: text('token').primaryKey(),
+    email: text('email').notNull(),
+    gruppeId: text('gruppe_id').notNull(),
+    memberId: text('member_id').notNull(),
+    /** ISO-Zeitpunkt, bis wann der Link gilt */
+    bis: text('bis').notNull(),
+    createdAt: text('created_at').notNull(),
+  },
+  (t) => [index('passwort_tokens_email').on(t.email)],
+);
+
+export type PasswortToken = typeof passwortTokens.$inferSelect;

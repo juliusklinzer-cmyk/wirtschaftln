@@ -10,7 +10,8 @@ import { hashPassword } from '@/lib/password';
 import { createSession } from '@/lib/session';
 import { newId, nowIso } from '@/lib/ids';
 
-export type BeitrittState = { error?: string };
+/** `feld` sagt, wo der Fehler hingehört (Login-Redesign 2c/2e), sonst als Box über dem Knopf. */
+export type BeitrittState = { error?: string; feld?: 'code' | 'email' };
 
 /**
  * Live-Check beim Tippen: zu welchem Stammtisch gehört der Code? (null = unbekannt)
@@ -77,7 +78,7 @@ export async function beitreten(_prev: BeitrittState, formData: FormData): Promi
   const gruppe = code ? findGruppeByCode(code) : null;
   if (!gruppe || gruppe.status !== 'aktiv') {
     fehlversuchZaehlen(wer);
-    return { error: 'Der Gründungscode stimmt ned, schau nomoi in d’Gruppe.' };
+    return { error: 'Diesen Code kennen wir nicht. Frag in der Gruppe nach.', feld: 'code' };
   }
   fehlversuche.delete(wer);
 
@@ -96,7 +97,7 @@ export async function beitreten(_prev: BeitrittState, formData: FormData): Promi
       await createSession(vorhanden.id);
       redirect('/profil');
     }
-    return { error: 'Mit der E-Mail gibt’s scho an Account, probier di einfach anzumelden.' };
+    return { error: 'Mit dieser E-Mail bist du schon dabei.', feld: 'email' };
   }
 
   const id = newId('m');

@@ -1,8 +1,9 @@
 import { drizzle, type BetterSQLite3Database } from 'drizzle-orm/better-sqlite3';
 import { and, eq } from 'drizzle-orm';
 import type Database from 'better-sqlite3';
+import { randomBytes } from 'node:crypto';
 import * as dirSchema from './directory-schema';
-import { gruppen, konten, gruendungsTokens, type Gruppe, type Konto, type GruendungsToken } from './directory-schema';
+import { gruppen, konten, gruendungsTokens, passwortTokens, type Gruppe, type Konto, type GruendungsToken, type PasswortToken } from './directory-schema';
 import { ensureGruender, openDirectorySqlite } from './core';
 
 /**
@@ -144,4 +145,40 @@ export function kontoLoeschen(gruppeId: string, memberId: string): void {
     .run();
 }
 
-export type { Gruppe, Konto, GruendungsToken } from './directory-schema';
+/* ── Passwort vergessen ──────────────────────────────────────────────── */
+
+const PASSWORT_TOKEN_MINUTEN = 60;
+
+/** Neuen Link-Token für ein Konto anlegen (alte Tokens des Kontos fliegen raus). */
+export function passwortTokenAnlegen(email: string, gruppeId: string, memberId: string): PasswortToken {
+  const { db } = getDirectory();
+  db.delete(passwortTokens).where(and(eq(passwortTokens.email, email), eq(passwortTokens.gruppeId, gruppeId))).run();
+  const zeile: PasswortToken = {
+    token: randomBytes(24).toString('base64url'),
+    email,
+    gruppeId,
+    memberId,
+    bis: new Date(Date.now() + PASSWORT_TOKEN_MINUTEN * 60_000).toISOString(),
+    createdAt: new Date().toISOString(),
+  };
+  db.insert(passwortTokens).values(zeile).run();
+  return zeile;
+}
+
+/** Token nachschlagen; abgelaufene werden dabei gleich aufgeräumt (null). */
+export function passwortTokenFinden(token: string): PasswortToken | null {
+  const { db } = getDirectory();
+  const t = db.select().from(passwortTokens).where(eq(passwortTokens.token, token)).get() ?? null;
+  if (!t) return null;
+  if (t.bis < new Date().toISOString()) {
+    db.delete(passwortTokens).where(eq(passwortTokens.token, token)).run();
+    return null;
+  }
+  return t;
+}
+
+export function passwortTokensLoeschen(email: string): void {
+  getDirectory().db.delete(passwortTokens).where(eq(passwortTokens.email, email)).run();
+}
+
+export type { Gruppe, Konto, GruendungsToken, PasswortToken } from './directory-schema';

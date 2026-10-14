@@ -33,8 +33,8 @@ export async function gruenden(token: string, _prev: GruendungsState, formData: 
   };
   const ergebnis = await stammtischGruenden(token, eingabe);
   if (!ergebnis.ok) return { fehler: ergebnis.fehler, schritt: ergebnis.schritt };
-  // Direkt weiter zum Einladen der Spezln
-  redirect('/einladen?neu=1');
+  // Weiter zum Geschafft-Screen (Code teilen, dann in d'App)
+  redirect('/gruenden/fertig');
 }
 
 /** Code-Vorschlag aus dem Stammtisch-Namen (Schritt 3), garantiert frei. */

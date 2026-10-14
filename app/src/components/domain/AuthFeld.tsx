@@ -79,7 +79,7 @@ export function PasswortFeld(props: Omit<FeldProps, 'rechts' | 'type'>) {
 export const GRUEN_HAKEN = <CheckCircle size={20} weight="fill" color="var(--erfolg)" style={{ flex: 'none' }} />;
 
 /** Großer Knopf: Navy fürs Anmelden, Gold fürs Beitreten. Zeigt „Moment …“ mit Kringel. */
-export function AuthKnopf({ variante, pending = false, disabled = false, children, ...rest }: { variante: 'navy' | 'gold'; pending?: boolean } & React.ButtonHTMLAttributes<HTMLButtonElement>) {
+export function AuthKnopf({ variante, pending = false, disabled = false, wartend = 'Moment …', children, ...rest }: { variante: 'navy' | 'gold'; pending?: boolean; /** Text mit Kringel beim Warten */ wartend?: string } & React.ButtonHTMLAttributes<HTMLButtonElement>) {
   const aus = pending || disabled;
   return (
     <button
@@ -94,13 +94,14 @@ export function AuthKnopf({ variante, pending = false, disabled = false, childre
           ? { background: 'var(--navy)', color: '#fff' }
           : { background: 'var(--grad-gold)', color: 'var(--navy-900)', boxShadow: 'var(--sh-gold)' }),
         transition: 'opacity 150ms ease',
+        ...rest.style,
       }}
     >
       {pending ? (
         <>
           <CircleNotch size={20} style={{ animation: 'wnKringel 900ms linear infinite' }} />
           <style>{`@keyframes wnKringel { to { transform: rotate(360deg); } }`}</style>
-          Moment …
+          {wartend}
         </>
       ) : children}
     </button>

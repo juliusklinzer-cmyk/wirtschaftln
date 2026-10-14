@@ -12,7 +12,7 @@ const EXPORT = 512; // Kantenlänge des exportierten Quadrats
  * zurechtschieben und zoomen, exportiert wird ein kleines Quadrat als
  * Data-URL im Hidden-Field `name`, der Server verkleinert final auf 256px.
  */
-export function FotoZuschnitt({ name, aktuellesFoto, anzeigeName = '' }: { name: string; aktuellesFoto: string | null; /** für die Initialen, wenn no koa Foto da is */ anzeigeName?: string }) {
+export function FotoZuschnitt({ name, aktuellesFoto, anzeigeName = '', titel = 'Profilbild' }: { name: string; aktuellesFoto: string | null; /** für die Initialen, wenn no koa Foto da is */ anzeigeName?: string; /** Wort im Auslöser („Profilbild“ oder „Logo“) */ titel?: string }) {
   const [bild, setBild] = useState<HTMLImageElement | null>(null);
   const [zoom, setZoom] = useState(1);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
@@ -76,7 +76,7 @@ export function FotoZuschnitt({ name, aktuellesFoto, anzeigeName = '' }: { name:
             </span>
           </span>
           <span style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-            <span style={{ fontSize: 15, fontWeight: 800, color: 'var(--navy)' }}>{aktuellesFoto ? 'Profilbild ändern' : 'Profilbild auswählen'}</span>
+            <span style={{ fontSize: 15, fontWeight: 800, color: 'var(--navy)' }}>{aktuellesFoto ? `${titel} ändern` : `${titel} auswählen`}</span>
             <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink-500)' }}>Im Kreis zurechtschieben und zoomen</span>
           </span>
           <input type="file" accept="image/*" onChange={(e) => dateiWaehlen(e.target.files?.[0])} style={{ display: 'none' }} />

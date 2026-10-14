@@ -136,7 +136,7 @@ export function LogoWahl({ name, stammtischName, aktuell = null }: { name: strin
  * ein Hidden-Field (_logoRoh); wir lesen es per Polling aus und nehmen dem Feld
  * den Namen, damit das Bild NICHT doppelt (roh + gewählt) im Formular-Body landet.
  */
-function EigenesBild({ onErgebnis }: { onErgebnis: (dataUrl: string) => void }) {
+export function EigenesBild({ onErgebnis, titel = 'Profilbild' }: { onErgebnis: (dataUrl: string) => void; titel?: string }) {
   const [tick, setTick] = useState(0);
   const feld = useRef<HTMLInputElement | null>(null);
   useEffect(() => {
@@ -154,7 +154,7 @@ function EigenesBild({ onErgebnis }: { onErgebnis: (dataUrl: string) => void }) 
   }, [tick, onErgebnis]);
   return (
     <div>
-      <FotoZuschnitt name="_logoRoh" aktuellesFoto={null} />
+      <FotoZuschnitt name="_logoRoh" aktuellesFoto={null} titel={titel} />
     </div>
   );
 }

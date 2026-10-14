@@ -73,9 +73,15 @@ export function normalisiereToken(roh: string): string | null {
 
 /** Wer hat eingladen? Name des Gründer-Mitglieds hinter dem Token. */
 export function einladerName(token: GruendungsToken): string | null {
+  return einlader(token)?.name ?? null;
+}
+
+/** Einlader mit Herkunft (Stadtviertel) für die Zeile „Von Hansi aus Giesing“ (Gründung-Redesign). */
+export function einlader(token: GruendungsToken): { name: string; herkunft: string | null } | null {
   return runWithTenant(gruenderGruppeId(), () => {
     const m = db.select().from(members).where(eq(members.id, token.memberId)).get();
-    return m ? (m.spitzname || m.vorname || m.name) : null;
+    if (!m) return null;
+    return { name: m.spitzname || m.vorname || m.name, herkunft: m.herkunft?.trim() || null };
   });
 }
 

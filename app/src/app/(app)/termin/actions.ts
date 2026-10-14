@@ -14,7 +14,7 @@ import { HELLE, ALKOHOLFREIE_HELLE } from '@/lib/biersorten';
 import { hoibePreisCents, hoibePreisEuro } from '@/lib/preise';
 import { appHost, appUrl, mailSignatur, tenantConfig } from '@/lib/tenant-config';
 import { imUmkreis, mitOrt } from '@/lib/tenant-config-public';
-import { fotoAlsDataUrl } from '@/lib/foto';
+import { fotoAblegen, fotoAlsDataUrl } from '@/lib/foto';
 import { mailAn } from '@/lib/mail';
 import { pushAnAlle, pushAn } from '@/lib/push';
 import { datumLang } from '@/lib/format';
@@ -122,10 +122,12 @@ async function wirtshausAusSuche(formData: FormData, vorgeschlagenVon: string | 
   const telefon = String(formData.get('w_telefon') ?? '').trim() || null;
   // Google-Fotos nur beim Gründer (Feature wirtshausFotos) — sonst koa Foto in die DB
   const fotoRoh = tenantConfig().features.wirtshausFotos ? erlaubteFotoUrl(String(formData.get('w_photoUrl') ?? '').trim()) : null;
-  // Foto sofort als Data-URL in die DB holen, Google-URLs laufen ab/zicken.
+  // Foto sofort holen und in `fotos` ablegen, Google-URLs laufen ab/zicken.
   // Klappt der Download grad ned, bleibt die stabile URL als Fallback.
+  const wid = newId('w');
   const fotoStabil = fotoRoh ? await stabileFotoUrl(fotoRoh) : null;
-  const photoUrl = fotoStabil ? ((await fotoAlsDataUrl(fotoStabil)) ?? fotoStabil) : null;
+  const fotoData = fotoStabil ? await fotoAlsDataUrl(fotoStabil) : null;
+  const photoUrl = fotoData ? fotoAblegen(wid, fotoData) : fotoStabil;
   let lat = Number(formData.get('w_lat')) || null;
   let lng = Number(formData.get('w_lng')) || null;
   if (lat == null || lng == null) {
@@ -136,7 +138,6 @@ async function wirtshausAusSuche(formData: FormData, vorgeschlagenVon: string | 
   // Optional: das Helle vom Finder, nur echte Einträge von der Karte zulassen
   const biersorteRoh = String(formData.get('w_biersorte') ?? '').trim();
   const biersorte = [...HELLE, ...ALKOHOLFREIE_HELLE].some((b) => b.name === biersorteRoh) ? biersorteRoh : undefined;
-  const wid = newId('w');
   db.insert(wirtshaeuser)
     .values({ id: wid, name, adresse, bezirk, telefon, photoUrl, lat, lng, vorgeschlagenVon, ...(biersorte ? { biersorte } : {}), createdAt: nowIso() })
     .run();
@@ -738,8 +739,9 @@ export async function wirtshausFotoSetzen(wirtshausId: string, photoUrl: string)
   if (!w || w.photoUrl) return;
   const stabil = await stabileFotoUrl(photoUrl);
   if (!stabil) return;
-  // Als Data-URL speichern (lädt für immer zuverlässig); Fallback: stabile URL
-  db.update(wirtshaeuser).set({ photoUrl: (await fotoAlsDataUrl(stabil)) ?? stabil }).where(eq(wirtshaeuser.id, wirtshausId)).run();
+  // In `fotos` ablegen (lädt für immer zuverlässig); Fallback: stabile URL
+  const fotoData = await fotoAlsDataUrl(stabil);
+  db.update(wirtshaeuser).set({ photoUrl: fotoData ? fotoAblegen(wirtshausId, fotoData) : stabil }).where(eq(wirtshaeuser.id, wirtshausId)).run();
   revalidatePath('/karte');
 }
 

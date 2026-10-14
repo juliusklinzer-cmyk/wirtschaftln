@@ -7,6 +7,7 @@ import { db, members } from '@/lib/db';
 import { getCurrentMember, destroyOtherSessions } from '@/lib/session';
 import { hashPassword, verifyPassword } from '@/lib/password';
 import { tenantConfig } from '@/lib/tenant-config';
+import { fotoAblegen } from '@/lib/foto';
 import { neuerToken } from '@/lib/gruendung';
 
 export type ProfilState = { error?: string; ok?: boolean };
@@ -56,7 +57,8 @@ export async function profilSpeichern(_prev: ProfilState, formData: FormData): P
     try {
       const buf = Buffer.from(fotoData.slice(fotoData.indexOf(',') + 1), 'base64');
       const klein = await sharp(buf).resize(256, 256, { fit: 'cover' }).jpeg({ quality: 80 }).toBuffer();
-      photoUrl = `data:image/jpeg;base64,${klein.toString('base64')}`;
+      // Bild in `fotos`, in members nur die URL mit Hash (Browser cacht a Jahr, neues Foto = neue URL)
+      photoUrl = fotoAblegen(me.id, `data:image/jpeg;base64,${klein.toString('base64')}`);
     } catch {
       return { error: 'Des Foto kann i ned lesen, probier a anders.' };
     }

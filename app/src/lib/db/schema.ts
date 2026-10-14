@@ -11,7 +11,8 @@ export const members = sqliteTable('members', {
   spitzname: text('spitzname'),
   email: text('email').notNull().unique(),
   passwordHash: text('password_hash').notNull(),
-  photoUrl: text('photo_url'), // Upload wird als Data-URL gespeichert (klein skaliert)
+  /** URL des Profilfotos: /foto/<id>-<hash>.jpg (Daten liegen in `fotos`), seit 14.10.2026 nimmer als Data-URL */
+  photoUrl: text('photo_url'),
   role: text('role', { enum: ['admin', 'mitglied'] }).notNull().default('mitglied'),
   status: text('status', { enum: ['aktiv', 'antrag', 'inaktiv'] }).notNull().default('aktiv'),
   // Profil, alles was bayrisch und witzig is
@@ -28,6 +29,17 @@ export const members = sqliteTable('members', {
   // true, bis der Spezl beim ersten Login Passwort gesetzt + Profil ausgefüllt hat
   erstanmeldung: integer('erstanmeldung', { mode: 'boolean' }).notNull().default(false),
   createdAt: text('created_at').notNull(),
+});
+
+/**
+ * Fotos (Profilbilder, Wirtshaus-Fotos) als Data-URL, getrennt von members /
+ * wirtshaeuser, damit a select() nie 20–150 KB Bild pro Zeile mitschleppt.
+ * Schlüssel is die Mitglieds- bzw. Wirtshaus-ID. Ausgeliefert über
+ * /foto/<id>-<hash>.jpg mit Jahres-Cache, der Hash wechselt beim neuen Bild.
+ */
+export const fotos = sqliteTable('fotos', {
+  id: text('id').primaryKey(),
+  data: text('data').notNull(),
 });
 
 export const sessions = sqliteTable('sessions', {

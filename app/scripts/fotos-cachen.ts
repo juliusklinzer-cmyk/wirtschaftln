@@ -1,8 +1,9 @@
 // Bestehende Wirtshaus-Fotos (Google-URLs) einmalig herunterladen, verkleinern
-// und als Data-URL in die DB legen — danach laden die Bilder zuverlässig,
-// egal was Google mit seinen PhotoService-URLs treibt.
+// und in die Tabelle `fotos` legen (photo_url zeigt dann auf /foto/<id>-<hash>.jpg),
+// danach laden die Bilder zuverlässig, egal was Google mit seinen PhotoService-URLs treibt.
 // Aufruf lokal:  node scripts/fotos-cachen.ts
 // Aufruf Prod:   docker compose exec app node scripts/fotos-cachen.ts
+import { createHash } from 'node:crypto';
 import sharp from 'sharp';
 import { oeffneMandant } from './_tenant.ts';
 
@@ -26,7 +27,7 @@ const rows = db
   .all() as Array<{ id: string; name: string; photo_url: string }>;
 
 if (rows.length === 0) {
-  console.log('Nix zu tun — alle Fotos liegen scho als Data-URL in der DB.');
+  console.log('Nix zu tun, alle Fotos liegen scho in der DB.');
   process.exit(0);
 }
 
@@ -35,7 +36,9 @@ let ok = 0;
 for (const r of rows) {
   const dataUrl = await alsDataUrl(r.photo_url);
   if (dataUrl) {
-    db.prepare('UPDATE wirtshaeuser SET photo_url = ? WHERE id = ?').run(dataUrl, r.id);
+    const hash = createHash('sha1').update(dataUrl).digest('hex').slice(0, 10);
+    db.prepare('INSERT OR REPLACE INTO fotos (id, data) VALUES (?, ?)').run(r.id, dataUrl);
+    db.prepare('UPDATE wirtshaeuser SET photo_url = ? WHERE id = ?').run(`/foto/${r.id}-${hash}.jpg`, r.id);
     ok += 1;
     console.log(`  ✓ ${r.name}`);
   } else {

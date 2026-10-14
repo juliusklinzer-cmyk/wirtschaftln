@@ -268,8 +268,15 @@ export function ArchivScreen({
   const gewertet = besucht
     .filter((e) => !e.stammhaus && (e[feld] || 0) > 0)
     .sort((a, b) => (b[feld] || 0) - (a[feld] || 0));
-  const ranked = stammhausEintrag ? [stammhausEintrag, ...gewertet] : gewertet;
-  const champ = ranked[0];
+  // Sterne: alle besuchten Wirtshäuser, die no koa Wertung haben, stehen unten dran (Julius, 14.10.2026)
+  const unbewertet = view === 'rang'
+    ? besucht
+        .filter((e) => !e.stammhaus && !(e.rating > 0) && (e.besuchtAm || e.altbestand))
+        .sort((a, b) => (b.besuchtAm ?? '').localeCompare(a.besuchtAm ?? ''))
+    : [];
+  const ranked = [...(stammhausEintrag ? [stammhausEintrag] : []), ...gewertet, ...unbewertet];
+  const champ = ranked[0] && (ranked[0].stammhaus || (ranked[0][feld] || 0) > 0) ? ranked[0] : undefined;
+  const liste = champ ? ranked.slice(1) : ranked;
   const hinweisZu = (e: ArchivEintrag) => (mc.art ? e.hinweise.find((h) => h.art === mc.art)?.text ?? null : null);
   const untertitel = (e: ArchivEintrag) => {
     if (mc.art) return hinweisZu(e) ?? (e.altbestand ? 'Vor der App · nachbewertet' : e.bezirk ?? '');
@@ -315,14 +322,17 @@ export function ArchivScreen({
       )}
 
       <ZeilenKarte>
-        {ranked.slice(1).map((e, i) => {
-          const rang = i + 2;
+        {liste.map((e, i) => {
+          const rang = (champ ? 2 : 1) + i;
+          const ohneWertung = !e.stammhaus && !((e[feld] || 0) > 0);
           return (
             <Zeile
               key={e.id}
               kachel={
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: 12, flex: 'none' }}>
-                  {rang <= 3 ? (
+                  {ohneWertung ? (
+                    <span style={{ width: 28, textAlign: 'center', fontSize: 14, fontWeight: 800, color: 'var(--ink-200)' }}>–</span>
+                  ) : rang <= 3 ? (
                     <span className="wn-tnum" style={{ width: 28, height: 28, borderRadius: '50%', background: rang === 2 ? '#C7D0DA' : '#C98B5A', color: 'var(--ink-900)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 800 }}>{rang}</span>
                   ) : (
                     <span className="wn-tnum" style={{ width: 28, textAlign: 'center', fontSize: 14, fontWeight: 800, color: 'var(--ink-300)' }}>{rang}</span>
@@ -333,12 +343,16 @@ export function ArchivScreen({
               titel={e.name}
               untertitel={untertitel(e)}
               chip={
-                <span className="wn-tnum" style={{ flex: 'none', fontSize: 15, fontWeight: 800, color: 'var(--navy)', whiteSpace: 'nowrap' }}>
-                  {dez(e[feld])}{!mc.art && <span style={{ color: 'var(--gold)' }}> ★</span>}
-                </span>
+                ohneWertung ? (
+                  <span title="noch nicht bewertet" style={{ flex: 'none', fontSize: 15, fontWeight: 800, color: 'var(--ink-300)', whiteSpace: 'nowrap' }}>– <span style={{ color: 'var(--ink-200)' }}>★</span></span>
+                ) : (
+                  <span className="wn-tnum" style={{ flex: 'none', fontSize: 15, fontWeight: 800, color: 'var(--navy)', whiteSpace: 'nowrap' }}>
+                    {dez(e[feld])}{!mc.art && <span style={{ color: 'var(--gold)' }}> ★</span>}
+                  </span>
+                )
               }
-              onClick={() => setDetail({ e, rank: rang })}
-              letzte={i === ranked.length - 2}
+              onClick={() => setDetail({ e, rank: ohneWertung ? null : rang })}
+              letzte={i === liste.length - 1}
               style={{ minHeight: 60 }}
             />
           );
@@ -346,7 +360,7 @@ export function ArchivScreen({
         {ranked.length === 0 && (
           <div style={{ textAlign: 'center', padding: '30px 16px', color: 'var(--ink-500)', fontSize: 14, fontWeight: 600 }}>{mc.leer}</div>
         )}
-        {ranked.length === 1 && (
+        {ranked.length === 1 && champ && (
           <div style={{ textAlign: 'center', padding: '20px 16px', color: 'var(--ink-500)', fontSize: 13, fontWeight: 600 }}>Mehr gibt’s no ned, kommt mit jedem Abend.</div>
         )}
       </ZeilenKarte>

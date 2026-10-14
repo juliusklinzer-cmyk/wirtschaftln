@@ -12,6 +12,14 @@ import { neuerToken } from '@/lib/gruendung';
 
 export type ProfilState = { error?: string; ok?: boolean };
 
+/** Weißwurst-Zahl aus dem Formular: leer = null, sonst 0–20. */
+function weisswuerste(v: FormDataEntryValue | null): number | null {
+  const s = String(v ?? '').trim();
+  if (!s) return null;
+  const n = Number(s);
+  return Number.isInteger(n) && n >= 0 && n <= 20 ? n : null;
+}
+
 /** Frischen Gründungs-Token münzen — nur der Admin des Gründer-Stammtischs (unbegrenzt). */
 export async function tokenErzeugen() {
   const me = await getCurrentMember();
@@ -83,6 +91,7 @@ export async function profilSpeichern(_prev: ProfilState, formData: FormData): P
       // Gründer: nur die zwoa Wappen; sonst freier Vereinsname
       verein: tenantConfig().features.vereinsWahl ? (verein === 'bayern' || verein === 'sechzig' ? verein : null) : feld('verein', 60),
       schafkopfer: formData.get('schafkopfer') === 'on',
+      weisswuerste: weisswuerste(formData.get('weisswuerste')),
       beschreibung: feld('beschreibung', 500),
       erstanmeldung: false,
       ...(passwordHash ? { passwordHash } : {}),

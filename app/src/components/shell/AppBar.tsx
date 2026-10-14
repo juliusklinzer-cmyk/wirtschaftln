@@ -85,7 +85,7 @@ export function AppBar({
   }, [wp]);
 
   // Karte, Rang und Kasse: Vollbild ohne Kopfleiste (Julius, 29.08.2026 bzw. Redesign 13./14.10.2026)
-  if (pathname.startsWith('/karte') || pathname.startsWith('/spezln') || pathname.startsWith('/kasse')) return null;
+  if (pathname.startsWith('/karte') || pathname.startsWith('/spezln') || pathname.startsWith('/kasse') || pathname.startsWith('/profil')) return null;
 
   return (
     <header

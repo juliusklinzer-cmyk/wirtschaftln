@@ -1,6 +1,8 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { Camera } from '@phosphor-icons/react/dist/ssr/Camera';
+import { Avatar } from '@/components/ds';
 
 const VORSCHAU = 240; // Durchmesser des Kreis-Editors (px)
 const EXPORT = 512; // Kantenlänge des exportierten Quadrats
@@ -10,7 +12,7 @@ const EXPORT = 512; // Kantenlänge des exportierten Quadrats
  * zurechtschieben und zoomen, exportiert wird ein kleines Quadrat als
  * Data-URL im Hidden-Field `name`, der Server verkleinert final auf 256px.
  */
-export function FotoZuschnitt({ name, aktuellesFoto }: { name: string; aktuellesFoto: string | null }) {
+export function FotoZuschnitt({ name, aktuellesFoto, anzeigeName = '' }: { name: string; aktuellesFoto: string | null; /** für die Initialen, wenn no koa Foto da is */ anzeigeName?: string }) {
   const [bild, setBild] = useState<HTMLImageElement | null>(null);
   const [zoom, setZoom] = useState(1);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
@@ -61,38 +63,29 @@ export function FotoZuschnitt({ name, aktuellesFoto }: { name: string; aktuelles
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-      <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink-700)' }}>Profilbild, zeig dei Gsicht</span>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
       <input type="hidden" name={name} value={ergebnis} />
 
+      {/* Auslöser (Profil-Redesign 1b): Avatar mit Kamera-Marke, daneben der Text */}
       {!bild && (
-        <label
-          style={{
-            display: 'flex', alignItems: 'center', gap: 14, padding: '12px 14px', cursor: 'pointer',
-            border: '1.5px dashed var(--ink-200)', borderRadius: 'var(--r-md)', background: 'var(--weiss)',
-          }}
-        >
-          {aktuellesFoto ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={aktuellesFoto} alt="" style={{ width: 56, height: 56, borderRadius: '50%', objectFit: 'cover', flex: 'none', border: '2px solid var(--gold)' }} />
-          ) : (
-            <span style={{ width: 56, height: 56, borderRadius: '50%', background: 'var(--ink-100)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, flex: 'none' }}>
-              📷
+        <label style={{ display: 'flex', alignItems: 'center', gap: 16, cursor: 'pointer' }}>
+          <span style={{ position: 'relative', width: 88, height: 88, flex: 'none' }}>
+            <Avatar src={aktuellesFoto} name={anzeigeName} size={88} />
+            <span style={{ position: 'absolute', right: -2, bottom: -2, width: 32, height: 32, borderRadius: '50%', background: 'var(--navy)', color: '#fff', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', border: '2px solid var(--ink-50)' }}>
+              <Camera size={16} weight="fill" />
             </span>
-          )}
-          <span>
-            <span style={{ display: 'block', fontSize: 14, fontWeight: 800, color: 'var(--muc-blau)' }}>Foto auswählen…</span>
-            <span style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink-500)' }}>
-              Handy-Foto passt, wird automatisch klein gerechnet.
-            </span>
+          </span>
+          <span style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <span style={{ fontSize: 15, fontWeight: 800, color: 'var(--navy)' }}>{aktuellesFoto ? 'Profilbild ändern' : 'Profilbild auswählen'}</span>
+            <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink-500)' }}>Im Kreis zurechtschieben und zoomen</span>
           </span>
           <input type="file" accept="image/*" onChange={(e) => dateiWaehlen(e.target.files?.[0])} style={{ display: 'none' }} />
         </label>
       )}
 
       {bild && (
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, padding: '14px 12px', border: '1px solid var(--ink-100)', borderRadius: 'var(--r-md)', background: 'var(--pergament)' }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink-500)' }}>Schieb’s zurecht, bis’s im Kreis passt</div>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, padding: '14px 12px', border: '1px solid var(--pergament-edge)', borderRadius: 14, background: 'var(--pergament)' }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink-500)' }}>Im Kreis zurechtschieben und zoomen</div>
           <div
             onPointerDown={(e) => {
               (e.target as HTMLElement).setPointerCapture(e.pointerId);
@@ -123,7 +116,7 @@ export function FotoZuschnitt({ name, aktuellesFoto }: { name: string; aktuelles
             />
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', maxWidth: 280 }}>
-            <span style={{ fontSize: 13 }}>🔍</span>
+            <span style={{ fontSize: 11, fontWeight: 800, color: 'var(--ink-500)' }}>−</span>
             <input
               type="range"
               min={1}
@@ -137,7 +130,7 @@ export function FotoZuschnitt({ name, aktuellesFoto }: { name: string; aktuelles
               }}
               style={{ flex: 1, accentColor: 'var(--muc-blau)' }}
             />
-            <span style={{ fontSize: 17 }}>🔍</span>
+            <span style={{ fontSize: 15, fontWeight: 800, color: 'var(--ink-500)' }}>+</span>
           </div>
           <label style={{ fontSize: 13, fontWeight: 800, color: 'var(--muc-blau)', cursor: 'pointer' }}>
             Anderes Foto wählen

@@ -71,7 +71,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         {children}
         </div>
       </main>
-      <TabBar tabs={config.typ === 'stammhaus' ? TABS_STAMMHAUS : TABS_WANDERND} />
+      {/* Beim ersten Login (Profil-Redesign 1c) gibt's koa Tab-Leiste, bis das Profil steht */}
+      {!me.erstanmeldung && <TabBar tabs={config.typ === 'stammhaus' ? TABS_STAMMHAUS : TABS_WANDERND} />}
     </div>
     </TenantProvider>
   );

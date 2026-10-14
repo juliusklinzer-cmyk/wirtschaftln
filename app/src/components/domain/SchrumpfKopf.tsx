@@ -57,51 +57,31 @@ export function SchrumpfKopf({
   );
 }
 
-/** Schmale Navy-Leiste: kleiner Avatar, Fraktur-Name, WP rechts, plus optionaler Knopf (z. B. ×). */
+/** Schmale Navy-Pille (Profil-Redesign 2a): Avatar, Fraktur-Name, WP rechts, plus optionaler Knopf (×). */
 export function MiniKopfLeiste({
   photoUrl,
   name,
   wp,
   verein,
   rechts,
-  schwebend = false,
 }: {
   photoUrl: string | null;
   name: string;
   wp: number;
   verein?: string | null;
-  /** Extra-Element ganz rechts, z. B. der Schließen-Knopf im Spezl-Sheet. */
+  /** Extra-Element ganz rechts, z. B. der Schließen-Knopf. */
   rechts?: React.ReactNode;
-  /** true = frei schwebende Karte mit Radius + Schatten (Profil-Seite); false = bündig (Sheet-Kopf). */
+  /** @deprecated ohne Wirkung, die Leiste is immer die schwebende Pille */
   schwebend?: boolean;
 }) {
   return (
-    <div
-      style={{
-        background: 'var(--grad-navy)',
-        borderRadius: schwebend ? 'var(--r-lg)' : 'var(--r-xl) var(--r-xl) 0 0',
-        boxShadow: schwebend ? 'var(--sh-lg)' : 'none',
-        overflow: 'hidden',
-      }}
-    >
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 14px' }}>
-        <Avatar src={photoUrl} name={name} size={28} verein={verein} />
-        <span
-          style={{
-            flex: 1, minWidth: 0, fontFamily: 'var(--font-fraktur)', fontSize: 19,
-            color: 'var(--gold-bright)', lineHeight: 1.2,
-            whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-          }}
-        >
-          {name}
-        </span>
-        <span style={{ flex: 'none', display: 'inline-flex', alignItems: 'baseline', gap: 4 }}>
-          <span className="wn-tnum" style={{ fontSize: 17, fontWeight: 800, color: 'var(--gold-bright)', lineHeight: 1 }}>{wp}</span>
-          <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: '0.1em', color: 'var(--gold)' }}>WP</span>
-        </span>
-        {rechts}
-      </div>
-      <div style={{ height: 1.5, background: 'linear-gradient(90deg, transparent, var(--gold), transparent)' }} />
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px 8px 8px', borderRadius: 999, background: 'var(--navy)', border: '1.5px solid var(--gold)', boxShadow: '0 8px 20px rgba(12,43,90,0.25)' }}>
+      <Avatar src={photoUrl} name={name} size={36} verein={verein} />
+      <span style={{ flex: 1, minWidth: 0, fontFamily: 'var(--font-fraktur)', fontSize: 20, color: 'var(--gold-bright)', lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{name}</span>
+      <span className="wn-tnum" style={{ flex: 'none', fontSize: 16, fontWeight: 800, color: 'var(--gold-bright)' }}>
+        {wp}<span style={{ fontSize: 10, marginLeft: 3, color: 'var(--gold)' }}>WP</span>
+      </span>
+      {rechts}
     </div>
   );
 }

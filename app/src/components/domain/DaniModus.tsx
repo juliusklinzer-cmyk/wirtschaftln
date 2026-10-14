@@ -1,7 +1,9 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { MaskHappy } from '@phosphor-icons/react/dist/ssr/MaskHappy';
 import { Switch } from '@/components/ds';
+import { EinstellungZeile } from '@/components/domain/EinstellungZeile';
 
 /**
  * 🤳 Dani-Modus, Hommage an Danis kaputtes Handy: ein 3px breiter weißer
@@ -72,15 +74,11 @@ export function DaniModusSchalter() {
   };
 
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', background: 'var(--pergament)', border: '1px solid var(--pergament-edge)', borderRadius: 'var(--r-md)' }}>
-      <span style={{ fontSize: 26, flex: 'none', filter: an ? 'none' : 'grayscale(1) opacity(0.5)' }}>🤳</span>
-      <div style={{ flex: 1 }}>
-        <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--ink-900)' }}>Dani-Modus</div>
-        <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink-500)', lineHeight: 1.4 }}>
-          Der legendäre weiße Streifen vom Dani seim Handy, für’s authentische Gfui. Gilt nur auf dem Gerät.
-        </div>
-      </div>
-      <Switch checked={an} onChange={umschalten} tone="gold" />
-    </div>
+    <EinstellungZeile
+      icon={<MaskHappy size={19} weight="fill" />}
+      titel="Gaudi-Modus"
+      unter="der weiße Streifen vom Dani seim Handy, nur auf diesem Gerät"
+      rechts={<Switch checked={an} onChange={umschalten} />}
+    />
   );
 }

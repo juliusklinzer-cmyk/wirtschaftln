@@ -112,6 +112,7 @@ export function ladeRanglisteDaten(meId: string): {
         lieblingswirtshaus: allzeit.member.lieblingswirtshaus,
         verein: allzeit.member.verein,
         schafkopfer: allzeit.member.schafkopfer,
+        weisswuerste: allzeit.member.weisswuerste,
         beschreibung: allzeit.member.beschreibung,
       },
       saison: statsBlock(s, statsSaison, vorherSaison),

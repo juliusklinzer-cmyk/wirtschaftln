@@ -25,6 +25,8 @@ export const members = sqliteTable('members', {
   // Gründer (Feature vereinsWahl): 'bayern' | 'sechzig' mit Wappen; sonst freier Vereinsname
   verein: text('verein'),
   schafkopfer: integer('schafkopfer', { mode: 'boolean' }).notNull().default(false),
+  /** Wie viele Weißwürste normal (Profil-Redesign 14.10.2026), null = no ned festgelegt */
+  weisswuerste: integer('weisswuerste'),
   beschreibung: text('beschreibung'),
   // true, bis der Spezl beim ersten Login Passwort gesetzt + Profil ausgefüllt hat
   erstanmeldung: integer('erstanmeldung', { mode: 'boolean' }).notNull().default(false),

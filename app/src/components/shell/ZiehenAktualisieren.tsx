@@ -7,6 +7,23 @@ const SCHWELLE = 64;
 const MAX = 96;
 
 /**
+ * Liegt der Finger in einem eigenen Scroll-Bereich über `main` (Vollbild-Blatt
+ * wia Spezl-Detail, Profil bearbeiten, Badge-Info)? Dann geht uns die Geste
+ * nix an: Sperre und Aktualisieren gelten nur für `main` selber. Sonst wurde
+ * im Spezl-Detail jeder Wisch nach oben verschluckt, solang die Rangliste
+ * dahinter ganz oben stand (iPhone, 15.10.2026).
+ */
+function inEigenemScroller(ziel: EventTarget | null, scroller: HTMLElement): boolean {
+  let el = ziel instanceof Element ? ziel : null;
+  while (el && el !== scroller) {
+    const s = getComputedStyle(el);
+    if (s.position === 'fixed' || ((s.overflowY === 'auto' || s.overflowY === 'scroll') && el.scrollHeight > el.clientHeight)) return true;
+    el = el.parentElement;
+  }
+  return false;
+}
+
+/**
  * „Runterziehen zum Aktualisieren“ wia in jeder App: hängt sich an den
  * scrollenden Rahmen (das Eltern-Element, `main`) und lauscht auf Touch.
  * Ganz oben runterziehen und ab der Schwelle loslassen → Seite wird frisch
@@ -37,12 +54,12 @@ export function ZiehenAktualisieren() {
     scroller.style.overscrollBehaviorY = gesperrt ? 'none' : 'contain';
     // Sperre: ganz oben nach unten ziehen wird abgefangen (nicht-passiv, damit preventDefault greift)
     const sperren = (e: TouchEvent) => {
-      if (!gesperrt || scroller.scrollTop > 0 || e.touches.length !== 1) return;
+      if (!gesperrt || scroller.scrollTop > 0 || e.touches.length !== 1 || inEigenemScroller(e.target, scroller)) return;
       if (e.touches[0].clientY - startY.current > 0 && e.cancelable) e.preventDefault();
     };
     const start = (e: TouchEvent) => {
       if (e.touches.length === 1) startY.current = e.touches[0].clientY;
-      if (aus || gesperrt || scroller.scrollTop > 0 || e.touches.length !== 1) return;
+      if (aus || gesperrt || scroller.scrollTop > 0 || e.touches.length !== 1 || inEigenemScroller(e.target, scroller)) return;
       aktiv.current = true;
     };
     const bewegen = (e: TouchEvent) => {

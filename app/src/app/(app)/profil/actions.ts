@@ -11,6 +11,7 @@ import { fotoAblegen } from '@/lib/foto';
 import { neuerToken, tokenWidmenFuer, anfrageStellen, benachrichtigeAnfrage } from '@/lib/gruendung';
 import { gruenderGruppeId } from '@/lib/db/directory';
 import { anzeigeName } from '@/lib/namen';
+import { feedbackSchicken } from '@/lib/feedback';
 
 export type ProfilState = { error?: string; ok?: boolean };
 
@@ -130,4 +131,12 @@ export async function profilSpeichern(_prev: ProfilState, formData: FormData): P
   revalidatePath('/');
   revalidatePath('/spezln');
   return { ok: true };
+}
+
+/** Feedback zur App schicken (nur aus den neuen Stammtischen), geht an die Wirtschaftln-Admins. */
+export async function feedbackAbschicken(text: string): Promise<{ fehler?: string }> {
+  const me = await getCurrentMember();
+  if (!me) return { fehler: 'Ned angemeldet.' };
+  const fehler = await feedbackSchicken(me, String(text ?? ''));
+  return fehler ? { fehler } : {};
 }

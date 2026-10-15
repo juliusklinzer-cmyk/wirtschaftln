@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { eq } from 'drizzle-orm';
 import { db, members, runWithTenant } from '@/lib/db';
-import { anfrageEntscheiden, findAnfrage, findGruppe, gruppeStatusSetzen } from '@/lib/db/directory';
+import { anfrageEntscheiden, feedbackErledigt, findAnfrage, findGruppe, gruppeStatusSetzen } from '@/lib/db/directory';
 import { getCurrentMember } from '@/lib/session';
 import { tenantConfig, appUrl } from '@/lib/tenant-config';
 import { freierTokenString, neuerToken } from '@/lib/gruendung';
@@ -93,4 +93,13 @@ export async function gruppeSpeichern(gruppeId: string, _prev: StammtischState, 
   revalidatePath('/verzeichnis');
   revalidatePath(`/verzeichnis/${gruppeId}`);
   return { ok: true };
+}
+
+/** Feedback abhaken: rutscht in die erledigten. */
+export async function feedbackErledigtAction(id: string): Promise<{ fehler?: string }> {
+  const me = await verzeichnisAdmin();
+  if (!me) return { fehler: 'Des derf nur a Wirtschaftln-Admin.' };
+  feedbackErledigt(id);
+  revalidatePath('/verzeichnis');
+  return {};
 }

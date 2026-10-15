@@ -8,7 +8,7 @@ import { LockSimpleOpen } from '@phosphor-icons/react/dist/ssr/LockSimpleOpen';
 import { Gift } from '@phosphor-icons/react/dist/ssr/Gift';
 import { PencilSimple } from '@phosphor-icons/react/dist/ssr/PencilSimple';
 import { goldKnopfStil } from '@/components/domain/hero-stil';
-import { anfrageEntscheidenAction, gruppeStatusAendern, tokenSchenken } from './actions';
+import { anfrageEntscheidenAction, feedbackErledigtAction, gruppeStatusAendern, tokenSchenken } from './actions';
 
 const nebenKnopfStil: React.CSSProperties = { height: 48, borderRadius: 14, border: '1.5px solid var(--ink-200)', background: 'var(--weiss)', color: 'var(--navy)', fontFamily: 'var(--font-ui)', fontSize: 15, fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, flex: 1 };
 const rotKnopfStil: React.CSSProperties = { ...nebenKnopfStil, border: '1.5px solid rgba(192,57,43,0.35)', color: 'var(--strafe)' };
@@ -108,6 +108,17 @@ export function BearbeitenKlappe({ children }: { children: React.ReactNode }) {
   return (
     <button type="button" className="wn-press" onClick={() => setOffen(true)} style={nebenKnopfStil}>
       <PencilSimple size={18} />Stammdaten bearbeiten
+    </button>
+  );
+}
+
+/** Feedback abhaken. */
+export function FeedbackErledigtKnopf({ id }: { id: string }) {
+  const [laeuft, starte] = useTransition();
+  const router = useRouter();
+  return (
+    <button type="button" className="wn-press" disabled={laeuft} onClick={() => starte(async () => { await feedbackErledigtAction(id); router.refresh(); })} style={{ ...nebenKnopfStil, opacity: laeuft ? 0.7 : 1 }}>
+      <CheckCircle size={18} weight="fill" />{laeuft ? 'Moment …' : 'Erledigt'}
     </button>
   );
 }

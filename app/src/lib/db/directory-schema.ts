@@ -84,7 +84,24 @@ export const tokenAnfragen = sqliteTable(
   (t) => [index('token_anfragen_gruppe_status').on(t.gruppeId, t.status)],
 );
 
+// Feedback zur App aus den Stammtischen (Wünsche, Verbesserungen), landet im
+// Verzeichnis bei den Wirtschaftln-Admins. Name wird beim Schicken festgehalten.
+export const feedback = sqliteTable(
+  'feedback',
+  {
+    id: text('id').primaryKey(),
+    gruppeId: text('gruppe_id').notNull().references(() => gruppen.id, { onDelete: 'cascade' }),
+    memberId: text('member_id').notNull(),
+    name: text('name').notNull(),
+    text: text('text').notNull(),
+    erledigtAm: text('erledigt_am'),
+    createdAt: text('created_at').notNull(),
+  },
+  (t) => [index('feedback_erledigt').on(t.erledigtAm, t.createdAt)],
+);
+
 export type Gruppe = typeof gruppen.$inferSelect;
+export type Feedback = typeof feedback.$inferSelect;
 export type Konto = typeof konten.$inferSelect;
 export type GruendungsToken = typeof gruendungsTokens.$inferSelect;
 export type TokenAnfrage = typeof tokenAnfragen.$inferSelect;

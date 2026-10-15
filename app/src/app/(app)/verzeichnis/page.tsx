@@ -14,7 +14,9 @@ import { verzeichnisUebersicht, stammbaum, offeneAnfragenMitNamen, type Stammbau
 import { datumKurz, datumMitJahr } from '@/lib/format';
 import { HoamTitel } from '@/components/domain/HoamTitel';
 import { bereichHinweisStil } from '@/components/domain/hero-stil';
-import { AnfrageKnoepfe } from './knoepfe';
+import { AnfrageKnoepfe, FeedbackErledigtKnopf } from './knoepfe';
+import { feedbackListe, findGruppe } from '@/lib/db/directory';
+import { ChatCircleText } from '@phosphor-icons/react/dist/ssr/ChatCircleText';
 import { chipStil } from './stil';
 
 export const metadata = { title: 'Verzeichnis · Wirtschaftln' };
@@ -42,6 +44,7 @@ export default async function VerzeichnisPage() {
   const liste = verzeichnisUebersicht();
   const baum = stammbaum();
   const anfragen = offeneAnfragenMitNamen();
+  const feedback = feedbackListe();
   const aktiv = liste.filter((g) => g.gruppe.status === 'aktiv' && !g.inaktiv).length;
   const mitglieder = liste.reduce((s, g) => s + g.aktiveMitglieder, 0);
   const tokensOffen = liste.reduce((s, g) => s + g.tokensOffen, 0);
@@ -91,6 +94,32 @@ export default async function VerzeichnisPage() {
             <AnfrageKnoepfe id={anfrage.id} />
           </div>
         ))}
+      </section>
+
+      {/* Feedback zur App aus den Stammtischen */}
+      <section style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <HoamTitel action={<span style={bereichHinweisStil}>{feedback.offen.length} offen</span>}>Feedback</HoamTitel>
+        {feedback.offen.length === 0 && (
+          <div style={{ ...karteStil, padding: 16, fontSize: 13, fontWeight: 600, color: 'var(--ink-500)' }}>Grad nix Neues. Die Spezln der anderen Stammtische schreiben über ihr Profil.</div>
+        )}
+        {[...feedback.offen, ...feedback.erledigt].map((f) => {
+          const g = findGruppe(f.gruppeId);
+          const erledigt = !!f.erledigtAm;
+          return (
+            <div key={f.id} style={{ ...karteStil, padding: 16, display: 'flex', flexDirection: 'column', gap: 12, opacity: erledigt ? 0.6 : 1 }}>
+              <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                <span style={{ width: 40, height: 40, borderRadius: 12, background: 'var(--info-bg)', color: 'var(--muc-blau)', display: 'grid', placeItems: 'center', flex: 'none' }}><ChatCircleText size={20} weight="fill" /></span>
+                <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  <span style={{ fontSize: 15, fontWeight: 800, color: 'var(--ink-900)' }}>{f.name}</span>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink-500)' }}>{[g?.name ?? f.gruppeId, g?.stadt, datumKurz(f.createdAt.slice(0, 10))].filter(Boolean).join(' · ')}</span>
+                </div>
+                {erledigt && <span style={chipStil('grau')}>erledigt</span>}
+              </div>
+              <span style={{ fontSize: 14, fontWeight: 600, lineHeight: 1.5, color: 'var(--ink-700)', padding: '12px 14px', borderRadius: 14, background: 'var(--pergament)', whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{f.text}</span>
+              {!erledigt && <FeedbackErledigtKnopf id={f.id} />}
+            </div>
+          );
+        })}
       </section>
 
       {/* Stammbaum */}

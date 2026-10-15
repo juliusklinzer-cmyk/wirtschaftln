@@ -3,17 +3,20 @@
 import { useState } from 'react';
 import { Ticket } from '@phosphor-icons/react/dist/ssr/Ticket';
 import { SignOut } from '@phosphor-icons/react/dist/ssr/SignOut';
+import { ChatCircleText } from '@phosphor-icons/react/dist/ssr/ChatCircleText';
 import { CaretRight } from '@phosphor-icons/react/dist/ssr/CaretRight';
 import { CaretDown } from '@phosphor-icons/react/dist/ssr/CaretDown';
 import { EinstellungZeile } from '@/components/domain/EinstellungZeile';
 import { PushEinstellung } from '@/components/domain/PushEinstellung';
 import { AppInstallieren } from '@/components/domain/AppInstallieren';
 import { DaniModusSchalter } from '@/components/domain/DaniModus';
+import { FeedbackKarte } from '@/components/domain/FeedbackKarte';
 import { TokenKarte, type TokenAnzeige, type FristAnzeige, type AnfrageAnzeige } from '@/components/domain/TokenKarte';
 
 /**
  * Einstellungen (Profil-Redesign 1a): Benachrichtigungen, Gründungs-Token
- * (klappt die Token-Karten drunter auf), Gaudi-Modus, Abmelden.
+ * (klappt die Token-Karten drunter auf), Feedback zur App (nur neue
+ * Stammtische), Gaudi-Modus, Abmelden.
  */
 export type TokenBereich = {
   tokens: TokenAnzeige[];
@@ -27,8 +30,9 @@ export type TokenBereich = {
   neuerToken?: () => Promise<void>;
 };
 
-export function Einstellungen({ token, gaudi, logout }: { token: TokenBereich | null; gaudi: boolean; logout: () => Promise<void> }) {
+export function Einstellungen({ token, gaudi, logout, feedback }: { token: TokenBereich | null; gaudi: boolean; logout: () => Promise<void>; feedback?: (text: string) => Promise<{ fehler?: string }> }) {
   const [tokenOffen, setTokenOffen] = useState(false);
+  const [feedbackOffen, setFeedbackOffen] = useState(false);
   const frei = token ? token.tokens.filter((t) => !t.eingeloest).length : 0;
   const naechste = token?.fristen.find((f) => f.offen) ?? null;
   const anfrageLaeuft = token?.anfragen.some((a) => a.status === 'offen') ?? false;
@@ -55,6 +59,15 @@ export function Einstellungen({ token, gaudi, logout }: { token: TokenBereich | 
             onClick={() => setTokenOffen((o) => !o)}
           />
         )}
+        {feedback && (
+          <EinstellungZeile
+            icon={<ChatCircleText size={19} weight="fill" />}
+            titel="Feedback zur App"
+            unter="Wünsche und Verbesserungen"
+            rechts={feedbackOffen ? <CaretDown size={18} color="var(--ink-300)" /> : <CaretRight size={18} color="var(--ink-300)" />}
+            onClick={() => setFeedbackOffen((o) => !o)}
+          />
+        )}
         {gaudi && <DaniModusSchalter />}
         <form action={logout}>
           <button type="submit" style={{ all: 'unset', display: 'block', width: '100%', cursor: 'pointer' }}>
@@ -63,6 +76,7 @@ export function Einstellungen({ token, gaudi, logout }: { token: TokenBereich | 
         </form>
       </div>
       {tokenOffen && token && zeigen && <TokenKarte {...token} />}
+      {feedbackOffen && feedback && <FeedbackKarte schicken={feedback} fertig={() => setFeedbackOffen(false)} />}
     </div>
   );
 }

@@ -1,9 +1,9 @@
 import { drizzle, type BetterSQLite3Database } from 'drizzle-orm/better-sqlite3';
-import { and, asc, desc, eq } from 'drizzle-orm';
+import { and, asc, desc, eq, isNotNull, isNull } from 'drizzle-orm';
 import type Database from 'better-sqlite3';
 import { randomBytes } from 'node:crypto';
 import * as dirSchema from './directory-schema';
-import { gruppen, konten, gruendungsTokens, passwortTokens, tokenAnfragen, type Gruppe, type Konto, type GruendungsToken, type PasswortToken, type TokenAnfrage, type TokenQuelle } from './directory-schema';
+import { gruppen, konten, gruendungsTokens, passwortTokens, tokenAnfragen, feedback, type Feedback, type Gruppe, type Konto, type GruendungsToken, type PasswortToken, type TokenAnfrage, type TokenQuelle } from './directory-schema';
 import { ensureGruender, openDirectorySqlite } from './core';
 
 /**
@@ -271,3 +271,21 @@ export function passwortTokensLoeschen(email: string): void {
 }
 
 export type { Gruppe, Konto, GruendungsToken, PasswortToken, TokenAnfrage, TokenQuelle } from './directory-schema';
+
+/** Feedback zur App ablegen. */
+export function feedbackAnlegen(zeile: { id: string; gruppeId: string; memberId: string; name: string; text: string }): void {
+  getDirectory().db.insert(feedback).values({ ...zeile, createdAt: new Date().toISOString() }).run();
+}
+
+/** Offenes Feedback zuerst (neueste oben), danach die letzten erledigten. */
+export function feedbackListe(): { offen: Feedback[]; erledigt: Feedback[] } {
+  const d = getDirectory().db;
+  return {
+    offen: d.select().from(feedback).where(isNull(feedback.erledigtAm)).orderBy(desc(feedback.createdAt)).all(),
+    erledigt: d.select().from(feedback).where(isNotNull(feedback.erledigtAm)).orderBy(desc(feedback.erledigtAm)).limit(10).all(),
+  };
+}
+
+export function feedbackErledigt(id: string): void {
+  getDirectory().db.update(feedback).set({ erledigtAm: new Date().toISOString() }).where(eq(feedback.id, id)).run();
+}

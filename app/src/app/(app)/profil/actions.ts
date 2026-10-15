@@ -8,8 +8,9 @@ import { getCurrentMember, destroyOtherSessions } from '@/lib/session';
 import { hashPassword, verifyPassword } from '@/lib/password';
 import { tenantConfig } from '@/lib/tenant-config';
 import { fotoAblegen } from '@/lib/foto';
-import { neuerToken, tokenWidmenFuer, anfrageStellen } from '@/lib/gruendung';
+import { neuerToken, tokenWidmenFuer, anfrageStellen, benachrichtigeAnfrage } from '@/lib/gruendung';
 import { gruenderGruppeId } from '@/lib/db/directory';
+import { anzeigeName } from '@/lib/namen';
 
 export type ProfilState = { error?: string; ok?: boolean };
 
@@ -45,6 +46,7 @@ export async function tokenAnfragen(grund: string): Promise<{ fehler?: string }>
   if (!me) return { fehler: 'Ned angemeldet.' };
   const fehler = anfrageStellen(me, String(grund ?? ''));
   if (fehler) return { fehler };
+  await benachrichtigeAnfrage(anzeigeName(me), String(grund ?? '').trim().slice(0, 300));
   revalidatePath('/profil');
   return {};
 }

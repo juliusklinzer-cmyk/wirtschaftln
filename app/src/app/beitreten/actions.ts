@@ -85,12 +85,12 @@ export async function beitreten(_prev: BeitrittState, formData: FormData): Promi
   if (!vorname || !nachname) return { error: 'Bitte Vor- und Nachname eintragen.' };
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return { error: 'Des schaut ned nach einer E-Mail aus.' };
 
-  if (!bindTenant(gruppe.id)) return { error: 'D’Aufnahme is grad zua, meld di beim Julius.' };
+  if (!bindTenant(gruppe.id)) return { error: 'Die Aufnahme ist gerade zu. Frag in deiner Runde nach.' };
   const vorhanden = db.select().from(members).where(eq(members.email, email)).get();
   if (vorhanden) {
     // Beim ersten Mal abbrochen, bevor's Passwort gsetzt war (App zua, Akku leer …):
-    // ohne des kämat er nia mehr eini, weil's koa „Passwort vergessen“ gibt. Mit
-    // Code + gleicher E-Mail + gleichem Namen geht's drum nomoi zum Passwort-Setzen.
+    // dann hat er no koa Passwort, des er vergessen könnt. Mit Code + gleicher
+    // E-Mail + gleichem Namen geht's drum nomoi zum Passwort-Setzen.
     const gleich = (a: string | null, b: string) => (a ?? '').trim().toLowerCase() === b.toLowerCase();
     const unfertig = vorhanden.erstanmeldung && vorhanden.status === 'aktiv';
     if (unfertig && gleich(vorhanden.vorname, vorname) && gleich(vorhanden.nachname, nachname)) {

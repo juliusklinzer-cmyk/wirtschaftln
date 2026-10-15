@@ -92,9 +92,9 @@ export function ProfilForm({ werte, onGespeichert }: { werte: ProfilWerte; onGes
       <Gruppe titel="Wer bist du">
         <FotoZuschnitt name="fotoData" aktuellesFoto={werte.photoUrl} anzeigeName={werte.spitzname || werte.name} />
         <Feld label="Nachname"><input name="nachname" defaultValue={werte.nachname ?? ''} placeholder="Klinzer" required style={feldStil} /></Feld>
-        <Feld label="Vorname"><input name="vorname" defaultValue={werte.vorname ?? ''} placeholder="Julius" required style={feldStil} /></Feld>
+        <Feld label="Vorname"><input name="vorname" defaultValue={werte.vorname ?? ''} placeholder="z. B. Sepp" required style={feldStil} /></Feld>
         <Feld label="Spitzname (optional)" hinweis="So steht’s auf der Rangliste."><input name="spitzname" defaultValue={werte.spitzname ?? ''} placeholder="z. B. da Sepp" style={feldStil} /></Feld>
-        <Feld label="Herkunft"><input name="herkunft" defaultValue={werte.herkunft ?? ''} placeholder="z. B. Giesing" style={feldStil} /></Feld>
+        <Feld label="Herkunft"><input name="herkunft" defaultValue={werte.herkunft ?? ''} placeholder="z. B. Altstadt" style={feldStil} /></Feld>
       </Gruppe>
 
       <Gruppe titel="Geschmack">

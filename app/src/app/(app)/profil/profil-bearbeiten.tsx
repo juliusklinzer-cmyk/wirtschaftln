@@ -11,8 +11,8 @@ import { ProfilForm, type ProfilWerte } from './profil-form';
  * (Umriss unterm Steckbrief oder Gold im leeren Steckbrief), drüber legt sich
  * der Editor mit X. Nach dem Speichern macht er sich von selber zu.
  */
-export function ProfilBearbeiten({ werte, variante = 'bearbeiten' }: { werte: ProfilWerte; variante?: 'bearbeiten' | 'ausfuellen' }) {
-  const [offen, setOffen] = useState(false);
+export function ProfilBearbeiten({ werte, variante = 'bearbeiten', anfangsOffen = false }: { werte: ProfilWerte; variante?: 'bearbeiten' | 'ausfuellen'; /** Editor gleich offen (Gründer nach den Slides) */ anfangsOffen?: boolean }) {
+  const [offen, setOffen] = useState(anfangsOffen);
 
   // Hintergrund ned mitscrollen lassen, solang der Editor offen is
   useEffect(() => {

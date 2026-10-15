@@ -70,7 +70,7 @@ export async function login(_prev: LoginState, formData: FormData): Promise<Logi
   // Unbekannte E-Mail: trotzdem einmal scrypt rechnen (gleiches Timing)
   if (kandidaten.length === 0 && !gesperrtTreffer) verifyPassword(password, DUMMY_HASH);
 
-  if (passende.length === 0 && gesperrtTreffer) return { error: 'Dieser Stammtisch ist gesperrt. Frag beim Wirtschaftln nach.' };
+  if (passende.length === 0 && gesperrtTreffer) return { error: 'Dieser Stammtisch ist gesperrt. Bei Fragen: servus@wirtschaftln.de' };
   if (passende.length === 0) {
     if (fehlversuche.size > 500) {
       for (const [k, v] of fehlversuche) if (Date.now() >= v.bis) fehlversuche.delete(k);

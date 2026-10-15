@@ -62,8 +62,8 @@ async function terminAnlegen(datum: string, zeitRoh: string, vonMemberId: string
 
   // 📣 Startschuss für d'Abstimmung, alle Spezln kriegen Push + Mail
   const wann = `${datumLang(datum)}, ${zeit} Uhr`;
-  const titel = '🗳️ Neuer Stammtisch, jetzt abstimmen!';
-  const text = `Da nächste Stammtisch steht: ${wann}. Sag zua oder ab, wer bis 3 Tag vorher abstimmt, kriagt an WP! Und: D'Orga is no frei, wer reglt's? 🍺`;
+  const titel = '📅 Neuer Stammtisch-Termin';
+  const text = `Da nächste Stammtisch steht: ${wann}. D'Orga is no frei, wer reglt's? Sobald's Wirtshaus reserviert is, wird abgstimmt. 🍺`;
   const empfaenger = getAktiveMitglieder().filter((m) => m.id !== vonMemberId).map((m) => m.email);
   await Promise.allSettled([
     pushAnAlle(titel, text, '/termin'),
@@ -241,7 +241,7 @@ export async function wirtshausFestlegen(terminId: string, formData: FormData) {
   const wirtshaus = db.select().from(wirtshaeuser).where(eq(wirtshaeuser.id, wid)).get();
   const wann = `${datumLang(termin.datum)}, ${termin.zeit} Uhr`;
   const titel = `📍 Steht fest: ${wirtshaus?.name ?? 'Wirtshaus'}`;
-  const text = `Da gehts hin! ${wirtshaus?.name ?? '—'}${wirtshaus?.bezirk ? ` (${wirtshaus.bezirk})` : ''} am ${wann}. Wer no ned abgstimmt hat, letzte Chance, sag zua oder ab!`;
+  const text = `Da gehts hin! ${wirtshaus?.name ?? '—'}${wirtshaus?.bezirk ? ` (${wirtshaus.bezirk})` : ''} am ${wann}. Jetzt abstimmen: sag zua oder ab, wer bis 3 Tag vorher abstimmt, kriagt an WP!`;
   const empfaenger = getAktiveMitglieder().filter((m) => m.id !== me.id).map((m) => m.email);
   await Promise.allSettled([
     pushAnAlle(titel, text, '/termin'),

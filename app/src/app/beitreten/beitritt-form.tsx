@@ -54,8 +54,8 @@ export function BeitrittForm({ codeVorbelegt = '' }: { codeVorbelegt?: string })
         rechts={gruppe ? GRUEN_HAKEN : undefined}
       />
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-        <AuthFeld label="Nachname" name="nachname" placeholder="Klinzer" autoComplete="family-name" required />
-        <AuthFeld label="Vorname" name="vorname" placeholder="Julius" autoComplete="given-name" required />
+        <AuthFeld label="Nachname" name="nachname" placeholder="Huber" autoComplete="family-name" required />
+        <AuthFeld label="Vorname" name="vorname" placeholder="Sepp" autoComplete="given-name" required />
       </div>
       <AuthFeld
         label="E-Mail"

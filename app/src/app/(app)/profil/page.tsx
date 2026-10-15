@@ -36,7 +36,9 @@ const karteStil: React.CSSProperties = { background: 'var(--weiss)', borderRadiu
  * Auszeichnungen, Steckbrief, Einstellungen. Bearbeiten als Vollbild, beim
  * ersten Login steht das Formular direkt da (ohne X, ohne Tab-Leiste).
  */
-export default async function ProfilPage() {
+export default async function ProfilPage({ searchParams }: { searchParams: Promise<{ steckbrief?: string }> }) {
+  // ?steckbrief=1: der Gründer kommt nach den Slides her, der Editor geht gleich auf
+  const { steckbrief } = await searchParams;
   const me = await getCurrentMember();
   if (!me) redirect('/login');
   const config = tenantConfig();
@@ -98,7 +100,7 @@ export default async function ProfilPage() {
         <div style={{ borderRadius: 22, overflow: 'hidden', border: '1.5px solid var(--gold)', background: 'radial-gradient(120% 90% at 50% 20%, #1B4C8A 0%, #0C2B5A 55%, #07193A 100%)', boxShadow: 'var(--sh-lg)' }}>
           <div className="wn-raute wn-raute--sm" style={{ height: 8 }} />
           <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <span style={{ fontFamily: 'var(--font-fraktur)', fontSize: 32, lineHeight: 1, color: 'var(--gold-bright)' }}>Servus beim Wirtschaftln!</span>
+            <span style={{ fontFamily: 'var(--font-fraktur)', fontSize: 32, lineHeight: 1, color: 'var(--gold-bright)' }}>{config.istGruender ? 'Servus beim Wirtschaftln!' : 'Servus, willkommen in der Runde!'}</span>
             <span style={{ fontSize: 14, fontWeight: 600, lineHeight: 1.5, color: 'rgba(246,240,226,0.85)' }}>Setz dir dein eigenes Passwort und stell dich kurz vor, damit die Spezln wissen, wen sie vor sich haben.</span>
           </div>
         </div>
@@ -245,7 +247,7 @@ export default async function ProfilPage() {
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, padding: '14px 0', textAlign: 'center' }}>
               <IdentificationCard size={34} color="var(--ink-200)" />
               <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink-500)' }}>Die Spezln wissen noch nichts über dich.</span>
-              <ProfilBearbeiten werte={werte} variante="ausfuellen" />
+              <ProfilBearbeiten werte={werte} variante="ausfuellen" anfangsOffen={steckbrief === '1'} />
             </div>
           </div>
         ) : (

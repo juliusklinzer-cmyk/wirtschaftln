@@ -51,7 +51,8 @@ export function GruendungsWizard({ token, von, fuer = null }: { token: string; /
   const [jahr, setJahr] = useState('');
   const [jahrFehler, setJahrFehler] = useState<string | null>(null);
   const [bier, setBier] = useState(STANDARD_BIERSORTE);
-  const [preis, setPreis] = useState('3,70');
+  // Bewusst leer: jeder Stammtisch tragt sein eigenen Preis ein, ned unsern Münchner
+  const [preis, setPreis] = useState('');
   const [schnaps, setSchnaps] = useState(false);
   const [code, setCode] = useState('');
   const [codeFrei, setCodeFrei] = useState<boolean | null>(null);
@@ -286,10 +287,11 @@ export function GruendungsWizard({ token, von, fuer = null }: { token: string; /
               name="hoibePreis"
               inputMode="decimal"
               required
+              placeholder="z. B. 4,20"
               value={preis}
               onChange={(e) => setPreis(e.target.value)}
               rechts={<span style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink-500)' }}>€</span>}
-              meldung={{ art: 'hinweis', text: 'Maßeinheit für alle Strafen.' }}
+              meldung={{ art: 'hinweis', text: 'Was kostet bei euch eine Hoibe? Das ist die Maßeinheit für alle Strafen.' }}
             />
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', borderRadius: 14, background: 'var(--pergament)', border: '1px solid var(--pergament-edge)' }}>
               <Wine size={26} weight="fill" color="var(--gold-700)" style={{ flex: 'none', opacity: schnaps ? 1 : 0.5 }} />

@@ -1,5 +1,8 @@
 import { findGruppeByCode, gruppeAktualisieren, type Gruppe } from '@/lib/db/directory';
 import { logoNormieren } from '@/lib/logo';
+import { eq } from 'drizzle-orm';
+import { db, runWithTenant, wirtshaeuser } from '@/lib/db';
+import { geocode, geoFuerStadt } from '@/lib/geocode';
 
 export type StammdatenErgebnis = { error?: string; ok?: boolean };
 
@@ -60,6 +63,30 @@ export async function stammdatenSpeichern(gruppe: Gruppe, formData: FormData): P
     config.logo = logo;
   }
 
+  // Standort: bei neuer Stadt oder wenn er bei der Gründung ned gfunden wurde (geo null)
+  // neu suchen. Der Gründer ohne geo-Key fährt mit dem München-Default und bleibt unberührt.
+  const stadtNeu = (stadt ?? '') !== (gruppe.stadt ?? '');
+  const geoFehlt = config.geo === null || (config.geo === undefined && !gruppe.istGruender);
+  if (stadt && (stadtNeu || geoFehlt)) {
+    const center = await geocode(stadt);
+    if (center) config.geo = geoFuerStadt(center, stadt);
+    else if (stadtNeu) return { error: `Die Stadt „${stadt}“ hab i auf der Karte ned gfunden. Schreib’s bitte so, wia’s auf der Landkarte steht.` };
+  }
+
   gruppeAktualisieren(gruppe.id, { name, motto, stadt, gruendungsjahr, gruendungscode, config: JSON.stringify(config) });
+  if (typeof config.stammhausWirtshausId === 'string') await stammhausVerorten(gruppe.id, config.stammhausWirtshausId, stadt);
   return { ok: true };
+}
+
+/** Stammhaus ohne Koordinaten (Geocoding bei der Gründung gscheitert) nachträglich verorten. */
+async function stammhausVerorten(gruppeId: string, wirtshausId: string, stadt: string | null): Promise<void> {
+  try {
+    const w = runWithTenant(gruppeId, () => db.select({ name: wirtshaeuser.name, adresse: wirtshaeuser.adresse, lat: wirtshaeuser.lat }).from(wirtshaeuser).where(eq(wirtshaeuser.id, wirtshausId)).get(), { auchGesperrt: true });
+    if (!w || w.lat != null) return;
+    const c = (w.adresse ? await geocode(w.adresse) : null) ?? (await geocode([w.name, stadt].filter(Boolean).join(', ')));
+    if (!c) return;
+    runWithTenant(gruppeId, () => db.update(wirtshaeuser).set({ lat: c.lat, lng: c.lng }).where(eq(wirtshaeuser.id, wirtshausId)).run(), { auchGesperrt: true });
+  } catch (err) {
+    console.error('Stammhaus verorten fehlgeschlagen:', err);
+  }
 }

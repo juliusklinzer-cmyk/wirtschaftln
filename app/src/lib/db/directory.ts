@@ -180,6 +180,20 @@ export function gruppeGruendenMitToken(zeile: typeof gruppen.$inferInsert, token
   }
 }
 
+/** Gescheiterte Gründung zurücknehmen: Stammtisch + Konten raus, Token wieder offen. */
+export function gruendungZuruecknehmen(gruppeId: string, token: string): void {
+  const d = getDirectory();
+  d.sqlite.transaction(() => {
+    d.db.delete(konten).where(eq(konten.gruppeId, gruppeId)).run();
+    d.db
+      .update(gruendungsTokens)
+      .set({ status: 'offen', eingeloestVonGruppeId: null, eingeloestAm: null })
+      .where(and(eq(gruendungsTokens.token, token), eq(gruendungsTokens.eingeloestVonGruppeId, gruppeId)))
+      .run();
+    d.db.delete(gruppen).where(and(eq(gruppen.id, gruppeId), eq(gruppen.istGruender, false))).run();
+  })();
+}
+
 /** Alle Stammtische, der Gründer zuerst, dann nach Gründungsdatum. */
 export function alleGruppen(): Gruppe[] {
   return getDirectory().db.select().from(gruppen).orderBy(desc(gruppen.istGruender), asc(gruppen.createdAt)).all();

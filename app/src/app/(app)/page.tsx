@@ -158,7 +158,7 @@ export default async function HomePage() {
         <h2 style={{ ...titelStil, fontSize: 38 }}>Noch nix ausgemacht</h2>
         <span style={zeileStil}>Es gibt no koan Termin. Leg oan an, dann schnappt sich wer den Organisator-Posten.</span>
         <Link href="/termin" className="wn-press" style={goldKnopfStil}>Termin anlegen</Link>
-        <span style={hinweisStil}>Organisieren bringt bis zu +{PTS.orgaMax} WP, je nach Sternen fürs Wirtshaus.</span>
+        <span style={hinweisStil}>Organisieren bringt bis zu +{PTS.orgaMax} WP, je nach Sternen {config.typ === 'stammhaus' ? 'für den Abend' : 'fürs Wirtshaus'}.</span>
       </>
     );
   } else {
@@ -192,7 +192,7 @@ export default async function HomePage() {
             {datumMittel(termin.datum)} · {termin.zeit} · Der Organisator-Posten ist frei. Wer zuerst zugreift, plant den Abend.
           </span>
           <OrgaKnopf action={orgaSchnappen.bind(null, termin.id)} gesperrt={letzter?.planerId === me.id} />
-          <span style={hinweisStil}>Organisieren bringt bis zu +{PTS.orgaMax} WP, je nach Sternen fürs Wirtshaus.</span>
+          <span style={hinweisStil}>Organisieren bringt bis zu +{PTS.orgaMax} WP, je nach Sternen {config.typ === 'stammhaus' ? 'für den Abend' : 'fürs Wirtshaus'}.</span>
         </>
       );
     } else if (termin.phase === 'planung') {

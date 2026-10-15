@@ -27,15 +27,15 @@ export function StammtischForm({ werte, speichern = stammtischSpeichern }: { wer
   const [schnaps, setSchnaps] = useState(werte.schnaps);
   return (
     <form action={action} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-      <Input label="Name vom Stammtisch" name="name" defaultValue={werte.name} placeholder="Wirtschaftln" required maxLength={60} />
-      <Input label="Motto" name="motto" defaultValue={werte.motto} placeholder="Oiwei anders. Oiwei dahoam." maxLength={120} />
+      <Input label="Name vom Stammtisch" name="name" defaultValue={werte.name} placeholder="z. B. Hirschen-Stammtisch" required maxLength={60} />
+      <Input label="Motto" name="motto" defaultValue={werte.motto} placeholder="z. B. Mia san mia" maxLength={120} />
       <div>
         <label style={{ display: 'block', fontSize: 13, fontWeight: 700, color: 'var(--ink-700)', marginBottom: 6 }}>Logo (oben in der App und als App-Icon)</label>
         <LogoWahl name="logoData" stammtischName={werte.name} aktuell={werte.logo} />
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 120px', gap: 10 }}>
-        <Input label="Stadt" name="stadt" defaultValue={werte.stadt} placeholder="München" maxLength={60} />
-        <Input label="Gründungsjahr" name="gruendungsjahr" defaultValue={werte.gruendungsjahr} placeholder="2019" inputMode="numeric" maxLength={4} />
+        <Input label="Stadt" name="stadt" defaultValue={werte.stadt} placeholder="z. B. Regensburg" maxLength={60} hint="Danach richten sich Karte und Wirtshaus-Suche." />
+        <Input label="Gründungsjahr" name="gruendungsjahr" defaultValue={werte.gruendungsjahr} placeholder="z. B. 2015" inputMode="numeric" maxLength={4} />
       </div>
       <Input
         label="Gründungscode"
@@ -52,7 +52,7 @@ export function StammtischForm({ werte, speichern = stammtischSpeichern }: { wer
         label="Preis für a Hoibe (€)"
         name="hoibePreis"
         defaultValue={werte.hoibePreis}
-        placeholder="3,70"
+        placeholder="z. B. 4,20"
         inputMode="decimal"
         hint="D’Maßeinheit für alle Strafen: a Runde = Teilnehmer × Hoibe-Preis."
         required

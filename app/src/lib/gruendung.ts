@@ -1,6 +1,6 @@
 import { randomInt } from 'node:crypto';
 import { and, eq } from 'drizzle-orm';
-import { bindTenant, currentTenant, db, members, wirtshaeuser, runWithTenant } from '@/lib/db';
+import { bindTenant, currentTenant, db, members, wirtshaeuser, runWithTenant, tenantSchliessen } from '@/lib/db';
 import {
   anfrageAnlegen,
   anfragenFuerGruppe,
@@ -8,6 +8,7 @@ import {
   findGruppe,
   findToken,
   gruenderGruppeId,
+  gruendungZuruecknehmen,
   gruppeGruendenMitToken,
   kontoAnlegen,
   slugFrei,
@@ -29,6 +30,9 @@ import { newId, nowIso } from '@/lib/ids';
 import { appUrl } from '@/lib/tenant-config';
 import { createSession } from '@/lib/session';
 import { logoNormieren } from '@/lib/logo';
+import { geocode, geoFuerStadt } from '@/lib/geocode';
+import { tenantDbPath } from '@/lib/db/core';
+import fs from 'node:fs';
 
 /**
  * Gründungs-Tokens & Gründungs-Wizard: Jedes Mitglied des Gründer-Stammtischs
@@ -170,6 +174,27 @@ export function anfrageStellen(me: { id: string; role: string }, grundRoh: strin
   return null;
 }
 
+/**
+ * Neue Token-Anfrage: Push + Mail an die Wirtschaftln-Admins (→ /verzeichnis),
+ * sonst sieht's koana, bis er zufällig ins Profil-Menü schaut. Scheitert leise.
+ */
+export async function benachrichtigeAnfrage(antragsteller: string, grund: string): Promise<void> {
+  const gruppe = currentTenant().gruppe;
+  const titel = '🎟️ Neue Token-Anfrage';
+  const text = `${antragsteller} vom ${gruppe.name}${gruppe.stadt ? ` (${gruppe.stadt})` : ''} fragt an weiteren Gründungs-Token an: „${grund}“`;
+  const jobs: Promise<unknown>[] = [];
+  try {
+    runWithTenant(gruenderGruppeId(), () => {
+      const admins = db.select().from(members).where(and(eq(members.role, 'admin'), eq(members.status, 'aktiv'))).all();
+      jobs.push(pushAn(admins.map((m) => m.id), titel, text, '/verzeichnis'));
+      jobs.push(mailAn(admins.map((m) => m.email), `Token-Anfrage: ${gruppe.name}`, `Servus!\n\n${text}\n\nFreigeben oder ablehnen: ${appUrl('/verzeichnis')}\n\nDeine Wirtschaftln-App`));
+    });
+  } catch (err) {
+    console.error('Anfrage-Benachrichtigung fehlgeschlagen:', err);
+  }
+  await Promise.allSettled(jobs);
+}
+
 export function tokenLink(token: string): string {
   return appUrl(`/gruenden/${token}`);
 }
@@ -270,20 +295,6 @@ export function codeVorschlag(name: string): string {
   return `${buchstaben}-${zufall(4)}`;
 }
 
-/** Best-effort-Geocoding der Stadt (Nominatim/OSM), scheitert leise → koa Geo-Einschränkung. */
-async function geocodeStadt(stadt: string): Promise<{ lat: number; lng: number } | null> {
-  try {
-    const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(stadt)}`;
-    const res = await fetch(url, { headers: { 'User-Agent': 'wirtschaftln (Stammtisch-App)' }, signal: AbortSignal.timeout(4000) });
-    if (!res.ok) return null;
-    const data = (await res.json()) as Array<{ lat: string; lon: string }>;
-    if (!data[0]) return null;
-    return { lat: Number(data[0].lat), lng: Number(data[0].lon) };
-  } catch {
-    return null;
-  }
-}
-
 export type GruendungsEingabe = {
   vorname: string;
   nachname: string;
@@ -353,7 +364,15 @@ export async function stammtischGruenden(tokenRoh: string, e: GruendungsEingabe)
   if (!/^[A-Z0-9-]{3,40}$/.test(code)) return { ok: false, fehler: 'Der Gründungscode: 3–40 Zeichen, nur Buchstaben, Ziffern, Bindestrich.', schritt: 3 };
   if (!codeFrei(code)) return { ok: false, fehler: 'Den Code hat scho a anderer Stammtisch, nimm an eigenen.', schritt: 3 };
 
-  const center = await geocodeStadt(stadt);
+  // Stammhaus-Koordinaten aus der Google-Suche; ohne Treffer Adresse/Name geocoden
+  let stammhausPos: { lat: number; lng: number } | null = null;
+  if (typ === 'stammhaus') {
+    const lat = Number(e.stammhausLat);
+    const lng = Number(e.stammhausLng);
+    stammhausPos = lat && lng ? { lat, lng } : await geocode(stammhausAdresse ?? `${stammhausName}, ${stadt}`);
+  }
+  // Kartenmitte = Stadt; findet Nominatim die ned, tut's zur Not das Stammhaus
+  const center = (await geocode(stadt)) ?? stammhausPos;
   const logo = e.logoData ? await logoNormieren(e.logoData) : null;
   const slug = freierSlug(name);
   const stammhausId = typ === 'stammhaus' ? newId('w') : null;
@@ -361,7 +380,7 @@ export async function stammtischGruenden(tokenRoh: string, e: GruendungsEingabe)
     bierName,
     hoibePreisCents,
     saisonEpocheJahr: new Date().getFullYear(),
-    geo: center ? { center, boundsKm: 40, suchSuffix: stadt } : null,
+    geo: center ? geoFuerStadt(center, stadt) : null,
     ...(stammhausId ? { stammhausWirtshausId: stammhausId } : {}),
     ...(logo ? { logo } : {}),
     ...(e.schnaps ? { features: { schnaps: true } } : {}),
@@ -385,47 +404,49 @@ export async function stammtischGruenden(tokenRoh: string, e: GruendungsEingabe)
   );
   if (!angelegt) return { ok: false, fehler: 'Der Token wurde grad eben scho eingelöst.', schritt: 1 };
 
-  // Mandanten-DB öffnen (Migrationen), Gründer als Admin, Stammhaus, Konto, Session
-  const tenant = bindTenant(slug);
-  if (!tenant) return { ok: false, fehler: 'Der Stammtisch konnte ned angelegt werden.', schritt: 3 };
+  // Mandanten-DB öffnen (Migrationen), Gründer als Admin, Stammhaus, Konto, Session.
+  // Geht dabei was schief, wird die Gründung komplett zurückgenommen: der Token
+  // is wieder offen und koa Stammtisch ohne Admin bleibt übrig.
   const memberId = newId('m');
-  db.insert(members)
-    .values({
-      id: memberId,
-      name: `${vorname} ${nachname}`,
-      vorname,
-      nachname,
-      email,
-      passwordHash: hashPassword(e.passwort),
-      role: 'admin',
-      status: 'aktiv',
-      erstanmeldung: false,
-      createdAt: nowIso(),
-    })
-    .run();
-  if (stammhausId) {
-    // Koordinaten aus der Google-Suche; ohne Treffer Adresse/Name geocoden
-    let lat: number | null = Number(e.stammhausLat) || null;
-    let lng: number | null = Number(e.stammhausLng) || null;
-    if (lat == null || lng == null) {
-      const c = await geocodeStadt(stammhausAdresse ? `${stammhausAdresse}` : `${stammhausName}, ${stadt}`);
-      lat = c?.lat ?? null;
-      lng = c?.lng ?? null;
-    }
-    db.insert(wirtshaeuser)
+  try {
+    const tenant = bindTenant(slug);
+    if (!tenant) throw new Error(`Mandant ${slug} ließ sich ned binden`);
+    db.insert(members)
       .values({
-        id: stammhausId,
-        name: stammhausName,
-        adresse: stammhausAdresse,
-        bezirk: e.stammhausBezirk.trim().slice(0, 60) || stadt,
-        telefon: e.stammhausTelefon.trim().slice(0, 40) || null,
-        lat,
-        lng,
+        id: memberId,
+        name: `${vorname} ${nachname}`,
+        vorname,
+        nachname,
+        email,
+        passwordHash: hashPassword(e.passwort),
+        role: 'admin',
+        status: 'aktiv',
+        erstanmeldung: false,
         createdAt: nowIso(),
       })
       .run();
+    if (stammhausId) {
+      db.insert(wirtshaeuser)
+        .values({
+          id: stammhausId,
+          name: stammhausName,
+          adresse: stammhausAdresse,
+          bezirk: e.stammhausBezirk.trim().slice(0, 60) || stadt,
+          telefon: e.stammhausTelefon.trim().slice(0, 40) || null,
+          lat: stammhausPos?.lat ?? null,
+          lng: stammhausPos?.lng ?? null,
+          createdAt: nowIso(),
+        })
+        .run();
+    }
+    kontoAnlegen(email, slug, memberId);
+  } catch (err) {
+    console.error(`Gründung von ${slug} gscheitert, wird zurückgenommen:`, err);
+    tenantSchliessen(slug);
+    gruendungZuruecknehmen(slug, token);
+    for (const endung of ['', '-wal', '-shm']) fs.rmSync(`${tenantDbPath(slug)}${endung}`, { force: true });
+    return { ok: false, fehler: 'Des Gründen hat grad ned klappt. Probier’s bitte nomoi, dein Token is no gültig.', schritt: 3 };
   }
-  kontoAnlegen(email, slug, memberId);
   await createSession(memberId);
   try {
     await benachrichtigeGruendung(tokenZeile, { id: slug, name, stadt }, `${vorname} ${nachname}`);

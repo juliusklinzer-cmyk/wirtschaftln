@@ -48,7 +48,7 @@ export default async function GruendenFertigPage() {
               In die WhatsApp-Gruppe
             </a>
           )}
-          <Link href="/" className="wn-press" style={{ height: 50, borderRadius: 14, border: '1.5px solid rgba(246,240,226,0.3)', color: 'var(--pergament)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, fontWeight: 800, textDecoration: 'none' }}>
+          <Link href="/willkommen" className="wn-press" style={{ height: 50, borderRadius: 14, border: '1.5px solid rgba(246,240,226,0.3)', color: 'var(--pergament)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, fontWeight: 800, textDecoration: 'none' }}>
             Zur App
           </Link>
         </div>

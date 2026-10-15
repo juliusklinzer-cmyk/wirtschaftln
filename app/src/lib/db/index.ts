@@ -79,6 +79,14 @@ export function openTenantDb(id: string): Tenant {
   return tenant;
 }
 
+/** Handle eines Mandanten schließen (gescheiterte Gründung, bevor die Datei gelöscht wird). */
+export function tenantSchliessen(id: string): void {
+  const t = geoeffnet.get(id);
+  if (!t) return;
+  geoeffnet.delete(id);
+  t.sqlite.close();
+}
+
 function slotSicher(): { tenant: Tenant | null } | null {
   try {
     return requestSlot();

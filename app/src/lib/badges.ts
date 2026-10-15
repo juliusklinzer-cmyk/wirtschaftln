@@ -1,5 +1,5 @@
 import type { MitgliedStats } from '@/lib/queries';
-import { tenantConfig } from '@/lib/tenant-config';
+import { auszeichnungAn, tenantConfig } from '@/lib/tenant-config';
 
 /**
  * Saison-Badges aus dem Design-Prototyp (RanglisteScreen.jsx): werden automatisch
@@ -73,8 +73,8 @@ export const SAISON_BADGES_GENERISCH: SaisonBadge[] = [
 export function saisonBadges(): SaisonBadge[] {
   const f = tenantConfig().features;
   const set = f.muenchenBadges ? SAISON_BADGES : SAISON_BADGES_GENERISCH;
-  // Schnapsler gibt's nur, wo gschnapselt wird
-  return f.schnaps ? set : set.filter((b) => b.key !== 'schnapsler');
+  // Schnapsler gibt's nur, wo gschnapselt wird; was der Admin abgschalten hat, fällt raus
+  return set.filter((b) => (b.key !== 'schnapsler' || f.schnaps) && auszeichnungAn(b.key));
 }
 
 export type BadgeVergabe = SaisonBadge & { holderId: string };
@@ -144,7 +144,7 @@ export function vergabeStand(stats: MitgliedStats[], meisterEderId: string | nul
   const nachPunkten = [...stats].sort((a, b) => b.punkte - a.punkte);
   if (nachPunkten[0] && nachPunkten[0].punkte > 0) stand.set('amt:praesident', nachPunkten[0].member.id);
   const fleissigster = [...stats].sort((a, b) => b.abschluesse - a.abschluesse)[0];
-  if (fleissigster && fleissigster.abschluesse > 0) stand.set('amt:schriftfuehrer', fleissigster.member.id);
+  if (fleissigster && fleissigster.abschluesse > 0 && auszeichnungAn('amt:schriftfuehrer')) stand.set('amt:schriftfuehrer', fleissigster.member.id);
   return stand;
 }
 
@@ -224,3 +224,22 @@ export function feierTexte(key: string, label: string, tag?: string): { spruch: 
   const grund = tag ? tag.charAt(0).toUpperCase() + tag.slice(1) : label;
   return { spruch: `${grund} der Saison.`, urkundeGrund: `Für ${tag ?? label} in dieser Saison.` };
 }
+
+/** Ämter, die der Admin abschalten kann (der Präsident bleibt immer, an ihm hängen Rechte). */
+export const ABSCHALTBARE_AEMTER = [
+  { key: 'amt:schriftfuehrer', titel: 'Schriftführer' },
+  { key: 'amt:kassenwart', titel: 'Kassenwart' },
+] as const;
+
+export type AuszeichnungWahl = { key: string; name: string; icon: string; slug: string | null; art: 'Amt' | 'Badge'; tag: string; an: boolean };
+
+/** Alles, was der Admin in den Stammtisch-Einstellungen an- und abschalten kann. */
+export function auszeichnungsWahl(aus: string[]): AuszeichnungWahl[] {
+  return [
+    ...ABSCHALTBARE_AEMTER.map(({ key, titel }) => ({ key, name: titel, icon: AEMTER_INFO[titel].icon, slug: AEMTER_INFO[titel].slug, art: 'Amt' as const, tag: AEMTER_INFO[titel].mode, an: !aus.includes(key) })),
+    ...SAISON_BADGES.filter((b) => b.key !== 'schnapsler').map((b) => ({ key: b.key, name: b.name, icon: b.icon, slug: b.slug, art: 'Badge' as const, tag: b.tag, an: !aus.includes(b.key) })),
+  ];
+}
+
+/** Gültige Keys zum Abschalten (fürs Speichern). */
+export const ABSCHALTBARE_KEYS: string[] = [...ABSCHALTBARE_AEMTER.map((a) => a.key), ...SAISON_BADGES.filter((b) => b.key !== 'schnapsler').map((b) => b.key)];

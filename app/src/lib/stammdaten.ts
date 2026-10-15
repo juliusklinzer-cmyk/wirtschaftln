@@ -4,6 +4,7 @@ import { eq } from 'drizzle-orm';
 import { db, runWithTenant, wirtshaeuser } from '@/lib/db';
 import { geocode, geoFuerStadt } from '@/lib/geocode';
 import { strafeFehlenLesen } from '@/lib/preise';
+import { ABSCHALTBARE_KEYS } from '@/lib/badges';
 
 export type StammdatenErgebnis = { error?: string; ok?: boolean };
 
@@ -59,6 +60,10 @@ export async function stammdatenSpeichern(gruppe: Gruppe, formData: FormData): P
   if (bierName) config.bierName = bierName;
   const features = (config.features && typeof config.features === 'object' ? config.features : {}) as Record<string, unknown>;
   features.schnaps = feld('schnaps', 3) === 'on';
+  // Ämter & Badges: angeschickt werden die abgschaltenen Keys (nur bekannte)
+  if (formData.get('auszeichnungen') === '1') {
+    config.auszeichnungenAus = formData.getAll('aus').map(String).filter((k) => ABSCHALTBARE_KEYS.includes(k));
+  }
   config.features = features;
   // Logo: nur ändern, wenn a neues gewählt wurde (leer = so lassen)
   const logoData = String(formData.get('logoData') ?? '');

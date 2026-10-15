@@ -13,7 +13,7 @@ import {
 } from '@/lib/punkte';
 import { vergabeStand } from '@/lib/badges';
 import { aktuelleSaison } from '@/lib/saison';
-import { tenantConfig } from '@/lib/tenant-config';
+import { auszeichnungAn, tenantConfig } from '@/lib/tenant-config';
 import type { BekanntesWirtshaus } from '@/lib/wirtshaus-abgleich';
 
 export type Termin = typeof termine.$inferSelect;
@@ -140,6 +140,8 @@ export function getWirtshausById(id: string) {
 
 /** Aktueller Kassenwart (gewähltes Amt der laufenden Saison), darf Ausgaben buchen. */
 export function getKassenwartId(): string | null {
+  // Amt abgschalten → koa Kassenwart, d'Kasse macht der Admin
+  if (!auszeichnungAn('amt:kassenwart')) return null;
   return (
     getAemter(String(aktuelleSaison().jahr)).find(({ amt }) => amt.titel.startsWith('Kassenwart'))?.amt.memberId ?? null
   );

@@ -13,7 +13,7 @@ import { getPraesidentId, getAktiveMitglieder } from '@/lib/queries';
 import { anzeigeName } from '@/lib/namen';
 import { pushAnAlle } from '@/lib/push';
 import { mailAn } from '@/lib/mail';
-import { appUrl, mailSignatur, tenantConfig } from '@/lib/tenant-config';
+import { appUrl, auszeichnungAn, mailSignatur, tenantConfig } from '@/lib/tenant-config';
 
 export type AufnahmeErgebnis = { ok: true; meldung: string } | { ok: false; meldung: string };
 
@@ -78,7 +78,7 @@ export async function mitgliedAnlegen(formData: FormData): Promise<AufnahmeErgeb
  */
 export async function amtZuweisen(formData: FormData) {
   const me = await getCurrentMember();
-  if (!me || (me.role !== 'admin' && me.id !== getPraesidentId())) return;
+  if (!me || (me.role !== 'admin' && me.id !== getPraesidentId()) || !auszeichnungAn('amt:kassenwart')) return;
   const memberId = String(formData.get('memberId') ?? '');
   const neuer = getAktiveMitglieder().find((m) => m.id === memberId);
   if (!neuer) return;

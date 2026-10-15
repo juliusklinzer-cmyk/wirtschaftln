@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation';
+import { auszeichnungsWahl } from '@/lib/badges';
 import { getCurrentMember, erzwingeProfil } from '@/lib/session';
 import { currentTenant } from '@/lib/db';
 import { tenantConfig } from '@/lib/tenant-config';
@@ -40,6 +41,7 @@ export default async function StammtischPage() {
             logo: config.logo,
             bierName: config.bierName,
             schnaps: config.features.schnaps,
+            auszeichnungen: auszeichnungsWahl(config.auszeichnungenAus),
           }}
         />
       </Card>

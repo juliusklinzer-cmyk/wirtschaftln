@@ -1,4 +1,5 @@
 import Image from 'next/image';
+import { auszeichnungsWahl } from '@/lib/badges';
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { Prohibit } from '@phosphor-icons/react/dist/ssr/Prohibit';
@@ -111,6 +112,7 @@ export default async function VerzeichnisDetailPage({ params }: { params: Promis
                 logo: config.logo,
                 bierName: config.bierName,
                 schnaps: config.features.schnaps,
+                auszeichnungen: auszeichnungsWahl(config.auszeichnungenAus),
               }}
             />
           </div>

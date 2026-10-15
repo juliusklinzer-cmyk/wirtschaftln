@@ -6,6 +6,8 @@ import { LogoWahl } from '@/components/domain/LogoWahl';
 import { BierWahl } from '@/components/domain/BierWahl';
 import { HELLE_WAHL } from '@/lib/biersorten';
 import { Switch } from '@/components/ds';
+import { BadgeBild } from '@/components/domain/BadgeBild';
+import type { AuszeichnungWahl } from '@/lib/badges';
 import { stammtischSpeichern, type StammtischState } from './actions';
 
 export type StammtischWerte = {
@@ -21,12 +23,15 @@ export type StammtischWerte = {
   logo: string | null;
   bierName: string;
   schnaps: boolean;
+  /** Ämter & Badges zum An- und Abschalten */
+  auszeichnungen: AuszeichnungWahl[];
 };
 
 export function StammtischForm({ werte, speichern = stammtischSpeichern }: { werte: StammtischWerte; /** Server Action, Standard = eigener Stammtisch; das Verzeichnis gibt die gebundene Variante rein */ speichern?: (prev: StammtischState, fd: FormData) => Promise<StammtischState> }) {
   const [state, action, pending] = useActionState<StammtischState, FormData>(speichern, {});
   const [bier, setBier] = useState(werte.bierName);
   const [schnaps, setSchnaps] = useState(werte.schnaps);
+  const [aus, setAus] = useState<string[]>(() => werte.auszeichnungen.filter((a) => !a.an).map((a) => a.key));
   return (
     <form action={action} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
       <Input label="Name vom Stammtisch" name="name" defaultValue={werte.name} placeholder="z. B. Hirschen-Stammtisch" required maxLength={60} />
@@ -76,6 +81,30 @@ export function StammtischForm({ werte, speichern = stammtischSpeichern }: { wer
         </div>
         <input type="hidden" name="schnaps" value={schnaps ? 'on' : 'off'} />
         <Switch checked={schnaps} onChange={setSchnaps} tone="gold" />
+      </div>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+        <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink-700)' }}>Ämter und Badges</span>
+        <span style={{ fontSize: 12, fontWeight: 600, lineHeight: 1.45, color: 'var(--ink-500)' }}>Was bei euch nicht passt, schaltest du ab, z. B. den Taxler, wenn nie einer mit dem Auto kommt. Der Präsident bleibt immer.</span>
+      </div>
+      <input type="hidden" name="auszeichnungen" value="1" />
+      {aus.map((k) => <input key={k} type="hidden" name="aus" value={k} />)}
+      <div style={{ display: 'flex', flexDirection: 'column', background: 'var(--weiss)', border: '1px solid var(--ink-100)', borderRadius: 'var(--r-md)', padding: '0 14px' }}>
+        {werte.auszeichnungen.map((a, i) => {
+          const an = !aus.includes(a.key);
+          return (
+            <div key={a.key} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', borderTop: i ? '1px solid var(--ink-50)' : 'none' }}>
+              <div style={{ filter: an ? 'none' : 'grayscale(1)', opacity: an ? 1 : 0.45, flex: 'none' }}>
+                <BadgeBild slug={a.slug} icon={a.icon} name={a.name} size={40} />
+              </div>
+              <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 1 }}>
+                <span style={{ fontSize: 14, fontWeight: 800, color: an ? 'var(--ink-900)' : 'var(--ink-300)' }}>{a.name}</span>
+                <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink-500)' }}>{a.art} · {a.tag}</span>
+              </div>
+              <Switch checked={an} onChange={(v) => setAus((l) => (v ? l.filter((k) => k !== a.key) : [...l, a.key]))} tone="gold" />
+            </div>
+          );
+        })}
       </div>
 
       {state.error && (

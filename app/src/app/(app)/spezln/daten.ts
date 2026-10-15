@@ -15,6 +15,7 @@ import { saisonBadgesVergeben, serienAbzeichen, amtInfo, AEMTER_INFO, saisonBadg
 import type { BadgeInfoDaten, HallOfFameEintrag, ZaehlerBlock } from '@/components/domain/BadgeInfo';
 import type { SpezlEintrag, AmtEintrag, GalerieBadge, StatsBlock } from './rangliste';
 import type { AmtKurz } from '@/components/domain/Auszeichnungen';
+import { auszeichnungAn } from '@/lib/tenant-config';
 
 function rangVon(liste: MitgliedStats[], memberId: string): number {
   return [...liste].sort((a, b) => b.punkte - a.punkte).findIndex((s) => s.member.id === memberId) + 1;
@@ -57,9 +58,10 @@ export function aemterJeMitglied(statsSaison: MitgliedStats[], saisonJahr: numbe
   const praesident = [...statsSaison].sort((a, b) => b.punkte - a.punkte)[0];
   if (praesident && praesident.punkte > 0) dazu(praesident.member.id, 'Präsident', AEMTER_INFO['Präsident'].icon);
   const fleissigster = [...statsSaison].sort((a, b) => b.abschluesse - a.abschluesse)[0];
-  if (fleissigster && fleissigster.abschluesse > 0) dazu(fleissigster.member.id, 'Schriftführer', AEMTER_INFO['Schriftführer'].icon);
+  if (fleissigster && fleissigster.abschluesse > 0 && auszeichnungAn('amt:schriftfuehrer')) dazu(fleissigster.member.id, 'Schriftführer', AEMTER_INFO['Schriftführer'].icon);
   for (const { amt } of getAemter(String(saisonJahr))) {
     if (amt.titel === 'Schriftführer' || !amt.memberId) continue; // Schriftführer wird automatisch vergeben
+    if (amt.titel.startsWith('Kassenwart') && !auszeichnungAn('amt:kassenwart')) continue;
     dazu(amt.memberId, amt.titel, amt.icon);
   }
   return map;
@@ -155,6 +157,11 @@ export function ladeRanglisteDaten(meId: string): {
   // Kassenwart immer zeigen, vor der ersten Wahl steht er als „unbesetzt" da
   if (!aemterListe.some((a) => a.titel.startsWith('Kassenwart'))) {
     aemterListe.push({ titel: 'Kassenwart', ...AEMTER_INFO['Kassenwart'], holder: null });
+  }
+  // Vom Admin abgschaltene Ämter fliegen raus (Präsident bleibt immer)
+  for (let i = aemterListe.length - 1; i >= 0; i--) {
+    const t = aemterListe[i].titel;
+    if ((t === 'Schriftführer' && !auszeichnungAn('amt:schriftfuehrer')) || (t.startsWith('Kassenwart') && !auszeichnungAn('amt:kassenwart'))) aemterListe.splice(i, 1);
   }
 
   // Galerie zeigt IMMER alle Badge-Typen (wie die Ämter), vor'm ersten Abend

@@ -24,6 +24,8 @@ export type TenantConfig = PublicTenantConfig & {
   saisonEpocheJahr: number;
   /** Logo als PNG-Data-URL (512×512), bleibt serverseitig — der Client kriegt logoUrl */
   logo: string | null;
+  /** Vom Admin abgeschaltete Ämter/Badges (Keys wie 'taxler', 'amt:kassenwart') */
+  auszeichnungenAus: string[];
 };
 
 type ConfigJson = Partial<{
@@ -35,6 +37,7 @@ type ConfigJson = Partial<{
   geo: TenantGeo | null;
   features: Partial<TenantFeatures>;
   logo: string | null;
+  auszeichnungenAus: string[];
 }>;
 
 function lesen(json: string): ConfigJson {
@@ -73,7 +76,13 @@ export function parseTenantConfig(gruppe: Gruppe): TenantConfig {
     istGruender: gruender,
     logoUrl: logoUrlFuer(gruppe.id, logo),
     logo,
+    auszeichnungenAus: Array.isArray(c.auszeichnungenAus) ? c.auszeichnungenAus.filter((k): k is string => typeof k === 'string') : [],
   };
+}
+
+/** Is des Amt/Badge bei dem Stammtisch an? (Admin kann z. B. den Taxler abschalten, wenn koaner fährt) */
+export function auszeichnungAn(key: string): boolean {
+  return !tenantConfig().auszeichnungenAus.includes(key);
 }
 
 /** Config des Mandanten im laufenden Request (wirft ohne gebundenen Mandanten). */
@@ -83,9 +92,10 @@ export function tenantConfig(): TenantConfig {
 
 /** Der Teil, der als Props an Client-Komponenten darf (siehe TenantProvider). */
 export function publicTenantConfig(): PublicTenantConfig {
-  const { saisonEpocheJahr: _epoche, logo: _logo, ...rest } = tenantConfig();
+  const { saisonEpocheJahr: _epoche, logo: _logo, auszeichnungenAus: _aus, ...rest } = tenantConfig();
   void _epoche;
   void _logo;
+  void _aus;
   return rest;
 }
 

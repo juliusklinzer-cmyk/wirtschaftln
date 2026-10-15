@@ -14,13 +14,15 @@ import { ProfilForm, type ProfilWerte } from './profil-form';
 export function ProfilBearbeiten({ werte, variante = 'bearbeiten', anfangsOffen = false }: { werte: ProfilWerte; variante?: 'bearbeiten' | 'ausfuellen'; /** Editor gleich offen (Gründer nach den Slides) */ anfangsOffen?: boolean }) {
   const [offen, setOffen] = useState(anfangsOffen);
 
-  // Hintergrund ned mitscrollen lassen, solang der Editor offen is
+  // Hintergrund ned mitscrollen lassen, solang der Editor offen is. Nur overflowY
+  // anfassen und hart auf 'auto' zurück: Safari liefert für den Shorthand
+  // `overflow` (x hidden, y auto) an Leerstring, und das Zurücksetzen hat dann
+  // das Scrollen von main ganz abgedreht (Profil hing unten fest, 15.10.2026).
   useEffect(() => {
     if (!offen) return;
     const main = document.querySelector('main');
-    const vorher = main?.style.overflow ?? '';
-    if (main) main.style.overflow = 'hidden';
-    return () => { if (main) main.style.overflow = vorher; };
+    if (main) main.style.overflowY = 'hidden';
+    return () => { if (main) main.style.overflowY = 'auto'; };
   }, [offen]);
 
   return (

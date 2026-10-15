@@ -32,7 +32,9 @@ export function ZiehenAktualisieren() {
     const scroller = anker.current?.parentElement;
     if (!scroller) return;
     const setzen = (v: number) => { zugRef.current = v; };
-    scroller.style.overscrollBehaviorY = gesperrt ? 'none' : '';
+    // Nie auf '' setzen: des löscht das 'contain' aus dem Layout, dann reicht iOS
+    // den Wisch am Ende von main an die Seite weiter und das Scrollen hängt.
+    scroller.style.overscrollBehaviorY = gesperrt ? 'none' : 'contain';
     // Sperre: ganz oben nach unten ziehen wird abgefangen (nicht-passiv, damit preventDefault greift)
     const sperren = (e: TouchEvent) => {
       if (!gesperrt || scroller.scrollTop > 0 || e.touches.length !== 1) return;
@@ -69,7 +71,7 @@ export function ZiehenAktualisieren() {
       scroller.removeEventListener('touchstart', start);
       scroller.removeEventListener('touchmove', sperren);
       scroller.removeEventListener('touchmove', bewegen);
-      scroller.style.overscrollBehaviorY = '';
+      scroller.style.overscrollBehaviorY = 'contain';
       scroller.removeEventListener('touchend', ende);
       scroller.removeEventListener('touchcancel', ende);
     };

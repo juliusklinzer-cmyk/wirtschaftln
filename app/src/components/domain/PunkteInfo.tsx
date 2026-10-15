@@ -2,6 +2,8 @@
 
 import { useState } from 'react';
 import { Icon } from '@/components/ds';
+import { useTenantConfig } from '@/components/shell/TenantProvider';
+import { strafeFehlenWort } from '@/lib/tenant-config-public';
 import { PTS, WACKELT_AB_UNENTSCHULDIGT, ABSCHLUSS_SPERRE_STUNDEN, anwesenheitsBonus, entschuldigtMalus, unentschuldigtMalus } from '@/lib/punkte';
 
 /**
@@ -11,6 +13,7 @@ import { PTS, WACKELT_AB_UNENTSCHULDIGT, ABSCHLUSS_SPERRE_STUNDEN, anwesenheitsB
  */
 export function PunkteInfo({ knopf }: { knopf?: (oeffnen: () => void) => React.ReactNode } = {}) {
   const [offen, setOffen] = useState(false);
+  const { strafeFehlenCents } = useTenantConfig();
 
   return (
     <>
@@ -86,7 +89,7 @@ export function PunkteInfo({ knopf }: { knopf?: (oeffnen: () => void) => React.R
             </div>
             <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', padding: '10px 12px', borderRadius: 12, background: 'var(--strafe-bg)', marginTop: 4 }}>
               <Icon name="warning" size={18} color="var(--strafe)" style={{ flex: 'none' }} />
-              <span style={{ fontSize: 12, fontWeight: 700, lineHeight: 1.5, color: 'var(--strafe)' }}>Beim {WACKELT_AB_UNENTSCHULDIGT}. Mal in Folge wackelst du und eine Strafrunde ist fällig. Wieder dabei sein setzt alles zurück.</span>
+              <span style={{ fontSize: 12, fontWeight: 700, lineHeight: 1.5, color: 'var(--strafe)' }}>Beim {WACKELT_AB_UNENTSCHULDIGT}. Mal in Folge wackelst du und {strafeFehlenWort(strafeFehlenCents)} ist fällig. Wieder dabei sein setzt alles zurück.</span>
             </div>
 
             <Ueberschrift text="So läuft ein Abend" abstand />

@@ -27,6 +27,7 @@ export async function gruenden(token: string, _prev: GruendungsState, formData: 
     stammhausLng: String(formData.get('stammhaus_lng') ?? ''),
     bierName: feld('bierName'),
     hoibePreis: feld('hoibePreis'),
+    strafeFehlen: feld('strafeFehlen'),
     code: feld('code'),
     logoData: feld('logoData'),
     schnaps: formData.get('schnaps') === 'on',

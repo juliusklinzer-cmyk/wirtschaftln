@@ -48,6 +48,8 @@ export type PublicTenantConfig = {
   bierName: string;
   /** Preis für a Hoibe in Cent, Grundlage aller Hoibe-Strafen */
   hoibePreisCents: number;
+  /** Strafe fürs Fehlen (zugsagt & ned kemma, 3× unentschuldigt) in Cent; null = a Runde für alle (Teilnehmer × Hoibe) */
+  strafeFehlenCents: number | null;
   geo: TenantGeo | null;
   features: TenantFeatures;
   istGruender: boolean;
@@ -112,4 +114,11 @@ export function umkreisBounds(geo: TenantGeo): { sw: { lat: number; lng: number 
 /** „Hofbräuhaus München" — oder nur der Name, wenn der Stammtisch koa Geo-Config hat. */
 export function mitOrt(name: string, geo: TenantGeo | null): string {
   return geo?.suchSuffix ? `${name}, ${geo.suchSuffix}` : name;
+}
+
+/** „eine Strafrunde" bzw. „eine Strafe von 50 €" für Erklärtexte. */
+export function strafeFehlenWort(cents: number | null): string {
+  if (cents == null) return 'eine Strafrunde';
+  const euro = (cents / 100).toLocaleString('de-DE', { minimumFractionDigits: cents % 100 ? 2 : 0, maximumFractionDigits: 2 });
+  return `eine Strafe von ${euro} €`;
 }

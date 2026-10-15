@@ -30,6 +30,7 @@ type ConfigJson = Partial<{
   stammhausWirtshausId: string | null;
   bierName: string;
   hoibePreisCents: number;
+  strafeFehlenCents: number | null;
   saisonEpocheJahr: number;
   geo: TenantGeo | null;
   features: Partial<TenantFeatures>;
@@ -54,6 +55,7 @@ export function parseTenantConfig(gruppe: Gruppe): TenantConfig {
   const logo = typeof c.logo === 'string' && c.logo.startsWith('data:image/') ? c.logo : null;
   const hoibe = Number(c.hoibePreisCents);
   const epoche = Number(c.saisonEpocheJahr);
+  const strafe = Number(c.strafeFehlenCents);
   return {
     id: gruppe.id,
     name: gruppe.name,
@@ -64,6 +66,7 @@ export function parseTenantConfig(gruppe: Gruppe): TenantConfig {
     stammhausWirtshausId: c.stammhausWirtshausId ?? null,
     bierName: c.bierName?.trim() || 'Augustiner Hell',
     hoibePreisCents: Number.isInteger(hoibe) && hoibe > 0 ? hoibe : 370,
+    strafeFehlenCents: c.strafeFehlenCents != null && Number.isInteger(strafe) && strafe > 0 ? strafe : null,
     saisonEpocheJahr: Number.isInteger(epoche) ? epoche : gruender ? 2022 : new Date(gruppe.createdAt).getFullYear(),
     geo: c.geo === undefined ? (gruender ? MUENCHEN_GEO : null) : c.geo,
     features,

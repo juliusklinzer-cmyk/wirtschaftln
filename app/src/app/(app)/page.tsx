@@ -32,6 +32,7 @@ import { PushAktivieren } from '@/components/domain/PushAktivieren';
 import { AppInstallieren } from '@/components/domain/AppInstallieren';
 import { WirtshausGfunden } from '@/components/domain/WirtshausGfunden';
 import { tenantConfig } from '@/lib/tenant-config';
+import { strafeFehlenWort } from '@/lib/tenant-config-public';
 import { RichtungsKnopf } from '@/components/domain/RichtungsKnopf';
 import { BadgeFeier, type FeierBadge } from '@/components/domain/BadgeFeier';
 import { CheckinKarte } from '@/components/domain/CheckinKarte';
@@ -382,7 +383,7 @@ export default async function HomePage() {
             <span style={{ fontSize: 16, fontWeight: 800, color: 'var(--strafe)' }}>Du wackelst!</span>
           </div>
           <span style={{ fontSize: 13, fontWeight: 600, lineHeight: 1.5, color: 'var(--ink-700)' }}>
-            {unentschuldigt}× unentschuldigt gefehlt, dafür ist eine Strafrunde fällig. Beim nächsten Stammtisch wieder dabei sein!
+            {unentschuldigt}× unentschuldigt gefehlt, dafür ist {strafeFehlenWort(config.strafeFehlenCents)} fällig. Beim nächsten Stammtisch wieder dabei sein!
           </span>
           {PAYPAL_POOL_URL && (
             <a

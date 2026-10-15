@@ -31,6 +31,7 @@ import { appUrl } from '@/lib/tenant-config';
 import { createSession } from '@/lib/session';
 import { logoNormieren } from '@/lib/logo';
 import { geocode, geoFuerStadt } from '@/lib/geocode';
+import { strafeFehlenLesen } from '@/lib/preise';
 import { tenantDbPath } from '@/lib/db/core';
 import fs from 'node:fs';
 
@@ -313,6 +314,8 @@ export type GruendungsEingabe = {
   stammhausLng: string;
   bierName: string;
   hoibePreis: string;
+  /** Strafe fürs Fehlen in Euro, leer = a Runde */
+  strafeFehlen: string;
   code: string;
   /** Logo als Data-URL aus dem Logo-Wähler, leer = koa Logo */
   logoData: string;
@@ -358,6 +361,8 @@ export async function stammtischGruenden(tokenRoh: string, e: GruendungsEingabe)
   if (jahr > new Date().getFullYear()) return { ok: false, fehler: 'In der Zukunft gründen geht ned.', schritt: 2 };
   if (typ === 'stammhaus' && stammhausName.length < 2) return { ok: false, fehler: 'Wia hoaßt euer Stammhaus?', schritt: 2 };
   if (!Number.isInteger(hoibePreisCents) || hoibePreisCents < 50 || hoibePreisCents > 5000) return { ok: false, fehler: 'Der Hoibe-Preis muss zwischen 0,50 € und 50 € liegen.', schritt: 2 };
+  const strafeFehlenCents = strafeFehlenLesen(e.strafeFehlen);
+  if (strafeFehlenCents === undefined) return { ok: false, fehler: 'Die Strafe fürs Fehlen muss zwischen 1 € und 500 € liegen, oder leer für eine Runde.', schritt: 2 };
 
   // Schritt 3: eigener Gründungscode
   const code = e.code.trim().toUpperCase();
@@ -379,6 +384,7 @@ export async function stammtischGruenden(tokenRoh: string, e: GruendungsEingabe)
   const config = {
     bierName,
     hoibePreisCents,
+    strafeFehlenCents,
     saisonEpocheJahr: new Date().getFullYear(),
     geo: center ? geoFuerStadt(center, stadt) : null,
     ...(stammhausId ? { stammhausWirtshausId: stammhausId } : {}),

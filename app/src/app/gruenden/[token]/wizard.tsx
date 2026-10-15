@@ -16,6 +16,7 @@ import { Path } from '@phosphor-icons/react/dist/ssr/Path';
 import { House } from '@phosphor-icons/react/dist/ssr/House';
 import { BeerStein } from '@phosphor-icons/react/dist/ssr/BeerStein';
 import { UserCircle } from '@phosphor-icons/react/dist/ssr/UserCircle';
+import { Gavel } from '@phosphor-icons/react/dist/ssr/Gavel';
 import { Switch } from '@/components/ds';
 import { AuthFehlerBox, AuthFeld, AuthKnopf, GRUEN_HAKEN, PasswortFeld, type FeldMeldung } from '@/components/domain/AuthFeld';
 import { EigenesBild } from '@/components/domain/LogoWahl';
@@ -53,6 +54,7 @@ export function GruendungsWizard({ token, von, fuer = null }: { token: string; /
   const [bier, setBier] = useState(STANDARD_BIERSORTE);
   // Bewusst leer: jeder Stammtisch tragt sein eigenen Preis ein, ned unsern Münchner
   const [preis, setPreis] = useState('');
+  const [strafe, setStrafe] = useState('');
   const [schnaps, setSchnaps] = useState(false);
   const [code, setCode] = useState('');
   const [codeFrei, setCodeFrei] = useState<boolean | null>(null);
@@ -291,7 +293,17 @@ export function GruendungsWizard({ token, von, fuer = null }: { token: string; /
               value={preis}
               onChange={(e) => setPreis(e.target.value)}
               rechts={<span style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink-500)' }}>€</span>}
-              meldung={{ art: 'hinweis', text: 'Was kostet bei euch eine Hoibe? Das ist die Maßeinheit für alle Strafen.' }}
+              meldung={{ art: 'hinweis', text: 'Was kostet bei euch eine Hoibe? Damit rechnen Runden, Spenden und gemeldete Strafen.' }}
+            />
+            <AuthFeld
+              label="Strafe fürs Fehlen (optional)"
+              name="strafeFehlen"
+              inputMode="decimal"
+              placeholder="leer = eine Runde"
+              value={strafe}
+              onChange={(e) => setStrafe(e.target.value)}
+              rechts={<span style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink-500)' }}>€</span>}
+              meldung={{ art: 'hinweis', text: 'Wer zusagt und nicht kommt, zahlt diesen Betrag, z. B. 50 €. Leer lassen: eine Runde für alle, die da waren.' }}
             />
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', borderRadius: 14, background: 'var(--pergament)', border: '1px solid var(--pergament-edge)' }}>
               <Wine size={26} weight="fill" color="var(--gold-700)" style={{ flex: 'none', opacity: schnaps ? 1 : 0.5 }} />
@@ -329,6 +341,7 @@ export function GruendungsWizard({ token, von, fuer = null }: { token: string; /
                 <Zeile icon={<MapPin size={16} weight="fill" />}>{[stadt, jahr ? `seit ${jahr}` : ''].filter(Boolean).join(', ') || 'Stadt und Jahr'}</Zeile>
                 <Zeile icon={typ === 'stammhaus' ? <House size={16} weight="fill" /> : <Path size={16} weight="fill" />}>{typ === 'stammhaus' ? 'Stammhaus' : 'Wandernd'}</Zeile>
                 <Zeile icon={<BeerStein size={16} weight="fill" />}>{bier.split(' – ')[0]} · Hoibe {preis.trim() || '?'} €</Zeile>
+                <Zeile icon={<Gavel size={16} weight="fill" />}>Fehlen: {strafe.trim() ? `${strafe.trim()} €` : 'eine Runde'}</Zeile>
                 <Zeile icon={<Wine size={16} weight="fill" />}>{schnaps ? 'Mit Schnaps' : 'Ohne Schnaps'}</Zeile>
                 <Zeile icon={<UserCircle size={16} weight="fill" />}>Du bist Admin</Zeile>
               </div>

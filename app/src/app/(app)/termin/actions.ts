@@ -11,7 +11,7 @@ import { findeBekanntes } from '@/lib/wirtshaus-abgleich';
 import { vergabeWechsel, wechselTexte } from '@/lib/badges';
 import { WACKELT_AB_UNENTSCHULDIGT, berlinTag, bierdeckelOffen, abschlussOffen, checkinOffen, CHECKIN_VORLAUF_STUNDEN } from '@/lib/punkte';
 import { HELLE, ALKOHOLFREIE_HELLE } from '@/lib/biersorten';
-import { hoibePreisCents, hoibePreisEuro } from '@/lib/preise';
+import { hoibePreisCents, hoibePreisEuro, strafeFehlen } from '@/lib/preise';
 import { appHost, appUrl, mailSignatur, tenantConfig } from '@/lib/tenant-config';
 import { imUmkreis, mitOrt } from '@/lib/tenant-config-public';
 import { fotoAblegen, fotoAlsDataUrl } from '@/lib/foto';
@@ -470,7 +470,7 @@ const STRAFE_GRUND_PREFIX = 'Zugesagt & nicht erschienen';
  * = Schriftführer), aber erst, wenn der Abend rum is (abschlussOffen, 2 Std.
  * nach Beginn), damit koaner mittendrin zuamacht.
  * Wer „abgsagt" markiert ist (zugesagt & nicht erschienen), kriegt automatisch eine
- * offene Forderung: Runde = Teilnehmer × Augustiner-Kellerpreis. Bis 7 Tage nach
+ * offene Forderung: Runde = Teilnehmer × Hoibe oder der feste Betrag vom Stammtisch. Bis 7 Tage nach
  * Abschluss kann jeder nachtragen und ändern.
  */
 export async function besuchAbschliessen(terminId: string, formData: FormData) {
@@ -608,10 +608,12 @@ export async function besuchAbschliessen(terminId: string, formData: FormData) {
     }
   }
 
-  // ❌ Zugesagt & nicht erschienen → offene Forderung: Runde = Teilnehmer × Kellerpreis.
+  // ❌ Zugesagt & nicht erschienen → offene Forderung: Runde = Teilnehmer × Hoibe
+  // oder der feste Betrag vom Stammtisch (strafeFehlenCents).
   // Offene Auto-Strafen dieses Termins neu aufbauen (beglichene bleiben unangetastet);
   // die Zahlungsaufforderung mit PayPal-Link erscheint dem Spezl auf der Startseite.
-  const betrag = dabeiIds.length * hoibePreisCents();
+  const strafe = strafeFehlen(dabeiIds.length);
+  const betrag = strafe.cents;
   const alteStrafen = db.select().from(kasse).where(and(eq(kasse.terminId, terminId), eq(kasse.kind, 'strafe'))).all();
   for (const s of alteStrafen) {
     if (s.status === 'offen' && s.grund.startsWith(STRAFE_GRUND_PREFIX)) {
@@ -626,7 +628,7 @@ export async function besuchAbschliessen(terminId: string, formData: FormData) {
     db.insert(kasse)
       .values({
         id: newId('k'), memberId, terminId,
-        grund: `${STRAFE_GRUND_PREFIX}: Runde für die Spezln (${dabeiIds.length} × ${hoibePreisEuro()} €) im ${wirtshausName}`,
+        grund: `${STRAFE_GRUND_PREFIX}: ${strafe.text} im ${wirtshausName}`,
         betragCents: -betrag, kind: 'strafe', status: 'offen', createdAt: nowIso(),
       })
       .run();
@@ -665,12 +667,12 @@ export async function besuchAbschliessen(terminId: string, formData: FormData) {
         .from(kasse)
         .where(and(eq(kasse.terminId, terminId), eq(kasse.kind, 'strafe')))
         .all()
-        .some((k) => k.memberId === s.member.id && k.grund.startsWith('Strafrunde'));
+        .some((k) => k.memberId === s.member.id && /^Straf(runde|e):/.test(k.grund));
       if (schonVerhaengt) continue;
       db.insert(kasse)
         .values({
           id: newId('k'), memberId: s.member.id, terminId,
-          grund: `Strafrunde: 3× unentschuldigt gfehlt (${dabeiIds.length} × ${hoibePreisEuro()} €)`,
+          grund: `${tenantConfig().strafeFehlenCents != null ? 'Strafe' : 'Strafrunde'}: 3× unentschuldigt gfehlt (${strafe.text})`,
           betragCents: -betrag, kind: 'strafe', status: 'offen', createdAt: nowIso(),
         })
         .run();

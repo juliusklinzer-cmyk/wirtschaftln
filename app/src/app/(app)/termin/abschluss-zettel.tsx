@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import { Avatar, ZeilenKarte } from '@/components/ds';
 import { PTS } from '@/lib/punkte';
+import { useTenantConfig } from '@/components/shell/TenantProvider';
+import { strafeFehlenWort } from '@/lib/tenant-config-public';
 import type { MeiBewertungWerte } from '@/components/domain/MeiBewertung';
 import { WertungFelder } from '@/components/domain/WertungFelder';
 import { goldKnopfStil, feldStil, feldLabelStil } from '@/components/domain/hero-stil';
@@ -60,6 +62,7 @@ export function AbschlussZettel({
     for (const m of mitglieder) s[m.id] = m.live || m.zugesagt || m.id === meId ? 'da' : 'weg';
     return s;
   });
+  const { strafeFehlenCents } = useTenantConfig();
   const [strafe, setStrafe] = useState<Record<string, boolean>>(() => {
     const s: Record<string, boolean> = {};
     for (const m of mitglieder) s[m.id] = m.zugesagt;
@@ -108,7 +111,7 @@ export function AbschlussZettel({
                 {weg && m.zugesagt && (
                   <label style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 10, background: 'var(--strafe-bg)', fontSize: 12, fontWeight: 700, color: 'var(--strafe)', cursor: 'pointer' }}>
                     <input type="checkbox" checked={strafe[m.id]} onChange={(e) => setStrafe((r) => ({ ...r, [m.id]: e.target.checked }))} style={{ width: 18, height: 18, accentColor: 'var(--strafe)', margin: 0 }} />
-                    Zugesagt, nicht gekommen: zahlt eine Runde
+                    Zugesagt, nicht gekommen: zahlt {strafeFehlenWort(strafeFehlenCents)}
                   </label>
                 )}
               </div>

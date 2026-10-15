@@ -19,6 +19,7 @@ const FALLBACK: PublicTenantConfig = {
   stammhausWirtshausId: null,
   bierName: 'Augustiner Hell',
   hoibePreisCents: 370,
+  strafeFehlenCents: null,
   geo: MUENCHEN_GEO,
   features: GRUENDER_FEATURES,
   istGruender: true,

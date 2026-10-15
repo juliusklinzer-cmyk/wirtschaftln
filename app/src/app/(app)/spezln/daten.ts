@@ -14,6 +14,7 @@ import { datumKurz } from '@/lib/format';
 import { saisonBadgesVergeben, serienAbzeichen, amtInfo, AEMTER_INFO, saisonBadges } from '@/lib/badges';
 import type { BadgeInfoDaten, HallOfFameEintrag, ZaehlerBlock } from '@/components/domain/BadgeInfo';
 import type { SpezlEintrag, AmtEintrag, GalerieBadge, StatsBlock } from './rangliste';
+import type { AmtKurz } from '@/components/domain/Auszeichnungen';
 
 function rangVon(liste: MitgliedStats[], memberId: string): number {
   return [...liste].sort((a, b) => b.punkte - a.punkte).findIndex((s) => s.member.id === memberId) + 1;
@@ -38,6 +39,30 @@ function statsBlock(s: MitgliedStats, aktuell: MitgliedStats[], vorher: Mitglied
     deltaPunkte: s.punkte - (vor?.punkte ?? 0),
     deltaRang: vor ? rangVon(vorher, s.member.id) - rangVon(aktuell, s.member.id) : 0,
   };
+}
+
+/**
+ * Wer trägt grad welche Ämter (alle, ned nur oans): Präsident = Saison-Rang 1,
+ * Schriftführer = meiste Abschlüsse, der Rest (Kassenwart, …) aus der DB.
+ * Bei 0 Punkten bzw. 0 Abschlüssen (Saisonstart) gibt's no koan.
+ */
+export function aemterJeMitglied(statsSaison: MitgliedStats[], saisonJahr: number): Map<string, AmtKurz[]> {
+  const map = new Map<string, AmtKurz[]>();
+  const dazu = (memberId: string, titel: string, icon: string) => {
+    const info = amtInfo(titel);
+    const liste = map.get(memberId) ?? [];
+    if (!liste.some((a) => a.titel === titel)) liste.push({ titel, icon, slug: info.slug ?? null, patron: info.patron ?? null });
+    map.set(memberId, liste);
+  };
+  const praesident = [...statsSaison].sort((a, b) => b.punkte - a.punkte)[0];
+  if (praesident && praesident.punkte > 0) dazu(praesident.member.id, 'Präsident', AEMTER_INFO['Präsident'].icon);
+  const fleissigster = [...statsSaison].sort((a, b) => b.abschluesse - a.abschluesse)[0];
+  if (fleissigster && fleissigster.abschluesse > 0) dazu(fleissigster.member.id, 'Schriftführer', AEMTER_INFO['Schriftführer'].icon);
+  for (const { amt } of getAemter(String(saisonJahr))) {
+    if (amt.titel === 'Schriftführer' || !amt.memberId) continue; // Schriftführer wird automatisch vergeben
+    dazu(amt.memberId, amt.titel, amt.icon);
+  }
+  return map;
 }
 
 /** Gemeinsame Datenaufbereitung für beide Ranglisten-Stile. */
@@ -74,17 +99,7 @@ export function ladeRanglisteDaten(meId: string): {
   const praesident = praesidentKandidat && praesidentKandidat.punkte > 0 ? praesidentKandidat.member : null;
   const fleissigster = [...statsSaison].sort((a, b) => b.abschluesse - a.abschluesse)[0];
   const schriftfuehrer = fleissigster && fleissigster.abschluesse > 0 ? fleissigster.member : null;
-  const amtVonMember = new Map<string, { titel: string; icon: string }>();
-  if (praesident) amtVonMember.set(praesident.id, { titel: 'Präsident', icon: AEMTER_INFO['Präsident'].icon });
-  if (schriftfuehrer && !amtVonMember.has(schriftfuehrer.id)) {
-    amtVonMember.set(schriftfuehrer.id, { titel: 'Schriftführer', icon: AEMTER_INFO['Schriftführer'].icon });
-  }
-  for (const { amt } of aemterDb) {
-    if (amt.titel === 'Schriftführer') continue; // wird automatisch vergeben
-    if (amt.memberId && !amtVonMember.has(amt.memberId)) {
-      amtVonMember.set(amt.memberId, { titel: amt.titel, icon: amt.icon });
-    }
-  }
+  const aemterVon = aemterJeMitglied(statsSaison, saison.jahr);
 
   const badgesJeMember = new Map<string, typeof badges>();
   for (const b of badges) {
@@ -100,7 +115,8 @@ export function ladeRanglisteDaten(meId: string): {
       vollerName: urkundenName(allzeit.member),
       photoUrl: allzeit.member.photoUrl,
       istIch: allzeit.member.id === meId,
-      amt: amtVonMember.get(allzeit.member.id) ?? null,
+      amt: aemterVon.get(allzeit.member.id)?.[0] ?? null,
+      aemter: aemterVon.get(allzeit.member.id) ?? [],
       badges: (badgesJeMember.get(allzeit.member.id) ?? []).map(({ key, slug, icon, name, tag, pflicht }) => ({ key, slug, icon, name, tag, pflicht })),
       serien: [...serienAbzeichen(allzeit.bestStreak)],
       steckbrief: {

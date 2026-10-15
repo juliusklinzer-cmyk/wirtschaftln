@@ -6,14 +6,15 @@ import { MapPin } from '@phosphor-icons/react/dist/ssr/MapPin';
 import { IdentificationCard } from '@phosphor-icons/react/dist/ssr/IdentificationCard';
 import { getCurrentMember } from '@/lib/session';
 import { anzeigeName, urkundenName } from '@/lib/namen';
-import { getStats, getAemter, getArchiv } from '@/lib/queries';
+import { getStats, getArchiv } from '@/lib/queries';
 import { aktuelleSaison } from '@/lib/saison';
-import { saisonBadgesVergeben, serienAbzeichen, amtInfo, AEMTER_INFO } from '@/lib/badges';
+import { saisonBadgesVergeben } from '@/lib/badges';
+import { aemterJeMitglied } from '@/app/(app)/spezln/daten';
+import { Auszeichnungen } from '@/components/domain/Auszeichnungen';
 import { Avatar } from '@/components/ds';
 import { HoamTitel } from '@/components/domain/HoamTitel';
 import { SchrumpfKopf, MiniKopfLeiste } from '@/components/domain/SchrumpfKopf';
 import { Steckbrief, steckbriefLeer } from '@/components/domain/Steckbrief';
-import { BadgeBild } from '@/components/domain/BadgeBild';
 import { bereichHinweisStil } from '@/components/domain/hero-stil';
 import { ProfilBearbeiten } from './profil-bearbeiten';
 import { ProfilForm, type ProfilWerte } from './profil-form';
@@ -51,22 +52,14 @@ export default async function ProfilPage({ searchParams }: { searchParams: Promi
   const meineSaison = statsSaison.find((s) => s.member.id === me.id);
   const meineAllzeit = statsAllzeit.find((s) => s.member.id === me.id);
 
-  // Aktuelles Amt (Präsident/Schriftführer automatisch, Rest aus der DB)
-  const praesident = [...statsSaison].sort((a, b) => b.punkte - a.punkte)[0];
-  const fleissigster = [...statsSaison].sort((a, b) => b.abschluesse - a.abschluesse)[0];
-  let amt: { titel: string; icon: string } | null = null;
-  if (praesident?.member.id === me.id && praesident.punkte > 0) amt = { titel: 'Präsident', icon: AEMTER_INFO['Präsident'].icon };
-  else if (fleissigster?.member.id === me.id && fleissigster.abschluesse > 0) amt = { titel: 'Schriftführer', icon: AEMTER_INFO['Schriftführer'].icon };
-  else {
-    const amtDb = getAemter(String(saison.jahr)).find(({ amt: a }) => a.memberId === me.id && a.titel !== 'Schriftführer');
-    if (amtDb) amt = { titel: amtDb.amt.titel, icon: amtInfo(amtDb.amt.titel).icon };
-  }
+  // Ämter (Präsident/Schriftführer automatisch, Rest aus der DB), das erste steht im Kopf
+  const meineAemter = aemterJeMitglied(statsSaison, saison.jahr).get(me.id) ?? [];
+  const amt = meineAemter[0] ?? null;
 
   // Getragene Saison-Badges + dauerhafte Serien-Abzeichen
   const archivSaison = getArchiv().filter((a) => a.termin.datum >= saison.start && a.rating > 0);
   const bestes = [...archivSaison].sort((a, b) => b.rating - a.rating)[0];
   const badges = saisonBadgesVergeben(statsSaison, bestes?.planer?.id ?? null).filter((b) => b.holderId === me.id);
-  const serien = serienAbzeichen(meineAllzeit?.bestStreak ?? 0);
   const rang = [...statsSaison].sort((a, b) => b.punkte - a.punkte).findIndex((s) => s.member.id === me.id) + 1;
   const streak = meineAllzeit?.streak ?? 0;
   const name = anzeigeName(me);
@@ -216,28 +209,7 @@ export default async function ProfilPage({ searchParams }: { searchParams: Promi
 
       {/* ── Auszeichnungen (Anker #badges fürs Profil-Menü) ── */}
       <span id="badges" aria-hidden style={{ scrollMarginTop: 12 }} />
-      {(badges.length > 0 || serien.length > 0) && (
-        <section style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <HoamTitel>Auszeichnungen</HoamTitel>
-          <div style={{ ...karteStil, padding: 16, display: 'flex', flexDirection: 'column', gap: 14 }}>
-            {badges.map((b) => (
-              <div key={b.key} style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-                <BadgeBild slug={b.slug} icon={b.icon} name={b.name} size={92} />
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
-                  <span style={{ fontSize: 15, fontWeight: 800, color: 'var(--navy)' }}>{b.name}</span>
-                  <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink-500)' }}>Saison-Badge · {b.tag}</span>
-                </div>
-              </div>
-            ))}
-            {serien.length > 0 && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, paddingTop: badges.length > 0 ? 12 : 0, borderTop: badges.length > 0 ? '1px solid var(--ink-50)' : 'none', flexWrap: 'wrap' }}>
-                {serien.map((a) => <BadgeBild key={a.ab} slug={`serie-${a.ab}`} icon={a.icon} name={a.name} size={40} />)}
-                <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink-500)' }}>Serien: {serien.map((a) => a.name).join(' · ')}</span>
-              </div>
-            )}
-          </div>
-        </section>
-      )}
+      <Auszeichnungen aemter={meineAemter} badges={badges} streak={streak} bestStreak={meineAllzeit?.bestStreak ?? 0} du />
 
       {/* ── Steckbrief (1a) bzw. leer (2f) ── */}
       <section style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>

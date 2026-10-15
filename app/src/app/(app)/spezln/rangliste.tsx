@@ -3,6 +3,7 @@
 // Gemeinsame Typen und Bausteine der Rangliste, der Renderer (Variante B,
 // von Julius am 19.07.2026 gewählt) wohnt in rangliste-b.tsx.
 import { useState } from 'react';
+import type { AmtKurz } from '@/components/domain/Auszeichnungen';
 import { type SteckbriefDaten } from '@/components/domain/Steckbrief';
 
 export type StatsBlock = {
@@ -36,6 +37,8 @@ export type SpezlEintrag = {
   photoUrl: string | null;
   istIch: boolean;
   amt: { titel: string; icon: string } | null;
+  /** Alle Ämter, die er grad trägt (Auszeichnungen im Detail) */
+  aemter: AmtKurz[];
   badges: SpezlBadge[];
   serien: SerienAbzeichen[];
   steckbrief: SteckbriefDaten;

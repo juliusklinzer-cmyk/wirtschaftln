@@ -80,6 +80,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <body suppressHydrationWarning className={muenchen ? 'wn-muenchen' : undefined}>
         <RegisterSW />
         {children}
+        {/* Statusleiste (Uhrzeit, Akku) auf ALLEN Bildschirmen in Navy, auch über
+            hellen Seiten und Vollbild-Blättern (Julius, 15.10.2026). Nur so hoch
+            wia der sichere Bereich oben, am Desktop also 0. */}
+        <div className="wn-statusleiste" aria-hidden />
         {/* Am Handy im Querformat: Vorhang mit Dreh-Hinweis (iOS kennt koa Orientation-Lock für Web-Apps) */}
         <div className="wn-quer" aria-hidden>
           <div className="wn-quer-inhalt">

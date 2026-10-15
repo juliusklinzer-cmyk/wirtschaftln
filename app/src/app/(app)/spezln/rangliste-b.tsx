@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { Auszeichnungen } from '@/components/domain/Auszeichnungen';
 import { Avatar, Icon, Segment, ZeilenKarte } from '@/components/ds';
 import { BadgeInfo, amtKey, type BadgeInfoDaten } from '@/components/domain/BadgeInfo';
 import { PunkteInfo } from '@/components/domain/PunkteInfo';
@@ -329,29 +330,8 @@ function SpezlDetail({
           </div>
         </div>
 
-        {/* Auszeichnungen */}
-        {(e.badges.length > 0 || e.serien.length > 0) && (
-          <section style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            <HoamTitel>Auszeichnungen</HoamTitel>
-            <div style={{ background: 'var(--weiss)', borderRadius: 'var(--r-lg)', border: '1px solid var(--ink-100)', boxShadow: 'var(--sh-sm)', padding: 16, display: 'flex', flexDirection: 'column', gap: 14 }}>
-              {e.badges.map((b) => (
-                <div key={b.key} onClick={() => onInfo(b.key)} style={{ display: 'flex', gap: 12, alignItems: 'center', cursor: 'pointer' }}>
-                  <BadgeBild slug={b.slug} icon={b.icon} name={b.name} size={96} />
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
-                    <span style={{ fontSize: 15, fontWeight: 800, color: 'var(--navy)' }}>{b.name}</span>
-                    <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink-500)' }}>Saison-Badge · {b.tag}</span>
-                  </div>
-                </div>
-              ))}
-              {e.serien.length > 0 && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, paddingTop: e.badges.length > 0 ? 12 : 0, borderTop: e.badges.length > 0 ? '1px solid var(--ink-50)' : 'none', flexWrap: 'wrap' }}>
-                  {e.serien.map((a) => <BadgeBild key={a.ab} slug={`serie-${a.ab}`} icon={a.icon} name={a.name} size={40} />)}
-                  <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink-500)' }}>Serien: {e.serien.map((a) => a.name).join(' · ')}</span>
-                </div>
-              )}
-            </div>
-          </section>
-        )}
+        {/* Auszeichnungen (Ämter groß) und Serie */}
+        <Auszeichnungen aemter={e.aemter} badges={e.badges} streak={e.allzeit.streak} bestStreak={e.allzeit.bestStreak} du={e.istIch} onInfo={onInfo} />
 
         {/* Steckbrief */}
         {!steckbriefLeer(e.steckbrief) && (

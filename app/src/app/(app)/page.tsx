@@ -303,7 +303,12 @@ export default async function HomePage() {
           {/* Ab der Termin-Uhrzeit: Dein Deckel als Kurzinfo, gstrichelt wird im Termin-Tab */}
           {abend && (
             <>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 14px', borderRadius: 'var(--r-md)', background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.18)' }}>
+              <Link
+                href="/termin?deckel=voll"
+                className="wn-press"
+                aria-label="Deinen Deckel öffnen"
+                style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 14px', borderRadius: 'var(--r-md)', background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.18)', color: 'inherit', textDecoration: 'none' }}
+              >
                 <span style={{ width: 52, height: 52, flex: 'none', borderRadius: '50%', background: 'var(--pergament)', border: '3px double var(--gold)', color: 'var(--navy)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
                   <Icon name="beer" size={24} stroke={2.2} />
                 </span>
@@ -313,9 +318,10 @@ export default async function HomePage() {
                   </span>
                   <span style={{ fontSize: 12, fontWeight: 600, color: 'rgba(246,240,226,0.7)' }}>Dein Deckel heute</span>
                 </div>
-              </div>
+                <Icon name="arrows-out" size={20} style={{ color: 'var(--gold-bright)', flex: 'none' }} />
+              </Link>
               {!abschluss && (
-                <Link href="/termin" className="wn-press" style={goldKnopfStil}>
+                <Link href="/termin?deckel=voll" className="wn-press" style={goldKnopfStil}>
                   Zum Bierdeckel <Icon name="arrow-right" size={18} />
                 </Link>
               )}

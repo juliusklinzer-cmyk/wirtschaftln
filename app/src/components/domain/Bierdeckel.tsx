@@ -273,6 +273,7 @@ export function Bierdeckel({
   rundenErlaubt = true,
   kopf = null,
   kopfKurz = 'Heute',
+  startVoll = false,
 }: {
   terminId: string;
   /** Helles vom Wirtshaus → passender Deckel (Augustiner-Scan, Brauerei-Deckel oder neutral) */
@@ -293,6 +294,8 @@ export function Bierdeckel({
   kopf?: React.ReactNode;
   /** Kurze Zeile fürs Vollbild („Heute · Am Hart“) */
   kopfKurz?: string;
+  /** Gleich im Vollbild aufmachen (Sprung vom Hoam-Deckel) */
+  startVoll?: boolean;
 }) {
   const router = useRouter();
   const [hoiben, setHoiben] = useState(initialHoiben);
@@ -308,7 +311,11 @@ export function Bierdeckel({
   const [tipp, setTipp] = useState(false);
   // Info-Layer übern Deckel (oben Schnaps, unten Bier, links weg, rechts dazu) + Vollbild für späte Stunden
   const [info, setInfo] = useState(false);
-  const [voll, setVoll] = useState(false);
+  const [voll, setVoll] = useState(startVoll);
+  // ?deckel=voll nach dem Aufmachen aus der Adresse nehmen, sonst springt’s beim Neuladen wieder ins Vollbild
+  useEffect(() => {
+    if (startVoll && window.location.search.includes('deckel=')) window.history.replaceState(null, '', window.location.pathname);
+  }, [startVoll]);
   const [, startTransition] = useTransition();
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const schnapsTimer = useRef<ReturnType<typeof setTimeout> | null>(null);

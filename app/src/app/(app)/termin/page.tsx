@@ -102,7 +102,8 @@ function HeroKopf({ eyebrow, titel, zeile, extra = null, rechts = null }: { eyeb
   );
 }
 
-export default async function TerminPage() {
+export default async function TerminPage({ searchParams }: { searchParams: Promise<{ deckel?: string }> }) {
+  const { deckel: deckelParam } = await searchParams;
   const me = (await getCurrentMember())!;
   erzwingeProfil(me);
   const config = tenantConfig();
@@ -146,7 +147,7 @@ export default async function TerminPage() {
   return (
     <div className="wn-eintritt" style={{ padding: '20px 16px 32px', display: 'flex', flexDirection: 'column', gap: 28 }}>
       {termin ? (
-        <AktiverTermin terminId={termin.id} meId={me.id} isAdmin={me.role === 'admin'} nachtragOrga={nachtragOrga} />
+        <AktiverTermin terminId={termin.id} meId={me.id} isAdmin={me.role === 'admin'} nachtragOrga={nachtragOrga} deckelVoll={deckelParam === 'voll'} />
       ) : (
         <>
           <HeroKarte>
@@ -243,11 +244,14 @@ async function AktiverTermin({
   meId,
   isAdmin,
   nachtragOrga,
+  deckelVoll = false,
 }: {
   terminId: string;
   meId: string;
   isAdmin: boolean;
   nachtragOrga: React.ComponentProps<typeof OrganisationKarte>['nachtrag'];
+  /** Vom Hoam-Deckel aus (/termin?deckel=voll): Deckel geht gleich im Vollbild auf */
+  deckelVoll?: boolean;
 }) {
   const termin = getAktuellerTermin();
   if (!termin || termin.id !== terminId) return null;
@@ -306,6 +310,7 @@ async function AktiverTermin({
       <>
         <Bierdeckel
           terminId={termin.id}
+          startVoll={deckelVoll}
           biersorte={wirtshaus?.biersorte ?? null}
           initialHoiben={meinBesuch?.hoiben ?? 0}
           initialWeissbier={meinBesuch?.weissbier ?? 0}

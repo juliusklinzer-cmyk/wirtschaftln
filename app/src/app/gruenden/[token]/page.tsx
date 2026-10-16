@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { LinkBreak } from '@phosphor-icons/react/dist/ssr/LinkBreak';
 import { SealCheck } from '@phosphor-icons/react/dist/ssr/SealCheck';
@@ -6,15 +7,24 @@ import { findToken, findGruppe } from '@/lib/db/directory';
 import { datumMitJahr } from '@/lib/format';
 import { AuthRahmen } from '@/components/domain/AuthRahmen';
 import { GruendungsWizard } from './wizard';
+import { gruendungVorschau, vorschauTexte } from '@/lib/link-vorschau';
 
-export const metadata = {
-  title: 'Stammtisch gründen · Wirtschaftln',
-  openGraph: {
-    title: 'Eine Ehren-Einladung: Gründe deinen eigenen Stammtisch',
-    description: 'Mit dem Wirtschaftln kriegt euer Stammtisch Termine, Abstimmung, Kasse, Rangliste und Chronik in einer eigenen App.',
-    images: [{ url: '/brand/og.jpg', width: 1200, height: 630, alt: 'Wirtschaftln-Wappen' }],
-  },
-};
+/** WhatsApp-Vorschau je Token: wer einlädt, für wen (Link-Vorschau 6b) */
+export async function generateMetadata({ params }: { params: Promise<{ token: string }> }): Promise<Metadata> {
+  const { token } = await params;
+  const { titel, beschreibung } = vorschauTexte.gruenden(gruendungVorschau(token));
+  return {
+    title: 'Stammtisch gründen · Wirtschaftln',
+    openGraph: {
+      title: titel,
+      description: beschreibung,
+      siteName: 'Wirtschaftln',
+      locale: 'de_DE',
+      type: 'website',
+      images: [{ url: `/vorschau/gruenden/${encodeURIComponent(token)}`, width: 1200, height: 630, alt: titel }],
+    },
+  };
+}
 
 /**
  * Öffentliche Gründungs-Route (Gründung-Redesign 14.10.2026): Token prüfen,

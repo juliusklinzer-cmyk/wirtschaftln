@@ -35,14 +35,14 @@ export async function generateMetadata(): Promise<Metadata> {
     // App-Icon: bei ALLEN Stammtischen das Münchner Kindl, solang wir geschlossen san und nix
     // monetarisieren (Julius, 14.10.2026). Das eigene Logo steht nur oben in der AppBar.
     icons: { icon: '/brand/kindl-favicon.png', apple: '/brand/kindl-apple-icon.png' },
-    // Link-Vorschau (WhatsApp & Co.): Wappen auf Navy statt schwarzem Nichts
+    // Link-Vorschau (WhatsApp & Co.): Stammtisch auf dem Panorama (Link-Vorschau Redesign)
     openGraph: {
       siteName: name,
       title: name,
       description: beschreibung(c),
       locale: 'de_DE',
       type: 'website',
-      images: [{ url: '/brand/og.jpg', width: 1200, height: 630, alt: 'Wirtschaftln-Wappen' }],
+      images: [{ url: `/vorschau/stammtisch${c ? `?g=${encodeURIComponent(c.id)}` : ''}`, width: 1200, height: 630, alt: name }],
     },
     applicationName: name,
     appleWebApp: {

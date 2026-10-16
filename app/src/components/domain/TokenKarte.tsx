@@ -72,7 +72,7 @@ export function TokenKarte({
   const naechste = fristen.find((f) => f.offen) ?? null;
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-      {tokens.map((t) => <TokenZeile key={t.token} t={t} eigene={eigene} frei={ungewidmet.length} widmen={widmen} />)}
+      {tokens.map((t) => <TokenZeile key={t.token} t={t} eigene={eigene} frei={ungewidmet.length} einziger={tokens.filter((x) => !x.eingeloest).length <= 1} widmen={widmen} />)}
       {naechste && <FristKarte frist={naechste} fristen={fristen} gruendung={gruendung} />}
       {anfrageSchicken && darfAnfragen && <AnfrageFormular schicken={anfrageSchicken} />}
       {anfragen.length > 0 && (
@@ -112,7 +112,7 @@ export function AnfrageChip({ status }: { status: AnfrageAnzeige['status'] }) {
   );
 }
 
-function TokenZeile({ t, eigene, frei, widmen }: { t: TokenAnzeige; eigene: boolean; frei: number; widmen: (token: string, widmung: string) => Promise<{ fehler?: string }> }) {
+function TokenZeile({ t, eigene, frei, einziger, widmen }: { t: TokenAnzeige; eigene: boolean; frei: number; einziger: boolean; widmen: (token: string, widmung: string) => Promise<{ fehler?: string }> }) {
   const [kopiert, setKopiert] = useState(false);
   const [widmung, setWidmung] = useState('');
   const [fehler, setFehler] = useState<string | null>(null);
@@ -126,10 +126,13 @@ function TokenZeile({ t, eigene, frei, widmen }: { t: TokenAnzeige; eigene: bool
   };
   const teilen = async () => {
     const nav = navigator as Navigator & { share?: (d: { title: string; text: string; url: string }) => Promise<void> };
-    const fuer = t.widmung ? ` für ${t.widmung}` : '';
+    // Teilen-Text laut Link-Vorschau-Design 6b: „Sepp, des is mei einziger Token. Gründ’s euren Stammtisch: {Link}“
+    const anrede = t.widmung ? `${anredeAus(t.widmung)}, ` : '';
+    const satz = einziger ? `des is ${eigene ? 'mei' : 'unser'} einziger Token` : `den Token kriegt’s ihr`;
+    const text = `${anrede}${anrede ? satz : satz.charAt(0).toUpperCase() + satz.slice(1)}. Gründ’s euren Stammtisch:`;
     if (nav.share) {
       try {
-        await nav.share({ title: 'Gründe deinen eigenen Stammtisch', text: `Eine Ehren-Einladung${fuer}: Mit dem Link gründest du euren eigenen Stammtisch in der Wirtschaftln-App.`, url: t.link });
+        await nav.share({ title: 'Gründe deinen eigenen Stammtisch', text, url: t.link });
         return;
       } catch { /* abgebrochen */ }
     }
@@ -211,6 +214,11 @@ function TokenZeile({ t, eigene, frei, widmen }: { t: TokenAnzeige; eigene: bool
       </div>
     </div>
   );
+}
+
+/** „Sepp aus Regensburg“ → „Sepp“: nur der Name vor der Herkunft für die Anrede. */
+function anredeAus(widmung: string): string {
+  return widmung.split(/\s+(?:aus|von|vom)\s+|,/)[0].trim() || widmung;
 }
 
 /** 1d: nächste Frist grau mit Schloss, drunter der Zeitstrahl Gründung → Token 1 → Token 2 */

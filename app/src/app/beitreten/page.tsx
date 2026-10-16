@@ -1,19 +1,29 @@
+import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { getCurrentMember } from '@/lib/session';
 import { findGruppeByCode } from '@/lib/db/directory';
 import { AuthRahmen } from '@/components/domain/AuthRahmen';
 import { AuthLink } from '@/components/domain/AuthFeld';
 import { BeitrittForm } from './beitritt-form';
+import { beitrittVorschau, vorschauTexte } from '@/lib/link-vorschau';
 
-export const metadata = {
-  title: 'Gründungsmitglied werden · Wirtschaftln',
-  // WhatsApp-Vorschau für den Einladungs-Link (Login-Redesign 2f)
-  openGraph: {
-    title: 'Eine persönliche Einladung zum Wirtschaftln',
-    description: 'Du bist eingeladen, Gründungsmitglied bei deinem Stammtisch zu werden.',
-    images: [{ url: '/brand/og.jpg', width: 1200, height: 630, alt: 'Wirtschaftln-Wappen' }],
-  },
-};
+/** WhatsApp-Vorschau je Einladung: Stammtisch und Mitgliedsnummer (Link-Vorschau 6a) */
+export async function generateMetadata({ searchParams }: { searchParams: Promise<{ code?: string }> }): Promise<Metadata> {
+  const { code } = await searchParams;
+  const c = typeof code === 'string' ? code.slice(0, 40) : '';
+  const { titel, beschreibung } = vorschauTexte.beitreten(beitrittVorschau(c));
+  return {
+    title: 'Gründungsmitglied werden · Wirtschaftln',
+    openGraph: {
+      title: titel,
+      description: beschreibung,
+      siteName: 'Wirtschaftln',
+      locale: 'de_DE',
+      type: 'website',
+      images: [{ url: `/vorschau/beitreten${c ? `?code=${encodeURIComponent(c)}` : ''}`, width: 1200, height: 630, alt: titel }],
+    },
+  };
+}
 
 /**
  * Beitritt (Login-Redesign 1b/1c): aus dem Einladungs-Link steht der Code

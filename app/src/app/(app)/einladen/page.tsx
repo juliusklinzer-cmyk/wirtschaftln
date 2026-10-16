@@ -2,7 +2,7 @@ import Link from 'next/link';
 import QRCode from 'qrcode';
 import { getCurrentMember, erzwingeProfil } from '@/lib/session';
 import { currentTenant } from '@/lib/db';
-import { appUrl, tenantConfig } from '@/lib/tenant-config';
+import { appUrl } from '@/lib/tenant-config';
 import { Card, SectionHeader } from '@/components/ds';
 import { einladungsText } from '@/lib/einladung';
 import { EinladenKarte } from '@/components/domain/EinladenKarte';
@@ -18,10 +18,9 @@ export const metadata = { title: 'Spezln einladen' };
 export default async function EinladenPage() {
   const me = (await getCurrentMember())!;
   erzwingeProfil(me);
-  const config = tenantConfig();
   const code = currentTenant().gruppe.gruendungscode;
   const link = code ? `${appUrl('/beitreten')}?code=${encodeURIComponent(code)}` : null;
-  const text = link && code ? einladungsText(config, link, code) : '';
+  const text = link && code ? einladungsText(link) : '';
   const qrSvg = link ? await QRCode.toDataURL(link, { type: 'image/png', margin: 1, width: 360, color: { dark: '#0C2B5A', light: '#FFFFFF' } }) : '';
 
   return (

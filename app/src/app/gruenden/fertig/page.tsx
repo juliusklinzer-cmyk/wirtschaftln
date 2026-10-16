@@ -21,7 +21,7 @@ export default async function GruendenFertigPage() {
   const config = tenantConfig();
   const code = currentTenant().gruppe.gruendungscode;
   const link = code ? `${appUrl('/beitreten')}?code=${encodeURIComponent(code)}` : appUrl('/beitreten');
-  const text = code ? einladungsText(config, link, code) : '';
+  const text = code ? einladungsText(link) : '';
   const wa = `https://wa.me/?text=${encodeURIComponent(text)}`;
 
   return (

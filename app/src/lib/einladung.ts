@@ -1,7 +1,9 @@
 /**
  * Einladungstext für d'WhatsApp-Gruppe: beim Einladen (Profil-Menü) und
- * direkt nach der Gründung (Geschafft-Screen) derselbe Wortlaut.
+ * direkt nach der Gründung (Geschafft-Screen) derselbe Wortlaut. Kurz, weil
+ * Stammtisch und Mitgliedsnummer seit dem Link-Vorschau-Redesign (16.10.2026)
+ * im Vorschaubild stehen.
  */
-export function einladungsText(c: { name: string; stadt: string | null }, link: string, code: string): string {
-  return `Servus! Du bist eingeladen zum ${c.name}${c.stadt ? ` (${c.stadt})` : ''} in der Wirtschaftln-App: Termine, Abstimmung, Kasse, Rangliste und Chronik für unsere Runde.\n\nHier beitreten: ${link}\nGründungscode: ${code}\n\nDanach Passwort setzen, Profil ausfüllen, fertig. Bis boid am Tisch! 🍺`;
+export function einladungsText(link: string): string {
+  return `Servus! Hier ist dein Link für unseren Stammtisch: ${link}`;
 }

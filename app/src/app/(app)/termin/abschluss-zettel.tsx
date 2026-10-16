@@ -5,8 +5,6 @@ import { Avatar, ZeilenKarte } from '@/components/ds';
 import { PTS } from '@/lib/punkte';
 import { useTenantConfig } from '@/components/shell/TenantProvider';
 import { strafeFehlenWort } from '@/lib/tenant-config-public';
-import type { MeiBewertungWerte } from '@/components/domain/MeiBewertung';
-import { WertungFelder } from '@/components/domain/WertungFelder';
 import { goldKnopfStil, feldStil, feldLabelStil } from '@/components/domain/hero-stil';
 
 export type ZettelMitglied = {
@@ -39,7 +37,7 @@ function SchrittKopf({ nummer, titel, hint }: { nummer: number; titel: string; h
 
 /**
  * Wer war da + nächster Termin, Schritt für Schritt (Redesign 1c): 1 Wer war
- * da? 2 Deine Wertung & Essen, 3 Nächster Stammtisch. Hoibe und Marken trägt
+ * da? 2 Nächster Stammtisch. Bewertet wird getrennt, jeder wann er mag. Hoibe und Marken trägt
  * jeder selber am Deckel ein, hier wird nur bestätigt, wer da war, wer z’spät
  * kemma is und wer gfehlt hat (zugsagt & ned kemma → Strafrunde). Der Abend
  * bleibt danach offen, er schließt sich um 3 Uhr früh von allein.
@@ -47,24 +45,19 @@ function SchrittKopf({ nummer, titel, hint }: { nummer: number; titel: string; h
 export function AbschlussZettel({
   mitglieder,
   meId,
-  meineWerte,
   naechsterTermin,
   ersterErfasser = true,
   mindestDatum,
   action,
-  ohneSterne = false,
 }: {
   mitglieder: ZettelMitglied[];
   meId: string;
-  meineWerte: MeiBewertungWerte;
   naechsterTermin: boolean;
   /** Erster, der abhakt → kriegt die WP */
   ersterErfasser?: boolean;
   /** Der nächste Termin muss nach diesem Abend liegen */
   mindestDatum?: string;
   action: (formData: FormData) => Promise<void>;
-  /** Stammhaus-Abend: koa Wirtshaus-Wertung */
-  ohneSterne?: boolean;
 }) {
   const [status, setStatus] = useState<Record<string, Status>>(() => {
     const s: Record<string, Status> = {};
@@ -77,10 +70,8 @@ export function AbschlussZettel({
     for (const m of mitglieder) s[m.id] = m.stand ? m.stand.strafe : m.zugesagt;
     return s;
   });
-  const [meinBrodn, setMeinBrodn] = useState(meineWerte.brodnGessen);
 
   const dabei = mitglieder.filter((m) => status[m.id] !== 'weg');
-  const ichDabei = status[meId] !== 'weg';
   // Da/z’spät zuerst, dann die Fehlenden
   const sortiert = [...mitglieder].sort((a, b) => {
     const rang = (id: string) => (status[id] === 'weg' ? 1 : 0);
@@ -128,15 +119,6 @@ export function AbschlussZettel({
           })}
         </ZeilenKarte>
       </section>
-
-      {ichDabei && (
-        <section style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <SchrittKopf nummer={++schritt} titel="Deine Wertung & Essen" hint={`+${PTS.bewertung} WP`} />
-          <div style={karte}>
-            <WertungFelder werte={meineWerte} brodn={meinBrodn} onBrodn={setMeinBrodn} ohneSterne={ohneSterne} />
-          </div>
-        </section>
-      )}
 
       {/* Wer abhakt, macht den nächsten Termin aus: Datum + Uhrzeit reichen,
           zu-/absagen tun danach alle selber (Julius, 11.09.2026) */}

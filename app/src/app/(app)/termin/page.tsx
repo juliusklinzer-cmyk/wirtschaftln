@@ -385,7 +385,7 @@ async function AktiverTermin({
                 <Icon name="calendar-plus" size={20} />
                 Nächsten Termin ausmachen · +{PTS.terminAusmachen} WP
               </Link>
-              <Hinweis>Mit „Wer war da“. Der Erste bekommt die Punkte, der Deckel bleibt offen bis {ABEND_ENDE_UHRZEIT} Uhr.</Hinweis>
+              <Hinweis>Nur „Wer war da“ und das Datum, bewerten geht extra. Der Erste bekommt die Punkte, der Deckel bleibt offen bis {ABEND_ENDE_UHRZEIT} Uhr.</Hinweis>
             </>
           ) : (
             <>

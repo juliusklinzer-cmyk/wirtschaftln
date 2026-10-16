@@ -2,13 +2,11 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { getCurrentMember, erzwingeProfil } from '@/lib/session';
 import { anzeigeName } from '@/lib/namen';
-import { getAktuellerTermin, getNaechsterTermin, getKasseFuerTermin, getTerminMitWirtshaus, getVotesFuerTermin, getAktiveMitglieder, getBesucheFuerTermin, getWirtshausById } from '@/lib/queries';
+import { getAktuellerTermin, getNaechsterTermin, getKasseFuerTermin, getTerminMitWirtshaus, getVotesFuerTermin, getAktiveMitglieder, getBesucheFuerTermin } from '@/lib/queries';
 import { abschlussOffen } from '@/lib/punkte';
 import { nowIso } from '@/lib/ids';
 import { datumKurz } from '@/lib/format';
 import { Icon } from '@/components/ds';
-import { bewertungsDaten } from '@/lib/bewertungs-daten';
-import { tenantConfig } from '@/lib/tenant-config';
 import { STRAFE_GRUND_PREFIX } from '@/lib/abend';
 import { AbschlussZettel } from '../abschluss-zettel';
 import { abschliessenUndZurueck } from '../actions';
@@ -38,8 +36,6 @@ export default async function AbschlussPage() {
     return { status: b?.anwesend ? (b.zuSpaet ? 'spaet' : 'da') : 'weg', strafe: strafen.has(id) } as const;
   };
   const voteVon = (id: string) => alleVotes.find((x) => x.vote.memberId === id)?.vote.wert;
-  const config = tenantConfig();
-  const stammhaus = config.typ === 'stammhaus' && config.stammhausWirtshausId ? getWirtshausById(config.stammhausWirtshausId) : null;
 
   return (
     <div className="wn-eintritt" style={{ padding: '20px 16px 32px', display: 'flex', flexDirection: 'column', gap: 28 }}>
@@ -64,12 +60,10 @@ export default async function AbschlussPage() {
           live: !!besucheLive.find((b) => b.memberId === m.id)?.anwesend,
           stand: standVon(m.id),
         }))}
-        meineWerte={bewertungsDaten(besucheLive, me.id).initial}
         naechsterTermin={!termin.erfasstVon && !getNaechsterTermin(termin)}
         ersterErfasser={!termin.erfasstVon}
         mindestDatum={termin.datum}
         action={abschliessenUndZurueck.bind(null, termin.id)}
-        ohneSterne={!!stammhaus && wirtshaus?.id === stammhaus.id}
       />
     </div>
   );

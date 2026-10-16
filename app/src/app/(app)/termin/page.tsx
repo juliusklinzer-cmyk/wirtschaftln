@@ -16,9 +16,10 @@ import {
   getBekannteWirtshaeuser,
   getWirtshausById,
   getCheckinsFuerTermin,
+  getNaechsterTermin,
 } from '@/lib/queries';
 import { datumMittel, datumKurz } from '@/lib/format';
-import { PTS, berlinTag, bierdeckelOffen, abschlussOffen, abschlussAb } from '@/lib/punkte';
+import { PTS, berlinTag, bierdeckelOffen, abschlussOffen, abschlussAb, ABEND_ENDE_UHRZEIT } from '@/lib/punkte';
 import { nowIso } from '@/lib/ids';
 import { Card, Icon, Chip, Kachel, Zeile, ZeilenKarte, KlappenKopf } from '@/components/ds';
 import { neuerTermin, wirtshausFestlegen, phaseSetzen, besuchAbschliessen, meineBewertung, orgaSchnappen } from './actions';
@@ -304,6 +305,8 @@ async function AktiverTermin({
     const erster = getCheckinsFuerTermin(termin.id)[0] ?? null;
     const daten = bewertungsDaten(besucheLive, meId);
     const stammhausAbend = !!stammhaus && wirtshaus?.id === stammhaus.id;
+    const naechster = termin.erfasstVon ? getNaechsterTermin(termin) : null;
+    const erfasser = termin.erfasstVon ? mitglieder.find((m) => m.id === termin.erfasstVon) : null;
     const bewertet = stammhausAbend ? daten.initial.kaisiProbiert || daten.initial.brodnGessen || !!daten.initial.kommentar : daten.initial.sterne != null;
 
     return (
@@ -356,23 +359,41 @@ async function AktiverTermin({
           </WerKommtKarte>
         )}
 
-        {/* Zapfenstreich: die eine Hauptaktion, frühestens 2 Stunden nach Beginn (2h: gesperrt) */}
+        {/* Wer war da + nächster Termin: die eine Hauptaktion, frühestens 2 Stunden nach Beginn.
+            Der Abend bleibt dabei offen, er schließt sich um 3 Uhr früh von allein. */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {abschluss ? (
+          {termin.erfasstVon ? (
+            <>
+              <div style={{ ...karteStil, gap: 6 }}>
+                <span style={{ fontSize: 12, fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--ink-500)' }}>Nächster Stammtisch</span>
+                <span style={{ fontSize: 17, fontWeight: 800, color: 'var(--navy)' }}>
+                  {naechster ? `${datumMittel(naechster.datum)} · ${naechster.zeit} Uhr` : 'Noch kein Termin'}
+                </span>
+                <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink-500)' }}>
+                  Wer war da: abgehakt von {erfasser ? anzeigeName(erfasser).split(' ')[0] : 'einem Spezl'}
+                </span>
+              </div>
+              <Link href="/termin/abschluss" className="wn-press" style={{ minHeight: 48, borderRadius: 'var(--r-md)', border: '1.5px solid var(--ink-200)', background: 'var(--weiss)', color: 'var(--navy)', fontSize: 15, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, textDecoration: 'none' }}>
+                <Icon name="users" size={18} />
+                Wer war da ändern
+              </Link>
+              <Hinweis>Der Deckel bleibt offen bis {ABEND_ENDE_UHRZEIT} Uhr, dann schließt sich der Abend von selbst.</Hinweis>
+            </>
+          ) : abschluss ? (
             <>
               <Link href="/termin/abschluss" className="wn-press" style={{ ...goldKnopfStil, minHeight: 52 }}>
-                <Icon name="check-circle" size={20} />
-                Abend abschließen · +{PTS.abschluss} WP
+                <Icon name="calendar-plus" size={20} />
+                Nächsten Termin ausmachen · +{PTS.terminAusmachen} WP
               </Link>
-              <Hinweis>Der Erste bekommt die Punkte. Bis 7 Tage danach kann nachgetragen werden.</Hinweis>
+              <Hinweis>Mit „Wer war da“. Der Erste bekommt die Punkte, der Deckel bleibt offen bis {ABEND_ENDE_UHRZEIT} Uhr.</Hinweis>
             </>
           ) : (
             <>
               <div style={{ minHeight: 52, borderRadius: 'var(--r-md)', background: 'var(--ink-100)', color: 'var(--ink-300)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, fontSize: 16, fontWeight: 800 }}>
                 <Icon name="lock" size={20} />
-                Abend abschließen
+                Nächsten Termin ausmachen
               </div>
-              <Hinweis>Abschließen geht ab {abschlussAb(termin)} Uhr.</Hinweis>
+              <Hinweis>Geht ab {abschlussAb(termin)} Uhr.</Hinweis>
             </>
           )}
         </div>

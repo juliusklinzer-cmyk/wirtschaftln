@@ -63,7 +63,7 @@ export function AmtZuweisen({
               Kassenwart eintragen
             </Button>
             <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink-500)' }}>
-              Alle Spezln kriegen a Push-Nachricht und a Mail. Präsident (WP-Rang 1) und Schriftführer (meiste Abschlüsse) werden automatisch vergeben.
+              Alle Spezln kriegen a Push-Nachricht und a Mail. Präsident (WP-Rang 1) und Schriftführer (am öftesten Termin ausgemacht) werden automatisch vergeben.
             </div>
           </form>
         </div>

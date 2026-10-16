@@ -189,7 +189,7 @@ function slidesBauen({ stammhaus, schnaps, hoibePreis }: { stammhaus: boolean; s
       titel: 'Punkte, Ämter, Badges',
       bild: <BildRang />,
       punkte: [
-        { Icon: Trophy, titel: 'Wirtschaftln-Punkte (WP)', text: 'Fürs Dabeisein, Organisieren und Abschließen. Daraus wird die Rangliste.' },
+        { Icon: Trophy, titel: 'Wirtschaftln-Punkte (WP)', text: 'Fürs Dabeisein, Organisieren und das Ausmachen vom nächsten Termin. Daraus wird die Rangliste.' },
         { Icon: CrownSimple, titel: 'Ämter und Badges', text: 'Wer vorne liegt, wird Präsident. Maximator, Taxler und Co. gibt’s pro Saison.' },
         { Icon: Flame, titel: 'Serie halten', text: 'Abende in Folge bringen Abzeichen für immer. Dreimal unentschuldigt, und du wackelst.' },
       ],

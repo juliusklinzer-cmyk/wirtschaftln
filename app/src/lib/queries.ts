@@ -10,7 +10,9 @@ import {
   unentschuldigtMalus,
   orgaPunkte,
   rechtzeitigAbgestimmt,
+  bierdeckelOffen,
 } from '@/lib/punkte';
+import { nowIso } from '@/lib/ids';
 import { vergabeStand } from '@/lib/badges';
 import { aktuelleSaison } from '@/lib/saison';
 import { auszeichnungAn, tenantConfig } from '@/lib/tenant-config';
@@ -39,15 +41,28 @@ export function getLetzterAbgeschlossenerTermin() {
   );
 }
 
-/** Der aktuell laufende Termin (nicht abgeschlossen), oder null. */
+/**
+ * Der aktuelle Termin (nicht abgeschlossen), oder null. Läuft grad a Abend
+ * (Deckel offen bis 3 Uhr früh), is DER der aktuelle, auch wenn der nächste
+ * Termin scho ausgemacht is. Sonst der jüngste offene.
+ */
 export function getAktuellerTermin() {
+  const offen = db.select().from(termine).where(ne(termine.phase, 'abgeschlossen')).orderBy(desc(termine.datum)).all();
+  const jetzt = nowIso();
+  return offen.find((t) => bierdeckelOffen(t, jetzt)) ?? offen[0] ?? null;
+}
+
+/** Der scho ausgemachte nächste Termin, solang der aktuelle Abend no läuft. */
+export function getNaechsterTermin(aktuell: Termin | null) {
+  if (!aktuell) return null;
   return (
     db
       .select()
       .from(termine)
       .where(ne(termine.phase, 'abgeschlossen'))
-      .orderBy(desc(termine.datum))
-      .get() ?? null
+      .orderBy(asc(termine.datum))
+      .all()
+      .find((t) => t.id !== aktuell.id && t.datum >= aktuell.datum) ?? null
   );
 }
 
@@ -190,6 +205,7 @@ export type MitgliedStats = {
   zuSpaet: number;
   organisiert: number;
   abschluesse: number;
+  abschlussPunkte: number;
   runden: number;
   /** >0 = Abende in Folge dabei, <0 = Abende in Folge gefehlt (jüngster Abend zuerst). */
   streak: number;
@@ -300,6 +316,7 @@ export function getStats(optionen?: { abDatum?: string; bisDatum?: string; ohneT
     let zuSpaet = 0;
     let organisiert = 0;
     let abschluesse = 0;
+    let abschlussPunkte = 0;
     let orgaSumme = 0;
     let abstimmBonus = 0;
     let bewertungsBonus = 0;
@@ -344,7 +361,12 @@ export function getStats(optionen?: { abDatum?: string; bisDatum?: string; ohneT
           orgaSumme += orgaVon.get(t.id) ?? 0;
         }
       }
-      if (t.abgeschlossenVon === member.id && zaehlt) abschluesse += 1;
+      // Alte Abende (vor dem 3-Uhr-Schluss): der erste Abschließer kriegt +3.
+      // Neue zählen unten sofort über erfasstVon (+2), wie der Abstimm-Bonus.
+      if (!t.erfasstVon && t.abgeschlossenVon === member.id && zaehlt) {
+        abschluesse += 1;
+        abschlussPunkte += PTS.abschluss;
+      }
 
       // Serie & Fehl-Staffeln, Termine vor dem Beitritt zählen nicht als gefehlt
       const zaehltFuerSerie = t.datum >= beitritt || byTermin.get(t.id)?.has(member.id);
@@ -374,6 +396,10 @@ export function getStats(optionen?: { abDatum?: string; bisDatum?: string; ohneT
       const vote = voteByTermin.get(t.id)?.get(member.id);
       if (vote && rechtzeitigAbgestimmt(vote.erstmalsAm, t.datum)) abstimmBonus += PTS.abstimmen;
       if (ersterCheckin.get(t.id) === member.id) checkinBonus += PTS.checkin;
+      if (t.erfasstVon === member.id) {
+        abschluesse += 1;
+        abschlussPunkte += PTS.terminAusmachen;
+      }
     }
 
     // Anzeige-Serie: dabei = positiv, gefehlt (egal welche Art) = negativ
@@ -391,7 +417,7 @@ export function getStats(optionen?: { abDatum?: string; bisDatum?: string; ohneT
     }
 
     const runden = rundenJeMitglied.get(member.id) ?? 0;
-    const komponenten = { hoiben, abende, taxi, runden, abschluesse, orgaSumme, serienBonus, fehlMalus, abstimmBonus, vorschlagPunkte, bewertungsBonus, textBonus, checkinBonus };
+    const komponenten = { hoiben, abende, taxi, runden, abschluesse, abschlussPunkte, orgaSumme, serienBonus, fehlMalus, abstimmBonus, vorschlagPunkte, bewertungsBonus, textBonus, checkinBonus };
     return {
       member,
       ...komponenten,

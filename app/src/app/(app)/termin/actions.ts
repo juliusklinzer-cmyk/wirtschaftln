@@ -4,19 +4,18 @@ import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { anzeigeName } from '@/lib/namen';
 import { and, eq } from 'drizzle-orm';
-import { db, termine, votes, besuche, wirtshaeuser, kasse, pushSubscriptions, checkins, currentTenant, wirtshausBewertungen } from '@/lib/db';
+import { db, termine, votes, besuche, wirtshaeuser, pushSubscriptions, checkins, currentTenant, wirtshausBewertungen } from '@/lib/db';
 import { getCurrentMember } from '@/lib/session';
-import { getAktiveMitglieder, nachtragsfristOffen, getVergabeStand, getStats, getPraesidentId, getBekannteWirtshaeuser, getLetzterAbgeschlossenerTermin, getAktuellerTermin } from '@/lib/queries';
+import { getAktiveMitglieder, nachtragsfristOffen, getPraesidentId, getBekannteWirtshaeuser, getLetzterAbgeschlossenerTermin, getNaechsterTermin } from '@/lib/queries';
+import { abendKasseAufbauen } from '@/lib/abend';
 import { findeBekanntes } from '@/lib/wirtshaus-abgleich';
-import { vergabeWechsel, wechselTexte } from '@/lib/badges';
-import { WACKELT_AB_UNENTSCHULDIGT, berlinTag, bierdeckelOffen, abschlussOffen, checkinOffen, CHECKIN_VORLAUF_STUNDEN } from '@/lib/punkte';
+import { berlinTag, bierdeckelOffen, abschlussOffen, checkinOffen, CHECKIN_VORLAUF_STUNDEN } from '@/lib/punkte';
 import { HELLE, ALKOHOLFREIE_HELLE } from '@/lib/biersorten';
-import { hoibePreisCents, hoibePreisEuro, strafeFehlen } from '@/lib/preise';
 import { appHost, appUrl, mailSignatur, tenantConfig } from '@/lib/tenant-config';
 import { imUmkreis, mitOrt } from '@/lib/tenant-config-public';
 import { fotoAblegen, fotoAlsDataUrl } from '@/lib/foto';
 import { mailAn } from '@/lib/mail';
-import { pushAnAlle, pushAn } from '@/lib/push';
+import { pushAnAlle } from '@/lib/push';
 import { datumLang } from '@/lib/format';
 import { newId, nowIso } from '@/lib/ids';
 
@@ -459,19 +458,15 @@ export async function rundeSchmeissen(terminId: string, art: 'bier' | 'schnaps')
   return { ok: true };
 }
 
-const STRAFE_GRUND_PREFIX = 'Zugesagt & nicht erschienen';
 
 /**
- * Besuch abschließen, NUR die Logistik des Abends: wer da war, Hoiben/🍖/🚕/
- * ⭐(Runde) pro Anwesendem, Kaiserschmarrn bestellt (einer für alle, jeder isst
- * mit), Bier + Weißbier am Wirtshaus. Die BEWERTUNG läuft getrennt, jeder für
- * sich über meineBewertung(), der Abend-Schnitt entsteht aus allen Einzelnen.
- * Abschließen darf jeder (der Erste kriegt PTS.abschluss WP, meiste Abschlüsse
- * = Schriftführer), aber erst, wenn der Abend rum is (abschlussOffen, 2 Std.
- * nach Beginn), damit koaner mittendrin zuamacht.
- * Wer „abgsagt" markiert ist (zugesagt & nicht erschienen), kriegt automatisch eine
- * offene Forderung: Runde = Teilnehmer × Hoibe oder der feste Betrag vom Stammtisch. Bis 7 Tage nach
- * Abschluss kann jeder nachtragen und ändern.
+ * „Wer war da“ abhaken + nächsten Termin ausmachen (Julius, 16.10.2026), NUR
+ * die Logistik des Abends: wer da war, z’spät, wer zugesagt hat und ned kemma
+ * is (→ offene Strafe), Bier + Weißbier am Wirtshaus. Hoibe und Marken trägt
+ * jeder selber am Deckel ein. Das darf jeder ab 2 Std. nach Beginn
+ * (abschlussOffen), der Erste kriegt PTS.terminAusmachen WP. Der Abend bleibt
+ * dabei offen, geschlossen wird um 3 Uhr früh von allein (lib/abend.ts).
+ * Nach dem Schließen läuft hier der Nachtrag (7 Tage, Orga-Team).
  */
 export async function besuchAbschliessen(terminId: string, formData: FormData) {
   const me = await getCurrentMember();
@@ -498,8 +493,6 @@ export async function besuchAbschliessen(terminId: string, formData: FormData) {
     ? gelistet.filter((id) => statusVon(id) === 'weg' && formData.get(`strafe_${id}`) === 'on')
     : gelistet.filter((id) => formData.get(`abgsagt_${id}`) === 'on');
   const vorhandene = new Map(db.select().from(besuche).where(eq(besuche.terminId, terminId)).all().map((b) => [b.memberId, b]));
-  // Runden je Spender (Anzahl), fürn Kasse-Eintrag weiter unten
-  const rundenJe = new Map<string, number>();
 
   // Für ALLE aktiven Mitglieder einen Besuchs-Eintrag schreiben (wichtig für die Serien):
   // gelistet-anwesend mit Werten, alle anderen als gefehlt. Die Bewertungs-Spalten
@@ -542,8 +535,6 @@ export async function besuchAbschliessen(terminId: string, formData: FormData) {
         rundenSchnaps: runde && altRunden > 0 ? (alt?.rundenSchnaps ?? 0) : 0,
       };
     }
-    const runden = werte.rundenBier + werte.rundenSchnaps;
-    if (anwesend && runden > 0) rundenJe.set(m.id, runden);
     db.insert(besuche)
       .values({ id: newId('b'), terminId, memberId: m.id, ...werte })
       .onConflictDoUpdate({ target: [besuche.terminId, besuche.memberId], set: werte })
@@ -588,124 +579,24 @@ export async function besuchAbschliessen(terminId: string, formData: FormData) {
     }
   }
 
-  const wirtshausName = termin.wirtshausId
-    ? (db.select().from(wirtshaeuser).where(eq(wirtshaeuser.id, termin.wirtshausId)).get()?.name ?? 'Wirtshaus')
-    : 'Wirtshaus';
+  // Runden und „zugesagt & ned kemma“-Strafen in die Kasse (beim Schließen um 3 Uhr no amal frisch)
+  abendKasseAufbauen(terminId, termin.wirtshausId, abgsagtIds);
 
-  // ⭐ Geschmissene Runden → Kasse-Eintrag mit echtem Wert: Teilnehmer × Bräustüberl-Hoibe
-  // (zählt für Großbauer + Runden-WP; zahlt sich am Tisch, fließt also NICHT in den Saldo)
-  const rundenWert = dabeiIds.length * hoibePreisCents();
-  db.delete(kasse).where(and(eq(kasse.terminId, terminId), eq(kasse.kind, 'runde'))).run();
-  for (const [memberId, anzahl] of rundenJe) {
-    for (let i = 0; i < anzahl; i++) {
-      db.insert(kasse)
-        .values({
-          id: newId('k'), memberId, terminId,
-          grund: `${anzahl > 1 ? `${i + 1}. ` : ''}Runde gschmissen im ${wirtshausName} 🍻 (${dabeiIds.length} × ${hoibePreisEuro()} €)`,
-          betragCents: rundenWert, kind: 'runde', status: 'beglichen', createdAt: nowIso(),
-        })
-        .run();
-    }
+  // Nachtrag nach'm Schließen: nur die Werte, sonst nix
+  if (termin.phase === 'abgeschlossen') {
+    revalidateAll();
+    return;
   }
 
-  // ❌ Zugesagt & nicht erschienen → offene Forderung: Runde = Teilnehmer × Hoibe
-  // oder der feste Betrag vom Stammtisch (strafeFehlenCents).
-  // Offene Auto-Strafen dieses Termins neu aufbauen (beglichene bleiben unangetastet);
-  // die Zahlungsaufforderung mit PayPal-Link erscheint dem Spezl auf der Startseite.
-  const strafe = strafeFehlen(dabeiIds.length);
-  const betrag = strafe.cents;
-  const alteStrafen = db.select().from(kasse).where(and(eq(kasse.terminId, terminId), eq(kasse.kind, 'strafe'))).all();
-  for (const s of alteStrafen) {
-    if (s.status === 'offen' && s.grund.startsWith(STRAFE_GRUND_PREFIX)) {
-      db.delete(kasse).where(eq(kasse.id, s.id)).run();
-    }
+  // Wer zuerst abhakt, kriegt die WP und macht den nächsten Stammtisch aus
+  // (nur wenn no koa neuer Termin steht). Der Abend selber bleibt offen bis 3 Uhr.
+  const erstErfasst = !termin.erfasstVon;
+  if (erstErfasst) {
+    db.update(termine).set({ erfasstVon: me.id, erfasstAm: nowIso() }).where(eq(termine.id, terminId)).run();
   }
-  for (const memberId of abgsagtIds) {
-    const schonBeglichen = alteStrafen.some(
-      (s) => s.memberId === memberId && s.status === 'beglichen' && s.grund.startsWith(STRAFE_GRUND_PREFIX),
-    );
-    if (schonBeglichen) continue;
-    db.insert(kasse)
-      .values({
-        id: newId('k'), memberId, terminId,
-        grund: `${STRAFE_GRUND_PREFIX}: ${strafe.text} im ${wirtshausName}`,
-        betragCents: -betrag, kind: 'strafe', status: 'offen', createdAt: nowIso(),
-      })
-      .run();
-  }
-
-  // Der erste Abschließer kriegt den Punkt, Nachträge ändern das nicht mehr.
-  const erstAbschluss = !termin.abgeschlossenVon;
-  db.update(termine)
-    .set({
-      phase: 'abgeschlossen',
-      abgeschlossenVon: termin.abgeschlossenVon ?? me.id,
-      abgeschlossenAm: termin.abgeschlossenAm ?? nowIso(),
-    })
-    .where(eq(termine.id, terminId))
-    .run();
-
-  // 📅 Wer abschließt, macht den nächsten Stammtisch aus (nur beim ersten
-  // Abschluss, und nur wenn no koa neuer Termin steht) — d'Abstimmung startet dann für alle.
   const naechstesDatum = String(formData.get('naechstesDatum') ?? '').trim();
-  if (erstAbschluss && naechstesDatum && !getAktuellerTermin()) {
+  if (erstErfasst && naechstesDatum > termin.datum && !getNaechsterTermin(termin)) {
     await terminAnlegen(naechstesDatum, String(formData.get('naechsteZeit') ?? '19:00').trim(), me.id);
-  }
-
-  // 🥶 Beim 3. unentschuldigten Fehlen in Folge: einmalig eine Strafrunde
-  // (Teilnehmer × Bräustüberl-Hoibe). Nur beim ersten Abschluss, nicht bei Nachträgen.
-  if (erstAbschluss) {
-    for (const s of getStats()) {
-      if (s.unentschuldigtStreak !== WACKELT_AB_UNENTSCHULDIGT) continue;
-      // Nur wenn DIESER Abend das dritte unentschuldigte Fehlen war
-      const heuteUnentschuldigt =
-        !dabeiIds.includes(s.member.id) &&
-        db.select().from(votes).where(eq(votes.terminId, terminId)).all().find((v) => v.memberId === s.member.id)?.wert !== 'ab';
-      if (!heuteUnentschuldigt) continue;
-      const schonVerhaengt = db
-        .select()
-        .from(kasse)
-        .where(and(eq(kasse.terminId, terminId), eq(kasse.kind, 'strafe')))
-        .all()
-        .some((k) => k.memberId === s.member.id && /^Straf(runde|e):/.test(k.grund));
-      if (schonVerhaengt) continue;
-      db.insert(kasse)
-        .values({
-          id: newId('k'), memberId: s.member.id, terminId,
-          grund: `${tenantConfig().strafeFehlenCents != null ? 'Strafe' : 'Strafrunde'}: 3× unentschuldigt gfehlt (${strafe.text})`,
-          betragCents: -betrag, kind: 'strafe', status: 'offen', createdAt: nowIso(),
-        })
-        .run();
-    }
-  }
-
-  // Badge-/Amt-Wechsel melden (nur beim ersten Abschluss, ned bei jedem Nachtrag):
-  // an alle „Resi is jetza Heiwong!", spöttisch an den Neuen, Gratulation an den Alten.
-  if (erstAbschluss) {
-    const vorher = getVergabeStand(terminId);
-    const nachher = getVergabeStand();
-    const mitglieder = getAktiveMitglieder();
-    const nameVon = (id: string) => {
-      const m = mitglieder.find((x) => x.id === id);
-      return (m ? anzeigeName(m) : '—');
-    };
-    const mailVon = (id: string | null) => mitglieder.find((x) => x.id === id)?.email;
-    const sendungen: Promise<void>[] = [];
-    for (const w of vergabeWechsel(vorher, nachher)) {
-      const neuName = nameVon(w.neuId);
-      const texte = wechselTexte(w, neuName);
-      const alleAnderen = mitglieder.filter((m) => m.id !== w.neuId && m.id !== w.altId).map((m) => m.id);
-      sendungen.push(
-        pushAn([w.neuId], `${w.icon} ${w.label}-Wechsel!`, texte.anNeuen, '/spezln'),
-        pushAn(alleAnderen, `${w.icon} ${w.label}-Wechsel!`, texte.anAlle, '/spezln'),
-      );
-      if (w.altId) sendungen.push(pushAn([w.altId], `${w.icon} ${w.label}-Wechsel!`, texte.anAlten, '/spezln'));
-      const neuMail = mailVon(w.neuId);
-      const altMail = mailVon(w.altId);
-      if (neuMail) sendungen.push(mailAn([neuMail], `${w.icon} ${w.label}-Wechsel!`, `Servus ${neuName}!\n\n${texte.anNeuen}\n\n→ ${appUrl('/spezln')}\n\n${mailSignatur()}`));
-      if (altMail && w.altId) sendungen.push(mailAn([altMail], `${w.icon} ${w.label}-Wechsel!`, `Servus ${nameVon(w.altId)}!\n\n${texte.anAlten}\n\n→ ${appUrl('/spezln')}\n\n${mailSignatur()}`));
-    }
-    await Promise.allSettled(sendungen);
   }
   revalidateAll();
 }

@@ -18,6 +18,8 @@ export type ZettelMitglied = {
   zugesagt: boolean;
   /** hat am Abend scho gstrichelt / eingecheckt → steht als „da“ */
   live: boolean;
+  /** Scho amal abgehakt: der gespeicherte Stand (zum Ändern) */
+  stand?: { status: 'da' | 'spaet' | 'weg'; strafe: boolean };
 };
 
 type Status = 'da' | 'spaet' | 'weg';
@@ -36,16 +38,19 @@ function SchrittKopf({ nummer, titel, hint }: { nummer: number; titel: string; h
 }
 
 /**
- * Abend abschließen, Schritt für Schritt (Redesign 1c): 1 Wer war da?
- * 2 Deine Wertung & Essen, 3 Nächster Stammtisch. Hoibe und Marken trägt
- * jeder selber am Deckel ein, der Abschließer bestätigt nur no, wer da war,
- * wer z’spät kemma is und wer gfehlt hat (zugsagt & ned kemma → Strafrunde).
+ * Wer war da + nächster Termin, Schritt für Schritt (Redesign 1c): 1 Wer war
+ * da? 2 Deine Wertung & Essen, 3 Nächster Stammtisch. Hoibe und Marken trägt
+ * jeder selber am Deckel ein, hier wird nur bestätigt, wer da war, wer z’spät
+ * kemma is und wer gfehlt hat (zugsagt & ned kemma → Strafrunde). Der Abend
+ * bleibt danach offen, er schließt sich um 3 Uhr früh von allein.
  */
 export function AbschlussZettel({
   mitglieder,
   meId,
   meineWerte,
   naechsterTermin,
+  ersterErfasser = true,
+  mindestDatum,
   action,
   ohneSterne = false,
 }: {
@@ -53,19 +58,23 @@ export function AbschlussZettel({
   meId: string;
   meineWerte: MeiBewertungWerte;
   naechsterTermin: boolean;
+  /** Erster, der abhakt → kriegt die WP */
+  ersterErfasser?: boolean;
+  /** Der nächste Termin muss nach diesem Abend liegen */
+  mindestDatum?: string;
   action: (formData: FormData) => Promise<void>;
   /** Stammhaus-Abend: koa Wirtshaus-Wertung */
   ohneSterne?: boolean;
 }) {
   const [status, setStatus] = useState<Record<string, Status>>(() => {
     const s: Record<string, Status> = {};
-    for (const m of mitglieder) s[m.id] = m.live || m.zugesagt || m.id === meId ? 'da' : 'weg';
+    for (const m of mitglieder) s[m.id] = m.stand?.status ?? (m.live || m.zugesagt || m.id === meId ? 'da' : 'weg');
     return s;
   });
   const { strafeFehlenCents } = useTenantConfig();
   const [strafe, setStrafe] = useState<Record<string, boolean>>(() => {
     const s: Record<string, boolean> = {};
-    for (const m of mitglieder) s[m.id] = m.zugesagt;
+    for (const m of mitglieder) s[m.id] = m.stand ? m.stand.strafe : m.zugesagt;
     return s;
   });
   const [meinBrodn, setMeinBrodn] = useState(meineWerte.brodnGessen);
@@ -122,14 +131,14 @@ export function AbschlussZettel({
 
       {ichDabei && (
         <section style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <SchrittKopf nummer={++schritt} titel="Deine Wertung & Essen" hint="ohne Extrapunkte" />
+          <SchrittKopf nummer={++schritt} titel="Deine Wertung & Essen" hint={`+${PTS.bewertung} WP`} />
           <div style={karte}>
             <WertungFelder werte={meineWerte} brodn={meinBrodn} onBrodn={setMeinBrodn} ohneSterne={ohneSterne} />
           </div>
         </section>
       )}
 
-      {/* Wer abschließt, macht den nächsten Termin aus: Datum + Uhrzeit reichen,
+      {/* Wer abhakt, macht den nächsten Termin aus: Datum + Uhrzeit reichen,
           zu-/absagen tun danach alle selber (Julius, 11.09.2026) */}
       {naechsterTermin && (
         <section style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -138,7 +147,7 @@ export function AbschlussZettel({
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 110px', gap: 10 }}>
               <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 <span style={feldLabelStil}>Datum</span>
-                <input type="date" name="naechstesDatum" required style={feldStil} />
+                <input type="date" name="naechstesDatum" required min={mindestDatum ? naechsterTag(mindestDatum) : undefined} style={feldStil} />
               </label>
               <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 <span style={feldLabelStil}>Uhrzeit</span>
@@ -151,13 +160,20 @@ export function AbschlussZettel({
       )}
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        <button type="submit" className="wn-press" style={{ ...goldKnopfStil, minHeight: 52 }}>Abschließen & ins Archiv</button>
+        <button type="submit" className="wn-press" style={{ ...goldKnopfStil, minHeight: 52 }}>{naechsterTermin ? 'Termin ausmachen & speichern' : 'Speichern'}</button>
         <div style={{ fontSize: 12, fontWeight: 600, lineHeight: 1.5, color: 'var(--ink-500)', textAlign: 'center' }}>
-          +{PTS.abschluss} WP für dich, damit ist alles abgegolten: Wertung und Texte bringen dem Abschließer keine Extrapunkte. Änderbar bis eine Woche danach.
+          {ersterErfasser ? `+${PTS.terminAusmachen} WP für dich. ` : ''}Der Deckel bleibt offen bis 3 Uhr, wer später noch kommt und strichelt, zählt automatisch als da.
         </div>
       </div>
     </form>
   );
+}
+
+/** Tag nach `datum` (YYYY-MM-DD), frühestmöglicher nächster Termin. */
+function naechsterTag(datum: string): string {
+  const d = new Date(`${datum}T12:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + 1);
+  return d.toISOString().slice(0, 10);
 }
 
 /** Vorname fürs Enge: „Sepp Brunner“ → „Sepp“, aber „da André“ bleibt ganz (kurzer Artikel vorn). */

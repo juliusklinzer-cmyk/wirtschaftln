@@ -3,7 +3,7 @@
  * von Julius am 17.07.2026 festgelegt, Bewertung/Check-in am 27.08.2026):
  *
  *   Dabei +5 · Hoibe +1 · Taxi (gfahren & Spezln mitgnommen) +5 · Runde +5 ·
- *   Erster Abschluss +3 · Rechtzeitig abgstimmt +1 · Wirtshaus vorgschlagen +1
+ *   Nächsten Termin ausgemacht +2 (früher: erster Abschluss +3) · Rechtzeitig abgstimmt +1 · Wirtshaus vorgschlagen +1
  *   (+1 wenn's besucht wird) · Eigene Bewertung +1 (mit Text no +1) ·
  *   Als Erster eingecheckt +1 · Organisiert 0–5 nach Bewertungsschnitt des Abends.
  *
@@ -19,7 +19,8 @@ export const PTS = {
   teilnahme: 5,
   taxi: 5,
   runde: 5,
-  abschluss: 3,
+  abschluss: 3, // alt: „als Erster abgeschlossen“ (Abende bis 15.10.2026)
+  terminAusmachen: 2, // neu: Wer war da + nächster Termin, der Abend bleibt offen
   abstimmen: 1,
   vorschlag: 1,
   vorschlagBesucht: 1,
@@ -69,10 +70,32 @@ export function berlinUhrzeit(iso: string): string {
 }
 
 /**
- * Bierdeckel offen? Am Stammtisch-Abend derf jeder seine eigenen Hoiben
+ * Um so viel Uhr am Folgetag schließt sich ein Abend von allein (Julius,
+ * 16.10.2026): bis dahin bleibt der Deckel offen, auch wenn der nächste
+ * Termin scho ausgemacht is.
+ */
+export const ABEND_ENDE_UHRZEIT = '03:00';
+
+/** Tag nach `datum` (YYYY-MM-DD). */
+function folgetag(datum: string): string {
+  const d = new Date(`${datum}T12:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + 1);
+  return d.toISOString().slice(0, 10);
+}
+
+/** Is der Abend rum (Folgetag 3 Uhr erreicht)? Dann schließt er sich automatisch. */
+export function abendVorbei(termin: { datum: string }, jetztIso: string): boolean {
+  const heute = berlinTag(jetztIso);
+  const morgen = folgetag(termin.datum);
+  if (heute > morgen) return true;
+  return heute === morgen && berlinUhrzeit(jetztIso) >= ABEND_ENDE_UHRZEIT;
+}
+
+/**
+ * Bierdeckel offen? Am Stammtisch-Abend derf jeder seine eigenen Hoibe
  * stricheln: ab der Termin-Uhrzeit (Standard 19:00, Berlin-Zeit) am
- * Stammtisch-Tag, bzw. sobald d'Anmeldung zua is (Phase „heute") —
- * bis der Besuch abgschlossen is.
+ * Stammtisch-Tag, bzw. sobald d'Anmeldung zua is (Phase „heute"), bis
+ * 3 Uhr früh am Folgetag. Dann schließt sich der Abend von allein.
  */
 export function bierdeckelOffen(
   termin: { datum: string; zeit: string; phase: string },
@@ -80,7 +103,9 @@ export function bierdeckelOffen(
 ): boolean {
   if (termin.phase === 'abgeschlossen') return false;
   if (termin.phase === 'heute') return true;
-  return berlinTag(jetztIso) === termin.datum && berlinUhrzeit(jetztIso) >= (termin.zeit || '19:00');
+  const heute = berlinTag(jetztIso);
+  if (heute === termin.datum) return berlinUhrzeit(jetztIso) >= (termin.zeit || '19:00');
+  return heute > termin.datum && !abendVorbei(termin, jetztIso);
 }
 
 /** "HH:MM" → Minuten seit Mitternacht. */
@@ -90,10 +115,10 @@ function minutenVon(zeit: string): number {
 }
 
 /**
- * Abgschlossen wird erst, wenn der Abend wirklich rum is: frühestens
+ * „Wer war da“ abhaken und den nächsten Termin ausmachen geht frühestens
  * ABSCHLUSS_SPERRE_STUNDEN nach Termin-Beginn (19:00 → ab 21:00, von Julius
  * am 27.08.2026 so festgelegt), oder ab dem Folgetag. Verhindert, dass wer
- * Punktegeiles den Abend mittendrin zuamacht, bevor alle Infos beinand san.
+ * Punktegeiles mittendrin abhakt, bevor alle beinand san.
  */
 export const ABSCHLUSS_SPERRE_STUNDEN = 2;
 
@@ -142,7 +167,8 @@ export function wirtschaftlnPunkte(s: {
   abende: number;
   taxi: number;
   runden: number;
-  abschluesse: number;
+  /** Termin ausgemacht (+2) bzw. alte Abschlüsse (+3), schon in WP */
+  abschlussPunkte: number;
   orgaSumme: number;
   serienBonus: number;
   fehlMalus: number;
@@ -157,7 +183,7 @@ export function wirtschaftlnPunkte(s: {
     s.abende * PTS.teilnahme +
     s.taxi * PTS.taxi +
     s.runden * PTS.runde +
-    s.abschluesse * PTS.abschluss +
+    s.abschlussPunkte +
     s.orgaSumme +
     s.serienBonus +
     s.fehlMalus +

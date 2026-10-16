@@ -18,6 +18,7 @@ import {
   getCheckinsFuerTermin,
   nachtragsfristOffen,
   getWirtshausById,
+  getNaechsterTermin,
 } from '@/lib/queries';
 import { PTS, WACKELT_AB_UNENTSCHULDIGT, checkinOffen, bierdeckelOffen, abschlussOffen, berlinTag } from '@/lib/punkte';
 import { nowIso } from '@/lib/ids';
@@ -256,6 +257,7 @@ export default async function HomePage() {
           }))
         : [];
       const meinBesuch = abend ? getBesucheFuerTermin(termin.id).find((b) => b.memberId === me.id) : undefined;
+      const naechster = termin.erfasstVon ? getNaechsterTermin(termin) : null;
       const name = wirtshaus?.name ?? (planer ? `${anzeigeName(planer)} reglt’s` : 'Stammtisch');
       // Stammhaus-Abend („wie immer“) oder Ausflug woanders hin (5a/5c)
       const stammhausAbend = !!stammhaus && wirtshaus?.id === stammhaus.id;
@@ -320,7 +322,7 @@ export default async function HomePage() {
                 </div>
                 <Icon name="arrows-out" size={20} style={{ color: 'var(--gold-bright)', flex: 'none' }} />
               </Link>
-              {!abschluss && (
+              {(!abschluss || termin.erfasstVon) && (
                 <Link href="/termin?deckel=voll" className="wn-press" style={goldKnopfStil}>
                   Zum Bierdeckel <Icon name="arrow-right" size={18} />
                 </Link>
@@ -328,15 +330,21 @@ export default async function HomePage() {
             </>
           )}
 
-          {/* Abend rum: wer zuerst abschließt, kriegt die WP (Zettel liegt im Termin-Tab) */}
-          {abschluss && (
+          {/* Nach’m Essen: wer „Wer war da“ abhakt und den nächsten Termin ausmacht, kriegt die WP.
+              Der Deckel bleibt offen bis 3 Uhr früh, dann schließt sich der Abend von allein. */}
+          {abschluss && !termin.erfasstVon && (
             <div style={blockStil}>
-              <span style={{ fontSize: 14, fontWeight: 800, color: 'var(--gold-bright)' }}>Der Abend ist vorbei. Wer trägt ein?</span>
+              <span style={{ fontSize: 14, fontWeight: 800, color: 'var(--gold-bright)' }}>Wer macht den nächsten Termin aus?</span>
               <span style={{ ...hinweisStil, color: 'rgba(246,240,226,0.75)' }}>
-                Wer zuerst abschließt, bekommt +{PTS.abschluss} WP. Bis 7 Tage danach kann noch nachgetragen werden.
+                Mit „Wer war da“, der Erste bekommt +{PTS.terminAusmachen} WP. Der Deckel bleibt offen bis 3 Uhr.
               </span>
-              <Link href="/termin" className="wn-press" style={goldKnopfStil}>Abend abschließen</Link>
+              <Link href="/termin/abschluss" className="wn-press" style={goldKnopfStil}>Nächsten Termin ausmachen</Link>
             </div>
+          )}
+          {abend && termin.erfasstVon && naechster && (
+            <span style={{ ...hinweisStil, color: 'rgba(246,240,226,0.75)' }}>
+              Nächster Stammtisch steht: {datumMittel(naechster.datum)} · {naechster.zeit} Uhr
+            </span>
           )}
 
           {/* Wer kommt: Avatare der Zugesagten + Zählerstand */}
@@ -539,7 +547,8 @@ function LetzterStammtisch({
   if (dabei && meinBesuch!.hoiben > 0) posten.push([`${meinBesuch!.hoiben} Hoibe`, meinBesuch!.hoiben * PTS.hoibe]);
   if (dabei && meinBesuch!.taxi) posten.push(['Gfahren', PTS.taxi]);
   if (letzter.planerId === meId) posten.push(['Organisiert', orgaDelta]);
-  if (letzter.abgeschlossenVon === meId) posten.push(['Abgschlossen', PTS.abschluss]);
+  if (letzter.erfasstVon === meId) posten.push(['Nächsten Termin ausgemacht', PTS.terminAusmachen]);
+  else if (!letzter.erfasstVon && letzter.abgeschlossenVon === meId) posten.push(['Abgschlossen', PTS.abschluss]);
   if (meineRunden > 0) posten.push([meineRunden === 1 ? 'Runde gschmissen' : `${meineRunden} Runden`, meineRunden * PTS.runde]);
   if (bewertungDelta !== 0) posten.push(['Abend bewertet', bewertungDelta]);
   if (textDelta !== 0) posten.push(['Bewertung gschrieben', textDelta]);

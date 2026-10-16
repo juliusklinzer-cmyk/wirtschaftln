@@ -2,22 +2,24 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { getCurrentMember, erzwingeProfil } from '@/lib/session';
 import { anzeigeName } from '@/lib/namen';
-import { getAktuellerTermin, getTerminMitWirtshaus, getVotesFuerTermin, getAktiveMitglieder, getBesucheFuerTermin, getWirtshausById } from '@/lib/queries';
+import { getAktuellerTermin, getNaechsterTermin, getKasseFuerTermin, getTerminMitWirtshaus, getVotesFuerTermin, getAktiveMitglieder, getBesucheFuerTermin, getWirtshausById } from '@/lib/queries';
 import { abschlussOffen } from '@/lib/punkte';
 import { nowIso } from '@/lib/ids';
 import { datumKurz } from '@/lib/format';
 import { Icon } from '@/components/ds';
 import { bewertungsDaten } from '@/lib/bewertungs-daten';
 import { tenantConfig } from '@/lib/tenant-config';
+import { STRAFE_GRUND_PREFIX } from '@/lib/abend';
 import { AbschlussZettel } from '../abschluss-zettel';
 import { abschliessenUndZurueck } from '../actions';
 
-export const metadata = { title: 'Abend abschließen · Wirtschaftln' };
+export const metadata = { title: 'Wer war da · Wirtschaftln' };
 
 /**
- * Abend abschließen als eigener Screen (Redesign 1c): zurück-Pfeil, drei
- * Schritte, eine Hauptaktion. Nur erreichbar, solang der Abend rum und der
- * Termin no offen is, sonst zurück zur Termin-Seite.
+ * „Wer war da“ + nächster Termin als eigener Screen (Redesign 1c): zurück-Pfeil,
+ * drei Schritte, eine Hauptaktion. Erreichbar ab 2 Std. nach Beginn, solang der
+ * Abend no offen is (bis 3 Uhr früh), sonst zurück zur Termin-Seite. Wer's
+ * scho abgehakt hat, kann's no ändern, der Termin is dann scho ausgemacht.
  */
 export default async function AbschlussPage() {
   const me = (await getCurrentMember())!;
@@ -28,6 +30,13 @@ export default async function AbschlussPage() {
   const mitglieder = getAktiveMitglieder();
   const alleVotes = getVotesFuerTermin(termin.id);
   const besucheLive = getBesucheFuerTermin(termin.id);
+  // Scho abgehakt? Dann den gespeicherten Stand (da / z’spät / weg + Strafe) wieder laden
+  const strafen = new Set(getKasseFuerTermin(termin.id).filter((k) => k.kind === 'strafe' && k.grund.startsWith(STRAFE_GRUND_PREFIX) && k.memberId).map((k) => k.memberId));
+  const standVon = (id: string) => {
+    if (!termin.erfasstVon) return undefined;
+    const b = besucheLive.find((x) => x.memberId === id);
+    return { status: b?.anwesend ? (b.zuSpaet ? 'spaet' : 'da') : 'weg', strafe: strafen.has(id) } as const;
+  };
   const voteVon = (id: string) => alleVotes.find((x) => x.vote.memberId === id)?.vote.wert;
   const config = tenantConfig();
   const stammhaus = config.typ === 'stammhaus' && config.stammhausWirtshausId ? getWirtshausById(config.stammhausWirtshausId) : null;
@@ -39,7 +48,7 @@ export default async function AbschlussPage() {
           <Icon name="arrow-left" size={18} />
         </Link>
         <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-          <span style={{ fontFamily: 'var(--font-fraktur)', fontSize: 30, lineHeight: 1, color: 'var(--navy)' }}>Abend abschließen</span>
+          <span style={{ fontFamily: 'var(--font-fraktur)', fontSize: 30, lineHeight: 1, color: 'var(--navy)' }}>{termin.erfasstVon ? 'Wer war da' : 'Nächster Termin'}</span>
           <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink-500)', marginTop: 3 }}>{wirtshaus?.name ?? 'Stammtisch'} · {datumKurz(termin.datum)}</span>
         </div>
       </div>
@@ -53,9 +62,12 @@ export default async function AbschlussPage() {
           verein: m.verein,
           zugesagt: voteVon(m.id) === 'zu',
           live: !!besucheLive.find((b) => b.memberId === m.id)?.anwesend,
+          stand: standVon(m.id),
         }))}
         meineWerte={bewertungsDaten(besucheLive, me.id).initial}
-        naechsterTermin={!termin.abgeschlossenVon}
+        naechsterTermin={!termin.erfasstVon && !getNaechsterTermin(termin)}
+        ersterErfasser={!termin.erfasstVon}
+        mindestDatum={termin.datum}
         action={abschliessenUndZurueck.bind(null, termin.id)}
         ohneSterne={!!stammhaus && wirtshaus?.id === stammhaus.id}
       />

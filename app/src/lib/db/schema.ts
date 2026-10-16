@@ -114,6 +114,10 @@ export const termine = sqliteTable('termine', {
   // Wer den Besuch abgeschlossen hat (gibt 1 WP; meiste Abschlüsse = Schriftführer).
   abgeschlossenVon: text('abgeschlossen_von').references(() => members.id),
   abgeschlossenAm: text('abgeschlossen_am'), // ab da läuft die 7-Tage-Nachtragsfrist
+  // Wer am Abend „Wer war da“ abgehakt und den nächsten Termin ausgemacht hat (+2 WP).
+  // Der Abend selber schließt sich danach erst um 3 Uhr früh von allein (lib/abend.ts).
+  erfasstVon: text('erfasst_von').references(() => members.id),
+  erfasstAm: text('erfasst_am'),
   createdAt: text('created_at').notNull(),
 });
 

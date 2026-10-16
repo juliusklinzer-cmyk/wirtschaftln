@@ -141,7 +141,7 @@ export function Rangliste({
           {aemter.map((a, i) => {
             const key = amtKey(a.titel);
             const halter = a.holder ? eintraege.find((e) => e.name === a.holder!.name) ?? null : null;
-            const modus = a.titel === 'Präsident' ? 'automatisch · WP-Rang 1' : a.titel === 'Schriftführer' ? 'automatisch · meiste Abschlüsse' : a.mode.toLowerCase();
+            const modus = a.titel === 'Präsident' ? 'automatisch · WP-Rang 1' : a.titel === 'Schriftführer' ? 'automatisch · am öftesten Termin ausgemacht' : a.mode.toLowerCase();
             return (
               <div key={a.titel} onClick={() => key && setInfoKey(key)} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 0', borderBottom: i < aemter.length - 1 ? '1px solid var(--ink-50)' : 'none', cursor: key ? 'pointer' : 'default' }}>
                 {a.slug ? (

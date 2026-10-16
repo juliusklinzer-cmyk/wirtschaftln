@@ -60,7 +60,7 @@ export function PunkteInfo({ knopf }: { knopf?: (oeffnen: () => void) => React.R
               <Zeile icon="chair" text="Als Erster im Wirtshaus eingecheckt" wp={`+${PTS.checkin}`} />
               <Zeile icon="pin-plus" text="Wirtshaus vorgeschlagen (+1 extra, wenn’s besucht wird)" wp={`+${PTS.vorschlag}`} />
               <Zeile icon="star" text="Eigene Bewertung zum Abend (Text bringt nichts extra)" wp={`+${PTS.bewertung}`} />
-              <Zeile icon="check-circle" text={`Als Erster abgeschlossen (ab ${ABSCHLUSS_SPERRE_STUNDEN} Std. nach Beginn)`} wp={`+${PTS.abschluss}`} />
+              <Zeile icon="check-circle" text={`Wer war da abgehakt und nächsten Termin ausgemacht (ab ${ABSCHLUSS_SPERRE_STUNDEN} Std. nach Beginn)`} wp={`+${PTS.terminAusmachen}`} />
               <Zeile icon="clipboard" text="Organisiert, je nach Sterne-Schnitt des Abends" wp={`0–${PTS.orgaMax}`} letzte />
             </div>
 

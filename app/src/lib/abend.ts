@@ -5,8 +5,7 @@ import { getAktiveMitglieder, getVergabeStand, getStats } from '@/lib/queries';
 import { vergabeWechsel, wechselTexte } from '@/lib/badges';
 import { WACKELT_AB_UNENTSCHULDIGT, abendVorbei } from '@/lib/punkte';
 import { hoibePreisCents, hoibePreisEuro, strafeFehlen } from '@/lib/preise';
-import { appUrl, mailSignatur, tenantConfig } from '@/lib/tenant-config';
-import { mailAn } from '@/lib/mail';
+import { tenantConfig } from '@/lib/tenant-config';
 import { pushAn } from '@/lib/push';
 import { anzeigeName } from '@/lib/namen';
 import { newId, nowIso } from '@/lib/ids';
@@ -142,7 +141,6 @@ export async function abendSchliessen(terminId: string): Promise<boolean> {
     const m = mitglieder.find((x) => x.id === id);
     return m ? anzeigeName(m) : '—';
   };
-  const mailVon = (id: string | null) => mitglieder.find((x) => x.id === id)?.email;
   const sendungen: Promise<void>[] = [];
   for (const w of vergabeWechsel(vorher, nachher)) {
     const neuName = nameVon(w.neuId);
@@ -153,10 +151,6 @@ export async function abendSchliessen(terminId: string): Promise<boolean> {
       pushAn(alleAnderen, `${w.icon} ${w.label}-Wechsel!`, texte.anAlle, '/spezln'),
     );
     if (w.altId) sendungen.push(pushAn([w.altId], `${w.icon} ${w.label}-Wechsel!`, texte.anAlten, '/spezln'));
-    const neuMail = mailVon(w.neuId);
-    const altMail = mailVon(w.altId);
-    if (neuMail) sendungen.push(mailAn([neuMail], `${w.icon} ${w.label}-Wechsel!`, `Servus ${neuName}!\n\n${texte.anNeuen}\n\n→ ${appUrl('/spezln')}\n\n${mailSignatur()}`));
-    if (altMail && w.altId) sendungen.push(mailAn([altMail], `${w.icon} ${w.label}-Wechsel!`, `Servus ${nameVon(w.altId)}!\n\n${texte.anAlten}\n\n→ ${appUrl('/spezln')}\n\n${mailSignatur()}`));
   }
   await Promise.allSettled(sendungen);
   return true;

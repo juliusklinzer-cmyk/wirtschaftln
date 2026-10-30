@@ -20,7 +20,7 @@ import { ProfilBearbeiten } from './profil-bearbeiten';
 import { ProfilForm, type ProfilWerte } from './profil-form';
 import { Einstellungen } from './einstellungen';
 import { Schliessen } from './schliessen';
-import { tokenErzeugen, tokenWidmen, tokenAnfragen, feedbackAbschicken } from './actions';
+import { tokenErzeugen, tokenWidmen, tokenAnfragen, feedbackAbschicken, mailEinstellungSpeichern } from './actions';
 import { logout } from '@/app/login/actions';
 import { tenantConfig } from '@/lib/tenant-config';
 import { tokensFuerProfil, tokenLink, tokenAnspruch } from '@/lib/gruendung';
@@ -235,7 +235,7 @@ export default async function ProfilPage({ searchParams }: { searchParams: Promi
       {/* ── Einstellungen ── */}
       <section style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         <HoamTitel>Einstellungen</HoamTitel>
-        <Einstellungen token={tokenBereich} gaudi={config.features.daniModus} logout={logout} feedback={config.istGruender ? undefined : feedbackAbschicken} />
+        <Einstellungen token={tokenBereich} gaudi={config.features.daniModus} logout={logout} feedback={config.istGruender ? undefined : feedbackAbschicken} mails={{ werte: { termin: me.mailTermin, erinnerung: me.mailErinnerung, kasse: me.mailKasse }, speichern: mailEinstellungSpeichern }} />
       </section>
     </div>
   );

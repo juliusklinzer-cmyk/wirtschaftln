@@ -6,11 +6,13 @@ import { db, kasse } from '@/lib/db';
 import { getCurrentMember } from '@/lib/session';
 import { getKassenwartId, getPraesidentId, getAktiveMitglieder } from '@/lib/queries';
 import { hoibePreisCents } from '@/lib/preise';
-import { appUrl, mailSignatur, tenantConfig } from '@/lib/tenant-config';
+import { tenantConfig } from '@/lib/tenant-config';
 import { newId, nowIso } from '@/lib/ids';
 import { anzeigeName } from '@/lib/namen';
 import { pushAn } from '@/lib/push';
 import { mailAn } from '@/lib/mail';
+import { mailGemeldet } from '@/lib/mail-vorlagen';
+import { mailRahmen, willMail } from '@/lib/mail-rahmen';
 
 /** Anzahl Hoibe aus dem Formular (1–99), gezahlt wird beim Wirtschaftln in Hoibe, ned in Euro. */
 function hoibeAnzahl(formData: FormData): number {
@@ -52,9 +54,10 @@ export async function melden(formData: FormData) {
   // ⚖️ Der Gmeldte kriagt Bescheid (Push + Mail)
   const titel = '⚖️ Du wurdst gmeldt!';
   const text = `${anzeigeName(me)} hat di gmeldt: „${grund}", des kost ${hoibe === 1 ? 'a Hoibe' : `${hoibe} Hoibe`}. Zohl beim Kassenwart${tenantConfig().istGruender ? ' oder per PayPal' : ''}. 🍺`;
+  const mail = mailGemeldet(mailRahmen(), { name: anzeigeName(opfer), von: anzeigeName(me), grund, hoibe, paypal: tenantConfig().istGruender });
   await Promise.allSettled([
     pushAn([memberId], titel, text, '/kasse'),
-    mailAn([opfer.email], titel, `Servus ${anzeigeName(opfer)}!\n\n${text}\n\n→ ${appUrl('/kasse')}\n\n${mailSignatur()}`),
+    willMail(opfer, 'kasse') ? mailAn([opfer.email], mail.betreff, mail.inhalt) : Promise.resolve(),
   ]);
   revalidate();
 }

@@ -185,14 +185,14 @@ export async function benachrichtigeAnfrage(antragsteller: string, grund: string
   await gruenderAdminsBenachrichtigen('🎟️ Neue Token-Anfrage', text, `Token-Anfrage: ${gruppe.name}`, 'Freigeben oder ablehnen');
 }
 
-/** Push und Mail an die aktiven Admins des Gründer-Stammtischs, mit Link aufs Verzeichnis. */
-export async function gruenderAdminsBenachrichtigen(titel: string, text: string, betreff: string, linkText: string): Promise<void> {
+/** Push und Mail an die aktiven Admins des Gründer-Stammtischs, mit Link aufs Verzeichnis (`mail: false` = nur Push). */
+export async function gruenderAdminsBenachrichtigen(titel: string, text: string, betreff: string, linkText: string, mail = true): Promise<void> {
   const jobs: Promise<unknown>[] = [];
   try {
     runWithTenant(gruenderGruppeId(), () => {
       const admins = db.select().from(members).where(and(eq(members.role, 'admin'), eq(members.status, 'aktiv'))).all();
       jobs.push(pushAn(admins.map((m) => m.id), titel, text, '/verzeichnis'));
-      jobs.push(mailAn(admins.map((m) => m.email), betreff, `Servus!\n\n${text}\n\n${linkText}: ${appUrl('/verzeichnis')}\n\nDeine Wirtschaftln-App`));
+      if (mail) jobs.push(mailAn(admins.map((m) => m.email), betreff, `Servus!\n\n${text}\n\n${linkText}: ${appUrl('/verzeichnis')}\n\nDeine Wirtschaftln-App`));
     });
   } catch (err) {
     console.error('Benachrichtigung an die Wirtschaftln-Admins fehlgeschlagen:', err);

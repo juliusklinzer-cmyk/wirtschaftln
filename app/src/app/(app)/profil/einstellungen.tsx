@@ -1,11 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Ticket } from '@phosphor-icons/react/dist/ssr/Ticket';
 import { SignOut } from '@phosphor-icons/react/dist/ssr/SignOut';
 import { ChatCircleText } from '@phosphor-icons/react/dist/ssr/ChatCircleText';
 import { CaretRight } from '@phosphor-icons/react/dist/ssr/CaretRight';
 import { CaretDown } from '@phosphor-icons/react/dist/ssr/CaretDown';
+import { EnvelopeSimple } from '@phosphor-icons/react/dist/ssr/EnvelopeSimple';
+import { MailKarte, mailUnter, type MailWerte } from '@/components/domain/MailKarte';
 import { EinstellungZeile } from '@/components/domain/EinstellungZeile';
 import { PushEinstellung } from '@/components/domain/PushEinstellung';
 import { AppInstallieren } from '@/components/domain/AppInstallieren';
@@ -14,7 +16,7 @@ import { FeedbackKarte } from '@/components/domain/FeedbackKarte';
 import { TokenKarte, type TokenAnzeige, type FristAnzeige, type AnfrageAnzeige } from '@/components/domain/TokenKarte';
 
 /**
- * Einstellungen (Profil-Redesign 1a): Benachrichtigungen, Gründungs-Token
+ * Einstellungen (Profil-Redesign 1a): Benachrichtigungen, Mails, Gründungs-Token
  * (klappt die Token-Karten drunter auf), Feedback zur App (nur neue
  * Stammtische), Gaudi-Modus, Abmelden.
  */
@@ -30,8 +32,16 @@ export type TokenBereich = {
   neuerToken?: () => Promise<void>;
 };
 
-export function Einstellungen({ token, gaudi, logout, feedback }: { token: TokenBereich | null; gaudi: boolean; logout: () => Promise<void>; feedback?: (text: string) => Promise<{ fehler?: string }> }) {
+export function Einstellungen({ token, gaudi, logout, feedback, mails }: { token: TokenBereich | null; gaudi: boolean; logout: () => Promise<void>; feedback?: (text: string) => Promise<{ fehler?: string }>; mails: { werte: MailWerte; speichern: (w: MailWerte) => Promise<{ ok: boolean }> } }) {
   const [tokenOffen, setTokenOffen] = useState(false);
+  const [mailOffen, setMailOffen] = useState(false);
+  const [mailWerte, setMailWerte] = useState(mails.werte);
+  // Link „Mails einstellen“ aus jeder Mail landet auf /profil#mails → glei aufklappen
+  useEffect(() => {
+    if (window.location.hash !== '#mails') return;
+    setMailOffen(true);
+    requestAnimationFrame(() => document.getElementById('mails')?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+  }, []);
   const [feedbackOffen, setFeedbackOffen] = useState(false);
   const frei = token ? token.tokens.filter((t) => !t.eingeloest).length : 0;
   const naechste = token?.fristen.find((f) => f.offen) ?? null;
@@ -51,6 +61,23 @@ export function Einstellungen({ token, gaudi, logout, feedback }: { token: Token
           <AppInstallieren variante="profil" />
         </>
       ),
+    },
+    {
+      key: 'mails',
+      zeile: (letzte) => (
+        <>
+          <span id="mails" aria-hidden style={{ display: 'block', scrollMarginTop: 12 }} />
+          <EinstellungZeile
+            icon={<EnvelopeSimple size={19} weight="fill" />}
+            titel="Mails"
+            unter={mailUnter(mailWerte)}
+            letzte={letzte}
+            rechts={mailOffen ? <CaretDown size={18} color="var(--ink-300)" /> : <CaretRight size={18} color="var(--ink-300)" />}
+            onClick={() => setMailOffen((o) => !o)}
+          />
+        </>
+      ),
+      auf: mailOffen ? <MailKarte werte={mailWerte} speichern={mails.speichern} geaendert={setMailWerte} /> : undefined,
     },
   ];
   if (zeigen && token) {

@@ -140,3 +140,17 @@ export async function feedbackAbschicken(text: string): Promise<{ fehler?: strin
   const fehler = await feedbackSchicken(me, String(text ?? ''));
   return fehler ? { fehler } : {};
 }
+
+export type MailEinstellung = { termin: boolean; erinnerung: boolean; kasse: boolean };
+
+/** Mail-Schalter im Profil (Einstellungen → Mails), wird bei jedem Umlegen sofort gspeichert. */
+export async function mailEinstellungSpeichern(werte: MailEinstellung): Promise<{ ok: boolean }> {
+  const me = await getCurrentMember();
+  if (!me) return { ok: false };
+  db.update(members)
+    .set({ mailTermin: werte.termin === true, mailErinnerung: werte.erinnerung === true, mailKasse: werte.kasse === true })
+    .where(eq(members.id, me.id))
+    .run();
+  revalidatePath('/profil');
+  return { ok: true };
+}

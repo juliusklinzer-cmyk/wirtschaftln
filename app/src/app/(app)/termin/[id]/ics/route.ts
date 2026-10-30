@@ -2,6 +2,7 @@ import { eq } from 'drizzle-orm';
 import { db, termine, wirtshaeuser } from '@/lib/db';
 import { getCurrentMember, withSessionTenant } from '@/lib/session';
 import { appHost, tenantConfig } from '@/lib/tenant-config';
+import { icsTermin } from '@/lib/mail-vorlagen';
 
 /**
  * Kalender-Export: lädt den Stammtisch als .ics herunter.
@@ -25,27 +26,16 @@ async function ics(params: Promise<{ id: string }>) {
     : null;
 
   const config = tenantConfig();
-  const [h, m] = termin.zeit.split(':').map(Number);
-  const start = `${termin.datum.replaceAll('-', '')}T${String(h).padStart(2, '0')}${String(m).padStart(2, '0')}00`;
-  const endeStunde = Math.min(23, h + 4);
-  const end = `${termin.datum.replaceAll('-', '')}T${String(endeStunde).padStart(2, '0')}${String(m).padStart(2, '0')}00`;
+  const ics = icsTermin({
+    uid: `${termin.id}@${appHost()}`,
+    datum: termin.datum,
+    zeit: termin.zeit,
+    titel: `Stammtisch · ${wirtshaus?.name ?? config.name}`,
+    ort: wirtshaus?.adresse ?? null,
+    beschreibung: `${config.motto ? `${config.motto} ` : ''}🍺`,
+  });
 
-  const lines = [
-    'BEGIN:VCALENDAR',
-    'VERSION:2.0',
-    'PRODID:-//Wirtschaftln//Stammtisch//DE',
-    'BEGIN:VEVENT',
-    `UID:${termin.id}@${appHost()}`,
-    `DTSTART;TZID=Europe/Berlin:${start}`,
-    `DTEND;TZID=Europe/Berlin:${end}`,
-    `SUMMARY:Stammtisch · ${wirtshaus?.name ?? config.name}`,
-    wirtshaus?.adresse ? `LOCATION:${wirtshaus.adresse.replaceAll(',', '\\,')}` : null,
-    `DESCRIPTION:${config.motto ? `${config.motto} ` : ''}🍺`,
-    'END:VEVENT',
-    'END:VCALENDAR',
-  ].filter(Boolean);
-
-  return new Response(lines.join('\r\n'), {
+  return new Response(ics, {
     headers: {
       'Content-Type': 'text/calendar; charset=utf-8',
       'Content-Disposition': `attachment; filename="stammtisch-${termin.datum}.ics"`,

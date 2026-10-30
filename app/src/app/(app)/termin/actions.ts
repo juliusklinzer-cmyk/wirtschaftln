@@ -11,10 +11,13 @@ import { abendKasseAufbauen } from '@/lib/abend';
 import { findeBekanntes } from '@/lib/wirtshaus-abgleich';
 import { berlinTag, bierdeckelOffen, abschlussOffen, checkinOffen, CHECKIN_VORLAUF_STUNDEN } from '@/lib/punkte';
 import { HELLE, ALKOHOLFREIE_HELLE } from '@/lib/biersorten';
-import { appHost, appUrl, mailSignatur, tenantConfig } from '@/lib/tenant-config';
+import { appHost, tenantConfig } from '@/lib/tenant-config';
 import { imUmkreis, mitOrt } from '@/lib/tenant-config-public';
 import { fotoAblegen, fotoAlsDataUrl } from '@/lib/foto';
 import { mailAn } from '@/lib/mail';
+import { mailTerminFest } from '@/lib/mail-vorlagen';
+import { mailAdressen, mailRahmen } from '@/lib/mail-rahmen';
+import { navigationsUrl } from '@/lib/google-maps';
 import { pushAnAlle } from '@/lib/push';
 import { datumLang } from '@/lib/format';
 import { newId, nowIso } from '@/lib/ids';
@@ -59,15 +62,12 @@ async function terminAnlegen(datum: string, zeitRoh: string, vonMemberId: string
     .values({ id: newId('t'), datum, zeit, phase: 'planung', planerId: null, wirtshausId: stammhausId, createdAt: nowIso() })
     .run();
 
-  // 📣 Startschuss für d'Abstimmung, alle Spezln kriegen Push + Mail
+  // 📣 Startschuss für d'Abstimmung, alle Spezln kriegen an Push
   const wann = `${datumLang(datum)}, ${zeit} Uhr`;
   const titel = '📅 Neuer Stammtisch-Termin';
   const text = `Da nächste Stammtisch steht: ${wann}. D'Orga is no frei, wer reglt's? Sobald's Wirtshaus reserviert is, wird abgstimmt. 🍺`;
-  const empfaenger = getAktiveMitglieder().filter((m) => m.id !== vonMemberId).map((m) => m.email);
-  await Promise.allSettled([
-    pushAnAlle(titel, text, '/termin'),
-    mailAn(empfaenger, titel, `Servus!\n\n${text}\n\n→ ${appUrl('/termin')}\n\n${mailSignatur()}`),
-  ]);
+  // Nur Push: die Mail kommt erst, wenn's Wirtshaus feststeht (Julius, 30.10.2026)
+  await pushAnAlle(titel, text, '/termin');
 }
 
 /** Best-effort-Geocoding über Nominatim (OSM), scheitert leise. */
@@ -241,10 +241,24 @@ export async function wirtshausFestlegen(terminId: string, formData: FormData) {
   const wann = `${datumLang(termin.datum)}, ${termin.zeit} Uhr`;
   const titel = `📍 Steht fest: ${wirtshaus?.name ?? 'Wirtshaus'}`;
   const text = `Da gehts hin! ${wirtshaus?.name ?? '—'}${wirtshaus?.bezirk ? ` (${wirtshaus.bezirk})` : ''} am ${wann}. Jetzt abstimmen: sag zua oder ab, wer bis 3 Tag vorher abstimmt, kriagt an WP!`;
-  const empfaenger = getAktiveMitglieder().filter((m) => m.id !== me.id).map((m) => m.email);
+  // Mail mit Kalender-Anhang und Route, an alle mit „Termin steht fest“ im Profil
+  const organisator = termin.planerId ? getAktiveMitglieder().find((m) => m.id === termin.planerId) : null;
+  const mail = mailTerminFest(mailRahmen(), {
+    terminId,
+    uid: `${terminId}@${appHost()}`,
+    datum: termin.datum,
+    zeit: termin.zeit,
+    datumText: datumLang(termin.datum),
+    wirtshaus: wirtshaus?.name ?? 'Wirtshaus',
+    adresse: wirtshaus?.adresse ?? null,
+    bezirk: wirtshaus?.bezirk ?? null,
+    routeUrl: navigationsUrl(wirtshaus ?? { name: 'Wirtshaus' }, tenantConfig().geo?.suchSuffix ?? null),
+    organisator: organisator ? anzeigeName(organisator) : null,
+  });
+  const empfaenger = mailAdressen(getAktiveMitglieder().filter((m) => m.id !== me.id), 'termin');
   await Promise.allSettled([
     pushAnAlle(titel, text, '/termin'),
-    mailAn(empfaenger, titel, `Servus!\n\n${text}\n\n→ ${appUrl('/termin')}\n\n${mailSignatur()}`),
+    mailAn(empfaenger, mail.betreff, mail.inhalt),
   ]);
   revalidateAll();
 }
@@ -335,11 +349,7 @@ export async function orgaSchnappen(terminId: string): Promise<OrgaErgebnis> {
   // 📣 Alle wissen lassen, dass d'Orga vergeben is, sonst rennen zwoa los
   const titel = '🙋 D’Orga is vergeben!';
   const text = `${anzeigeName(me)} reglt’s, organisiert den Stammtisch am ${datumLang(termin.datum)} und suacht a Wirtshaus aus.`;
-  const empfaenger = getAktiveMitglieder().filter((m) => m.id !== me.id).map((m) => m.email);
-  await Promise.allSettled([
-    pushAnAlle(titel, text, '/termin'),
-    mailAn(empfaenger, titel, `Servus!\n\n${text}\n\n→ ${appUrl('/termin')}\n\n${mailSignatur()}`),
-  ]);
+  await pushAnAlle(titel, text, '/termin');
   revalidateAll();
   return { ok: true };
 }

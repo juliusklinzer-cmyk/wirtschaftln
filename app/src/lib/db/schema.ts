@@ -32,6 +32,11 @@ export const members = sqliteTable('members', {
   erstanmeldung: integer('erstanmeldung', { mode: 'boolean' }).notNull().default(false),
   /** Erklär-Slides (/willkommen) scho gsehen? Wird beim ersten Login einmal gezeigt. */
   onboardingGesehen: integer('onboarding_gesehen', { mode: 'boolean' }).notNull().default(false),
+  // Mail-Einstellungen im Profil (30.10.2026): Termin steht fest, Erinnerungen, Kasse/Strafen.
+  // Passwort- und Willkommensmails kommen immer.
+  mailTermin: integer('mail_termin', { mode: 'boolean' }).notNull().default(true),
+  mailErinnerung: integer('mail_erinnerung', { mode: 'boolean' }).notNull().default(true),
+  mailKasse: integer('mail_kasse', { mode: 'boolean' }).notNull().default(true),
   createdAt: text('created_at').notNull(),
 });
 
@@ -120,6 +125,22 @@ export const termine = sqliteTable('termine', {
   erfasstAm: text('erfasst_am'),
   createdAt: text('created_at').notNull(),
 });
+
+/**
+ * Verschickte Erinnerungs-Mails (lib/erinnerungen.ts): jede Art geht pro
+ * Termin und Spezl nur einmal raus. memberId '*' = eine Erinnerung an alle.
+ */
+export const erinnerungen = sqliteTable(
+  'erinnerungen',
+  {
+    id: text('id').primaryKey(),
+    terminId: text('termin_id').notNull().references(() => termine.id, { onDelete: 'cascade' }),
+    art: text('art').notNull(),
+    memberId: text('member_id').notNull(),
+    gesendetAm: text('gesendet_am').notNull(),
+  },
+  (t) => [uniqueIndex('erinnerungen_termin_art_member').on(t.terminId, t.art, t.memberId)],
+);
 
 export const votes = sqliteTable(
   'votes',

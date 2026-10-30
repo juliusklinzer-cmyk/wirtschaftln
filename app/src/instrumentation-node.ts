@@ -16,6 +16,13 @@ async function abendTakt() {
   } catch (e) {
     console.error('[abend] Takt fehlgeschlagen:', e);
   }
+  // Erinnerungs-Mails (lib/erinnerungen.ts), verschickt wird nur zwischen 18 und 22 Uhr
+  try {
+    const { erinnerungenAllerStammtische } = await import('./lib/erinnerungen');
+    await erinnerungenAllerStammtische();
+  } catch (e) {
+    console.error('[erinnerung] Takt fehlgeschlagen:', e);
+  }
 }
 if (process.env.NEXT_PHASE !== 'phase-production-build') {
   setTimeout(abendTakt, 30 * 1000).unref();

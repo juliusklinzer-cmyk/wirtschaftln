@@ -12,7 +12,7 @@ import { anzeigeName } from '@/lib/namen';
 import { pushAn } from '@/lib/push';
 import { mailAn } from '@/lib/mail';
 import { mailGemeldet } from '@/lib/mail-vorlagen';
-import { mailRahmen, willMail } from '@/lib/mail-rahmen';
+import { mailRahmen, rufname, willMail } from '@/lib/mail-rahmen';
 
 /** Anzahl Hoibe aus dem Formular (1–99), gezahlt wird beim Wirtschaftln in Hoibe, ned in Euro. */
 function hoibeAnzahl(formData: FormData): number {
@@ -54,7 +54,7 @@ export async function melden(formData: FormData) {
   // ⚖️ Der Gmeldte kriagt Bescheid (Push + Mail)
   const titel = '⚖️ Du wurdst gmeldt!';
   const text = `${anzeigeName(me)} hat di gmeldt: „${grund}", des kost ${hoibe === 1 ? 'a Hoibe' : `${hoibe} Hoibe`}. Zohl beim Kassenwart${tenantConfig().istGruender ? ' oder per PayPal' : ''}. 🍺`;
-  const mail = mailGemeldet(mailRahmen(), { name: anzeigeName(opfer), von: anzeigeName(me), grund, hoibe, paypal: tenantConfig().istGruender });
+  const mail = mailGemeldet(mailRahmen(), { name: rufname(opfer), von: anzeigeName(me), grund, hoibe, paypal: tenantConfig().istGruender });
   await Promise.allSettled([
     pushAn([memberId], titel, text, '/kasse'),
     willMail(opfer, 'kasse') ? mailAn([opfer.email], mail.betreff, mail.inhalt) : Promise.resolve(),

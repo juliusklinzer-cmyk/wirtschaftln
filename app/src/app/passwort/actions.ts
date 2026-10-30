@@ -8,6 +8,7 @@ import { findGruppe, kontenFuerEmail, passwortTokenAnlegen, passwortTokenFinden,
 import { hashPassword } from '@/lib/password';
 import { createSession } from '@/lib/session';
 import { mailAn } from '@/lib/mail';
+import { mailPasswort } from '@/lib/mail-vorlagen';
 import { appUrl } from '@/lib/tenant-config';
 
 export type AnfordernState = { fertig?: boolean; error?: string };
@@ -50,20 +51,8 @@ export async function linkAnfordern(_prev: AnfordernState, formData: FormData): 
     links.push({ name: findGruppe(konto.gruppeId)?.name ?? 'Wirtschaftln', url: appUrl(`/passwort/${t.token}`), vorname: member.vorname });
   }
   if (links.length > 0) {
-    const anrede = links[0].vorname ? `Servus ${links[0].vorname},` : 'Servus,';
-    const liste = links.length === 1 ? links[0].url : links.map((l) => `${l.name}: ${l.url}`).join('\n');
-    const text = [
-      anrede,
-      '',
-      links.length === 1 ? 'mit diesem Link setzt du dir ein neues Passwort für Wirtschaftln:' : 'du bist in mehreren Stammtischen, für jeden gibt’s einen eigenen Link zum neuen Passwort:',
-      '',
-      liste,
-      '',
-      'Der Link gilt eine Stunde. Wenn du das nicht warst, ignorier die Mail einfach, dein Passwort bleibt wie es ist.',
-      '',
-      'Dei Wirtschaftln-App',
-    ].join('\n');
-    await mailAn([email], 'Neues Passwort für Wirtschaftln', text);
+    const mail = mailPasswort({ stammtisch: 'Wirtschaftln', basisUrl: appUrl('/') }, { vorname: links[0].vorname, links });
+    await mailAn([email], mail.betreff, mail.inhalt);
   }
   return { fertig: true };
 }

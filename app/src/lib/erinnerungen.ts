@@ -5,11 +5,10 @@ import { getAktiveMitglieder, getPraesidentId } from '@/lib/queries';
 import { berlinTag, berlinUhrzeit } from '@/lib/punkte';
 import { tenantConfig } from '@/lib/tenant-config';
 import { datumLang } from '@/lib/format';
-import { anzeigeName } from '@/lib/namen';
 import { newId, nowIso } from '@/lib/ids';
 import { mailAn } from '@/lib/mail';
 import { mailAbstimmen, mailOrgaOffen, mailReservierungOffen } from '@/lib/mail-vorlagen';
-import { mailRahmen, willMail } from '@/lib/mail-rahmen';
+import { mailRahmen, rufname, willMail } from '@/lib/mail-rahmen';
 
 /**
  * Erinnerungs-Mails (Julius, 30.10.2026), weil Push an der Web-App oft ned
@@ -86,7 +85,7 @@ export async function erinnerungenVerschicken(jetztIso = nowIso()): Promise<numb
       if (tage <= 7 && !schonGesendet(t.id, art, ALLE)) {
         const praesId = zweite ? getPraesidentId() : null;
         const an = mitglieder.filter((m) => (m.id === organisator.id || m.id === praesId) && willMail(m, 'erinnerung'));
-        const { betreff, inhalt } = mailReservierungOffen(rahmen, { datumText, tage, organisator: anzeigeName(organisator), zweite: zweite && !!praesId && praesId !== organisator.id });
+        const { betreff, inhalt } = mailReservierungOffen(rahmen, { datumText, tage, organisator: rufname(organisator), zweite: zweite && !!praesId && praesId !== organisator.id });
         jobs.push(mailAn(an.map((m) => m.email), betreff, inhalt));
         merken(t.id, art, [ALLE]);
       }

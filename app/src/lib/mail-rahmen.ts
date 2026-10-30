@@ -1,6 +1,7 @@
 import type { members } from '@/lib/db';
 import type { MailRahmen } from '@/lib/mail-vorlagen';
 import { appUrl, tenantConfig } from '@/lib/tenant-config';
+import { anzeigeName } from '@/lib/namen';
 
 /** Rahmen für die Mail-Vorlagen aus dem gebundenen Stammtisch. */
 export function mailRahmen(): MailRahmen {
@@ -20,4 +21,9 @@ export function willMail(m: Mitglied, art: MailArt): boolean {
 /** Adressen aller, die Mails dieser Art wollen. */
 export function mailAdressen(mitglieder: Mitglied[], art: MailArt): string[] {
   return mitglieder.filter((m) => willMail(m, art)).map((m) => m.email);
+}
+
+/** Anrede in Mails: Vorname, sonst der Anzeigename. */
+export function rufname(m: Mitglied): string {
+  return m.vorname?.trim() || anzeigeName(m);
 }

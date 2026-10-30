@@ -17,7 +17,8 @@ type Baustein = {
   absaetze: string[];
   /** Hervorgehobener Kasten (Wirtshaus, Datum …) als Label/Wert-Zeilen */
   kasten?: Array<[string, string]>;
-  knopf?: { text: string; pfad: string };
+  /** Hauptknopf: `pfad` in der App oder fertige `url` */
+  knopf?: { text: string; pfad?: string; url?: string };
   /** Weitere Links unter dem Knopf (Route, Kalender …), absolute URLs */
   links?: Array<{ text: string; url: string }>;
   /** Kleiner Hinweis unter dem Inhalt */
@@ -31,6 +32,7 @@ const GOLD = '#D0AD66';
 const PERGAMENT = '#F6F0E2';
 const TINTE = '#1F2937';
 const GRAU = '#6B7280';
+const RAND = '#E5E7EB';
 
 function esc(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -42,14 +44,15 @@ function url(r: MailRahmen, pfad: string): string {
 
 function baue(r: MailRahmen, b: Baustein): MailInhalt {
   const einstellUrl = url(r, '/profil#mails');
-  const signatur = `Dei ${r.stammtisch}-App`;
+  const signatur = `Deine ${r.stammtisch}-App`;
+  const knopfUrl = b.knopf ? (b.knopf.url ?? url(r, b.knopf.pfad ?? '/')) : null;
 
   const text = [
     b.anrede,
     '',
     ...b.absaetze.flatMap((a) => [a, '']),
     ...(b.kasten ? [...b.kasten.map(([k, v]) => `${k}: ${v}`), ''] : []),
-    ...(b.knopf ? [`${b.knopf.text}: ${url(r, b.knopf.pfad)}`] : []),
+    ...(b.knopf && knopfUrl ? [`${b.knopf.text}: ${knopfUrl}`] : []),
     ...(b.links ?? []).map((l) => `${l.text}: ${l.url}`),
     ...(b.knopf || b.links?.length ? [''] : []),
     ...(b.hinweis ? [b.hinweis, ''] : []),
@@ -68,19 +71,20 @@ function baue(r: MailRahmen, b: Baustein): MailInhalt {
             .join('')}
         </td></tr></table>`
     : '';
-  const knopf = b.knopf
+  const knopf = b.knopf && knopfUrl
     ? `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:4px 0 12px"><tr><td style="background:${NAVY};border-radius:12px">
-        <a href="${esc(url(r, b.knopf.pfad))}" style="display:inline-block;padding:13px 22px;font-size:15px;font-weight:700;color:#fff;text-decoration:none">${esc(b.knopf.text)}</a>
+        <a href="${esc(knopfUrl)}" style="display:inline-block;padding:13px 22px;font-size:15px;font-weight:700;color:#fff;text-decoration:none">${esc(b.knopf.text)}</a>
       </td></tr></table>`
     : '';
   const links = (b.links ?? [])
     .map((l) => `<div style="margin:6px 0"><a href="${esc(l.url)}" style="font-size:14px;font-weight:700;color:${NAVY}">${esc(l.text)}</a></div>`)
     .join('');
 
-  const html = `<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-<body style="margin:0;padding:0;background:#EEF1F5">
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#EEF1F5"><tr><td align="center" style="padding:24px 12px">
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#fff;border-radius:18px;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif">
+  // Weißer Hintergrund wie in der Mail-App, die Karte hebt si nur mit am Rand ab
+  const html = `<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light"></head>
+<body style="margin:0;padding:0;background:#ffffff">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff"><tr><td align="center" style="padding:16px 8px">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#ffffff;border:1px solid ${RAND};border-radius:18px;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif">
   <tr><td style="background:${NAVY};padding:18px 22px;border-bottom:3px solid ${GOLD}">
     <span style="font-size:18px;font-weight:800;color:${GOLD}">${esc(r.stammtisch)}</span>
   </td></tr>
@@ -91,7 +95,7 @@ function baue(r: MailRahmen, b: Baustein): MailInhalt {
     ${b.hinweis ? `<p style="margin:14px 0 0;font-size:13px;color:${GRAU}">${esc(b.hinweis)}</p>` : ''}
     <p style="margin:20px 0 0;font-weight:700;color:${NAVY}">${esc(signatur)}</p>
   </td></tr>
-  ${b.einstellbar !== false ? `<tr><td style="padding:14px 22px;border-top:1px solid #E5E7EB;font-size:12px;color:${GRAU}">Zu viele Mails? <a href="${esc(einstellUrl)}" style="color:${GRAU}">Mails einstellen</a></td></tr>` : ''}
+  ${b.einstellbar !== false ? `<tr><td style="padding:14px 22px;border-top:1px solid ${RAND};font-size:12px;color:${GRAU}">Zu viele Mails? <a href="${esc(einstellUrl)}" style="color:${GRAU}">Mails einstellen</a></td></tr>` : ''}
 </table></td></tr></table></body></html>`;
 
   return { text, html };
@@ -147,6 +151,7 @@ export function icsTermin(t: { uid: string; datum: string; zeit: string; titel: 
 }
 
 // ───────────────────────── Die Mails ─────────────────────────
+// Ton: Münchnerisch, also Hochdeutsch mit bayrischem Einschlag (Julius, 30.10.2026)
 
 /** Termin und Wirtshaus stehen fest: alle außer dem Organisator, mit Kalender und Route. */
 export function mailTerminFest(
@@ -157,8 +162,8 @@ export function mailTerminFest(
   const inhalt = baue(r, {
     anrede: 'Servus!',
     absaetze: [
-      `Da nächste Stammtisch steht: ${d.wirtshaus}${d.bezirk ? ` (${d.bezirk})` : ''}.${d.organisator ? ` ${d.organisator} hat reserviert.` : ''}`,
-      'Sag bis 3 Tage vorher zu oder ab, dann gibt’s an WP obendrauf.',
+      `Der nächste Stammtisch steht fest: ${d.wirtshaus}${d.bezirk ? ` in ${d.bezirk}` : ''}.${d.organisator ? ` ${d.organisator} hat reserviert.` : ''}`,
+      'Sag bis drei Tage vorher zu oder ab, dann gibt’s einen WP obendrauf.',
     ],
     kasten: [
       ['Wann', `${d.datumText}, ${d.zeit} Uhr`],
@@ -167,7 +172,7 @@ export function mailTerminFest(
     ],
     knopf: { text: 'Zu- oder absagen', pfad: '/termin' },
     links: [{ text: 'Route in Google Maps', url: d.routeUrl }],
-    hinweis: 'Im Anhang hängt der Termin für deinen Kalender. Antippen und speichern, am iPhone und am Android.',
+    hinweis: 'Im Anhang findest du den Termin für deinen Kalender. Einfach antippen und speichern, am iPhone genauso wie am Android.',
   });
   inhalt.ics = {
     dateiname: `stammtisch-${d.datum}.ics`,
@@ -176,7 +181,7 @@ export function mailTerminFest(
   return { betreff: `Stammtisch am ${d.datumText}: ${d.wirtshaus}`, inhalt };
 }
 
-/** Noch ned abgestimmt: 1 Tag vor der Frist (letzte = am Tag vorm Termin). */
+/** Noch nicht abgestimmt: 1 Tag vor der Frist (letzte = am Tag vorm Termin). */
 export function mailAbstimmen(
   r: MailRahmen,
   d: { datumText: string; zeit: string; wirtshaus: string | null; letzte: boolean },
@@ -186,27 +191,27 @@ export function mailAbstimmen(
     anrede: 'Servus!',
     absaetze: d.letzte
       ? [
-          `Morgen is Stammtisch${wo}, ${d.datumText} um ${d.zeit} Uhr, und von dir fehlt no a Antwort.`,
-          'Sag kurz zu oder ab. Wer ohne Absage fehlt, zählt als unentschuldigt.',
+          `Morgen ist Stammtisch${wo}, ${d.datumText} um ${d.zeit} Uhr, und von dir fehlt noch eine Antwort.`,
+          'Sag kurz zu oder ab. Wer ohne Absage fehlt, gilt als unentschuldigt.',
         ]
       : [
-          `Du hast für den Stammtisch${wo} am ${d.datumText} no ned zu- oder abgsagt.`,
-          'Wenn du bis morgen abstimmst, kriagst no den WP fürs rechtzeitige Abstimmen.',
+          `Für den Stammtisch${wo} am ${d.datumText} hast du noch nicht zu- oder abgesagt.`,
+          'Wenn du bis morgen abstimmst, bekommst du noch den WP fürs rechtzeitige Abstimmen.',
         ],
     knopf: { text: 'Jetzt abstimmen', pfad: '/termin' },
   });
-  return { betreff: d.letzte ? `Morgen is Stammtisch: bist dabei?` : `Bist dabei am ${d.datumText}?`, inhalt };
+  return { betreff: d.letzte ? 'Morgen ist Stammtisch: Bist du dabei?' : `Bist du dabei am ${d.datumText}?`, inhalt };
 }
 
-/** Orga no frei, 14 Tage vorher an alle. */
+/** Orga noch frei, 14 Tage vorher an alle. */
 export function mailOrgaOffen(r: MailRahmen, d: { datumText: string; tage: number }): { betreff: string; inhalt: MailInhalt } {
   const inhalt = baue(r, {
     anrede: 'Servus!',
     absaetze: [
-      `Für den Stammtisch am ${d.datumText} hat si no koana die Orga gschnappt, und es san nur no ${d.tage} Tage.`,
-      'Wer’s übernimmt, sucht a Wirtshaus aus und reserviert. Gibt natürlich WP dafür.',
+      `Für den Stammtisch am ${d.datumText} hat sich noch keiner die Orga geschnappt, und es sind nur noch ${d.tage} Tage.`,
+      'Wer sie übernimmt, sucht ein Wirtshaus aus und reserviert. Dafür gibt’s natürlich WP.',
     ],
-    knopf: { text: 'I regl’s', pfad: '/termin' },
+    knopf: { text: 'Ich regel das', pfad: '/termin' },
   });
   return { betreff: `Wer organisiert den Stammtisch am ${d.datumText}?`, inhalt };
 }
@@ -217,42 +222,78 @@ export function mailReservierungOffen(
   d: { datumText: string; tage: number; organisator: string; zweite: boolean },
 ): { betreff: string; inhalt: MailInhalt } {
   const inhalt = baue(r, {
-    anrede: d.zweite ? 'Servus beinand!' : `Servus ${d.organisator}!`,
+    anrede: d.zweite ? 'Servus miteinander!' : `Servus ${d.organisator}!`,
     absaetze: d.zweite
       ? [
-          `Für den Stammtisch am ${d.datumText} steht in ${d.tage} Tagen no koa Wirtshaus fest. ${d.organisator} hat die Orga.`,
-          'Bitte schnell reservieren und in der App eintragen, sonst wissen die Spezln ned, wo’s hingeht.',
+          `Für den Stammtisch am ${d.datumText} steht ${d.tage === 1 ? 'einen Tag' : `${d.tage} Tage`} vorher noch kein Wirtshaus fest. Die Orga hat ${d.organisator}.`,
+          'Bitte schnell reservieren und in der App eintragen, sonst weiß keiner, wo’s hingeht.',
         ]
       : [
-          `Du hast die Orga für den Stammtisch am ${d.datumText}, und in ${d.tage} Tagen is es so weit.`,
-          'Is scho a Wirtshaus reserviert? Dann trag’s in der App ein, erst dann können die Spezln zu- oder absagen.',
+          `Du hast die Orga für den Stammtisch am ${d.datumText}, in ${d.tage === 1 ? 'einem Tag' : `${d.tage} Tagen`} ist es so weit.`,
+          'Ist schon ein Wirtshaus reserviert? Dann trag es in der App ein, erst dann können die anderen zu- oder absagen.',
         ],
     knopf: { text: 'Wirtshaus eintragen', pfad: '/termin' },
   });
-  return { betreff: d.zweite ? `Dringend: no koa Wirtshaus für den ${d.datumText}` : `No koa Wirtshaus für den ${d.datumText}`, inhalt };
+  return { betreff: d.zweite ? `Dringend: Noch kein Wirtshaus für den ${d.datumText}` : `Noch kein Wirtshaus für den ${d.datumText}`, inhalt };
 }
 
-/** Gemeldet: der Betroffene. */
+/** Gemeldet: nur der Betroffene. */
 export function mailGemeldet(
   r: MailRahmen,
   d: { name: string; von: string; grund: string; hoibe: number; paypal: boolean },
 ): { betreff: string; inhalt: MailInhalt } {
-  const menge = d.hoibe === 1 ? 'a Hoibe' : `${d.hoibe} Hoibe`;
+  const menge = d.hoibe === 1 ? 'eine Hoibe' : `${d.hoibe} Hoibe`;
   const inhalt = baue(r, {
     anrede: `Servus ${d.name}!`,
-    absaetze: [`${d.von} hat di gmeldt: „${d.grund}“. Des kost ${menge}.`, `Zahl beim Kassenwart${d.paypal ? ' oder per PayPal' : ''}.`],
+    absaetze: [`${d.von} hat dich gemeldet: „${d.grund}“. Das kostet ${menge}.`, `Zahlen kannst du beim Kassenwart${d.paypal ? ' oder per PayPal' : ''}.`],
     knopf: { text: 'Zur Kasse', pfad: '/kasse' },
   });
-  return { betreff: 'Du wurdst gmeldt', inhalt };
+  return { betreff: 'Du bist gemeldet worden', inhalt };
 }
 
 /** Feedback aus der App: geht an Julius persönlich. */
 export function mailFeedback(r: MailRahmen, d: { name: string; gruppe: string; text: string }): { betreff: string; inhalt: MailInhalt } {
   const inhalt = baue(r, {
     anrede: 'Servus Julius!',
-    absaetze: [`${d.name} vom ${d.gruppe} hat Feedback zur App gschickt:`, `„${d.text}“`],
+    absaetze: [`${d.name} vom Stammtisch ${d.gruppe} hat Feedback zur App geschickt:`, `„${d.text}“`],
     knopf: { text: 'Im Verzeichnis anschauen', pfad: '/verzeichnis' },
     einstellbar: false,
   });
   return { betreff: `Feedback: ${d.gruppe}`, inhalt };
+}
+
+/** Passwort vergessen: ein Link pro Stammtisch, kommt immer. */
+export function mailPasswort(r: MailRahmen, d: { vorname: string | null; links: Array<{ name: string; url: string }> }): { betreff: string; inhalt: MailInhalt } {
+  const einer = d.links.length === 1;
+  const inhalt = baue(r, {
+    anrede: d.vorname ? `Servus ${d.vorname}!` : 'Servus!',
+    absaetze: [einer ? 'Mit diesem Link setzt du dir ein neues Passwort:' : 'Du bist in mehreren Stammtischen, für jeden gibt’s einen eigenen Link zum neuen Passwort:'],
+    knopf: einer ? { text: 'Neues Passwort setzen', url: d.links[0].url } : undefined,
+    links: einer ? undefined : d.links.map((l) => ({ text: `Neues Passwort für ${l.name}`, url: l.url })),
+    hinweis: 'Der Link gilt eine Stunde. Wenn du das nicht angefordert hast, ignorier die Mail einfach, dein Passwort bleibt, wie es ist.',
+    einstellbar: false,
+  });
+  return { betreff: `Neues Passwort für ${r.stammtisch}`, inhalt };
+}
+
+/** Willkommen: der neu aufgenommene Spezl mit Zugang, kommt immer. */
+export function mailWillkommen(
+  r: MailRahmen,
+  d: { vorname: string; woher: string; email: string; passwort: string },
+): { betreff: string; inhalt: MailInhalt } {
+  const inhalt = baue(r, {
+    anrede: `Servus ${d.vorname}!`,
+    absaetze: [
+      `Du bist jetzt dabei beim ${r.stammtisch}${d.woher ? `, dem Stammtisch ${d.woher}` : ''}.`,
+      'Beim ersten Anmelden setzt du dir gleich dein eigenes Passwort und füllst dein Profil aus. Das Lieblingsbier nicht vergessen!',
+    ],
+    kasten: [
+      ['E-Mail', d.email],
+      ['Start-Passwort', d.passwort],
+    ],
+    knopf: { text: 'Jetzt anmelden', pfad: '/login' },
+    hinweis: 'Bis bald am Tisch!',
+    einstellbar: false,
+  });
+  return { betreff: `Servus beim ${r.stammtisch}!`, inhalt };
 }

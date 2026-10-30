@@ -13,7 +13,9 @@ import { getPraesidentId, getAktiveMitglieder } from '@/lib/queries';
 import { anzeigeName } from '@/lib/namen';
 import { pushAnAlle } from '@/lib/push';
 import { mailAn } from '@/lib/mail';
-import { appUrl, auszeichnungAn, mailSignatur, tenantConfig } from '@/lib/tenant-config';
+import { mailWillkommen } from '@/lib/mail-vorlagen';
+import { mailRahmen } from '@/lib/mail-rahmen';
+import { auszeichnungAn, tenantConfig } from '@/lib/tenant-config';
 
 export type AufnahmeErgebnis = { ok: true; meldung: string } | { ok: false; meldung: string };
 
@@ -60,12 +62,9 @@ export async function mitgliedAnlegen(formData: FormData): Promise<AufnahmeErgeb
   // 📬 Willkommens-Mail an den Neuen, mit Zugang und dem Hinweis, dass er
   // beim ersten Anmelden sei eigenes Passwort setzt.
   const c = tenantConfig();
-  const woher = [c.stadt, c.gruendungsjahr ? `seit ${c.gruendungsjahr}` : null].filter(Boolean).join(', ');
-  await mailAn(
-    [email],
-    `🍺 Servus beim ${c.name}-Stammtisch!`,
-    `Servus ${vorname}!\n\nDu bist jetzt dabei beim ${c.name}, dem Stammtisch${woher ? `, ${woher}` : ''}.\n\nSo kommst eini:\n→ ${appUrl('/login')}\nE-Mail: ${email}\nStart-Passwort: ${password}\n\nBeim ersten Anmelden setzt dich glei dei eigenes Passwort und füllst dei Profil aus (Lieblingsbier ned vergessen).\n\nBis boid am Tisch!\n${mailSignatur()}`,
-  );
+  const woher = [c.stadt ? `aus ${c.stadt}` : null, c.gruendungsjahr ? `seit ${c.gruendungsjahr}` : null].filter(Boolean).join(', ');
+  const mail = mailWillkommen(mailRahmen(), { vorname, woher, email, passwort: password });
+  await mailAn([email], mail.betreff, mail.inhalt);
   revalidatePath('/spezln');
   return { ok: true, meldung: `✓ ${vorname} is aufgnommen, d'Willkommens-Mail an ${email} is raus.` };
 }

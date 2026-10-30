@@ -16,7 +16,7 @@ import { imUmkreis, mitOrt } from '@/lib/tenant-config-public';
 import { fotoAblegen, fotoAlsDataUrl } from '@/lib/foto';
 import { mailAn } from '@/lib/mail';
 import { mailTerminFest } from '@/lib/mail-vorlagen';
-import { mailAdressen, mailRahmen } from '@/lib/mail-rahmen';
+import { mailAdressen, mailRahmen, rufname } from '@/lib/mail-rahmen';
 import { navigationsUrl } from '@/lib/google-maps';
 import { pushAnAlle } from '@/lib/push';
 import { datumLang } from '@/lib/format';
@@ -253,7 +253,7 @@ export async function wirtshausFestlegen(terminId: string, formData: FormData) {
     adresse: wirtshaus?.adresse ?? null,
     bezirk: wirtshaus?.bezirk ?? null,
     routeUrl: navigationsUrl(wirtshaus ?? { name: 'Wirtshaus' }, tenantConfig().geo?.suchSuffix ?? null),
-    organisator: organisator ? anzeigeName(organisator) : null,
+    organisator: organisator ? rufname(organisator) : null,
   });
   const empfaenger = mailAdressen(getAktiveMitglieder().filter((m) => m.id !== me.id), 'termin');
   await Promise.allSettled([

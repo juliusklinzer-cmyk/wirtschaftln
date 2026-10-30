@@ -15,6 +15,7 @@ import { pushAnAlle } from '@/lib/push';
 import { mailAn } from '@/lib/mail';
 import { mailWillkommen } from '@/lib/mail-vorlagen';
 import { mailRahmen } from '@/lib/mail-rahmen';
+import { darfWacklerEntscheiden, wacklerEntscheiden } from '@/lib/wackler';
 import { auszeichnungAn, tenantConfig } from '@/lib/tenant-config';
 
 export type AufnahmeErgebnis = { ok: true; meldung: string } | { ok: false; meldung: string };
@@ -36,8 +37,23 @@ export async function mitgliedAnlegen(formData: FormData): Promise<AufnahmeErgeb
   const password = String(formData.get('password') ?? '');
   if (!vorname || !nachname || !email) return { ok: false, meldung: 'Vorname, Nachname und E-Mail brauchts.' };
   if (password.length < 6) return { ok: false, meldung: 'Des Start-Passwort braucht mindestens 6 Zeichen.' };
-  // E-Mail is unique, Dublette würd sonst als Unique-Fehler krachen
-  if (db.select().from(members).where(eq(members.email, email)).get()) {
+  // E-Mail is unique, Dublette würd sonst als Unique-Fehler krachen.
+  // Ausnahme: wer sich verabschiedet hat, wird mit derselben E-Mail wieder aufgnommen
+  // (Chronik und Punkte san no da, er kriegt a neues Start-Passwort).
+  const vorhanden = db.select().from(members).where(eq(members.email, email)).get();
+  if (vorhanden && vorhanden.status === 'inaktiv') {
+    db.update(members)
+      .set({ status: 'aktiv', vorname, nachname, name: `${vorname} ${nachname}`, spitzname, passwordHash: hashPassword(password), erstanmeldung: true })
+      .where(eq(members.id, vorhanden.id))
+      .run();
+    const c = tenantConfig();
+    const woher = [c.stadt ? `aus ${c.stadt}` : null, c.gruendungsjahr ? `seit ${c.gruendungsjahr}` : null].filter(Boolean).join(', ');
+    const mail = mailWillkommen(mailRahmen(), { vorname, woher, email, passwort: password });
+    await mailAn([email], mail.betreff, mail.inhalt);
+    revalidatePath('/spezln');
+    return { ok: true, meldung: `✓ ${vorname} is wieder dabei, d'Willkommens-Mail an ${email} is raus.` };
+  }
+  if (vorhanden) {
     return { ok: false, meldung: `Mit ${email} gibt's scho an Account.` };
   }
   const id = newId('m');
@@ -95,4 +111,14 @@ export async function amtZuweisen(formData: FormData) {
   // Nur Push, für so was gibt's koa Mail (Julius, 30.10.2026)
   await pushAnAlle(titelText, text, '/spezln');
   revalidatePath('/spezln');
+}
+
+/** Wackler ohne Antwort: Präsident (oder Admin) lässt ihn ausscheiden oder dabei. */
+export async function wacklerEntscheidenAction(anfrageId: string, entscheidung: 'raus' | 'bleibt'): Promise<{ ok: boolean }> {
+  const me = await getCurrentMember();
+  if (!me || !darfWacklerEntscheiden(me)) return { ok: false };
+  if (entscheidung !== 'raus' && entscheidung !== 'bleibt') return { ok: false };
+  const ok = await wacklerEntscheiden(anfrageId, entscheidung);
+  revalidatePath('/spezln');
+  return { ok };
 }

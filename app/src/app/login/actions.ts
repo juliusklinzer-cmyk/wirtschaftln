@@ -95,6 +95,9 @@ export async function login(_prev: LoginState, formData: FormData): Promise<Logi
   }
 
   const { gruppeId, member } = passende[0];
+  if (member.status === 'inaktiv') {
+    return { error: 'Du hast dich vom Stammtisch verabschiedet. Wenn du zurück willst, sag dem Admin Bescheid.' };
+  }
   if (member.status !== 'aktiv') {
     return { error: 'Dein Antrag läuft noch, a bisserl Geduld.' };
   }

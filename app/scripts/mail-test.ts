@@ -1,7 +1,8 @@
 // Alle Mails einmal als [Test] mit Beispieldaten verschicken, IMMER nur an
 // servus@wirtschaftln.de (fest verdrahtet, geht an niemand sonst).
 //
-// Aufruf:  SMTP_PASSWORD=… SMTP_USER=… node scripts/mail-test.ts
+// Aufruf:  SMTP_PASSWORD=… SMTP_USER=… node scripts/mail-test.ts [nummern …]
+//          (ohne Nummern alle, sonst nur die genannten, z. B. 11 12)
 //          (Host/Port/Absender wie in deploy/.env, Default Brevo)
 import nodemailer from 'nodemailer';
 import {
@@ -13,6 +14,8 @@ import {
   mailFeedback,
   mailPasswort,
   mailWillkommen,
+  mailWackeln,
+  mailWacklerOhneAntwort,
   type MailInhalt,
   type MailRahmen,
 } from '../src/lib/mail-vorlagen.ts';
@@ -60,9 +63,13 @@ const mails: Array<{ betreff: string; inhalt: MailInhalt; wer: string }> = [
   { ...mailFeedback(r, { name: 'Kathi Obermeier', gruppe: 'Die Kichererbsen', text: 'Kann man beim Termin noch eine Uhrzeit fürs Essen eintragen?' }), wer: 'sofort, an julius@wirtschaftln.de' },
   { ...mailPasswort(r, { vorname: 'Julius', links: [{ name: 'Wirtschaftln', url: 'https://wirtschaftln.de/passwort/BEISPIEL' }] }), wer: 'sofort, wer „Passwort vergessen“ antippt (kommt immer)' },
   { ...mailWillkommen(r, { vorname: 'Sepp', woher: 'aus München, seit 2019', email: 'sepp@beispiel.de', passwort: 'BEISPIEL' }), wer: 'sofort, wenn ein Admin einen Spezl aufnimmt (kommt immer)' },
+  { ...mailWackeln(r, { vorname: 'Toni', anzahl: 3, dabeiUrl: 'https://wirtschaftln.de/dabei/BEISPIEL?a=dabei', abschiedUrl: 'https://wirtschaftln.de/dabei/BEISPIEL?a=abschied' }), wer: 'einmal pro Wackel-Phase, 18 Uhr nach dem 3. unentschuldigten Fehlen in Folge (kommt immer)' },
+  { ...mailWacklerOhneAntwort(r, { anrede: 'Julius', wackler: 'da Toni', gefragtAm: '30. Okt.' }), wer: '14 Tage ohne Antwort, an den Präsidenten (ohne Präsident an die Admins)' },
 ];
 
+const nur = process.argv.slice(2).map(Number).filter(Boolean);
 for (const [i, m] of mails.entries()) {
+  if (nur.length > 0 && !nur.includes(i + 1)) continue;
   const vorspann = `[Test ${i + 1}/${mails.length}] Wer bekommt das: ${m.wer}`;
   await transport.sendMail({
     from: process.env.MAIL_FROM ?? 'Wirtschaftln <servus@wirtschaftln.de>',

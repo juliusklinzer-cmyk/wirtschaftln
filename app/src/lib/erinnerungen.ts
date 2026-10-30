@@ -9,6 +9,7 @@ import { newId, nowIso } from '@/lib/ids';
 import { mailAn } from '@/lib/mail';
 import { mailAbstimmen, mailOrgaOffen, mailReservierungOffen } from '@/lib/mail-vorlagen';
 import { mailRahmen, rufname, willMail } from '@/lib/mail-rahmen';
+import { wacklerPruefen } from '@/lib/wackler';
 
 /**
  * Erinnerungs-Mails (Julius, 30.10.2026), weil Push an der Web-App oft ned
@@ -21,6 +22,7 @@ import { mailRahmen, rufname, willMail } from '@/lib/mail-rahmen';
  *   reserv2    3 Tage vorher, immer no koa Wirtshaus  → Organisator + Präsident
  *   abstimmen  1 Tag vor der Abstimm-Frist            → wer no ned abgstimmt hat
  *   letzte     Tag vorm Termin                        → wer immer no ned abgstimmt hat
+ *   Wackler    „Bist du no dabei?“, siehe lib/wackler.ts
  */
 const AB_UHRZEIT = '18:00';
 const BIS_UHRZEIT = '22:00';
@@ -55,6 +57,9 @@ export async function erinnerungenVerschicken(jetztIso = nowIso()): Promise<numb
   const rahmen = mailRahmen();
   const mitglieder = getAktiveMitglieder();
   let anzahl = 0;
+
+  // Wackler fragen bzw. beim Präsidenten melden (lib/wackler.ts), gleiches Zeitfenster
+  anzahl += await wacklerPruefen(jetztIso);
 
   const offene = db
     .select()

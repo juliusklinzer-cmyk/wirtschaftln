@@ -142,6 +142,27 @@ export const erinnerungen = sqliteTable(
   (t) => [uniqueIndex('erinnerungen_termin_art_member').on(t.terminId, t.art, t.memberId)],
 );
 
+/**
+ * „Willst du no dabei sein?“ (30.10.2026): wer wackelt, kriegt einmal pro
+ * Wackel-Phase a Mail mit Ja/Abschied (Token-Link, ohne Login). Ohne Antwort
+ * entscheidet nach 14 Tagen der Präsident. erledigt = Phase abgeschlossen.
+ */
+export const wackelAnfragen = sqliteTable(
+  'wackel_anfragen',
+  {
+    id: text('id').primaryKey(),
+    memberId: text('member_id').notNull().references(() => members.id, { onDelete: 'cascade' }),
+    /** `<gruppeId>.<zufall>`, der Präfix bindet den Mandanten auf der Antwortseite */
+    token: text('token').notNull(),
+    erstelltAm: text('erstellt_am').notNull(),
+    antwort: text('antwort', { enum: ['dabei', 'abschied'] }),
+    beantwortetAm: text('beantwortet_am'),
+    praesidentGemeldetAm: text('praesident_gemeldet_am'),
+    erledigt: integer('erledigt', { mode: 'boolean' }).notNull().default(false),
+  },
+  (t) => [uniqueIndex('wackel_anfragen_token').on(t.token)],
+);
+
 export const votes = sqliteTable(
   'votes',
   {

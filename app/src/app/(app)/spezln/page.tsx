@@ -2,7 +2,9 @@ import { getCurrentMember, erzwingeProfil } from '@/lib/session';
 import { anzeigeName } from '@/lib/namen';
 import { Rangliste } from './rangliste-b';
 import { ladeRanglisteDaten } from './daten';
-import { mitgliedAnlegen, amtZuweisen } from './actions';
+import { mitgliedAnlegen, amtZuweisen, wacklerEntscheidenAction } from './actions';
+import { WacklerKarte } from './wackler-karte';
+import { darfWacklerEntscheiden, offeneWackler } from '@/lib/wackler';
 import { AmtZuweisen } from './amt-zuweisen';
 import { SpezlAufnehmen } from './spezl-aufnehmen';
 import { auszeichnungAn } from '@/lib/tenant-config';
@@ -12,6 +14,7 @@ export default async function SpezlnPage() {
   erzwingeProfil(me);
   const { eintraege, aemterListe, galerie, badgeInfos, mitglieder, saison, praesidentId, letzterTerminId } = ladeRanglisteDaten(me.id);
   // Kassenwart trägt der Admin ODER der aktuelle Präsident ein
+  const wackler = darfWacklerEntscheiden(me) ? offeneWackler() : [];
   const darfAmtZuweisen = (me.role === 'admin' || me.id === praesidentId) && auszeichnungAn('amt:kassenwart');
 
   return (
@@ -24,6 +27,8 @@ export default async function SpezlnPage() {
           action={amtZuweisen}
         />
       )}
+
+      {darfWacklerEntscheiden(me) && wackler.length > 0 && <WacklerKarte wackler={wackler} entscheiden={wacklerEntscheidenAction} />}
 
       {me.role === 'admin' && <SpezlAufnehmen action={mitgliedAnlegen} />}
     </div>

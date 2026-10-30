@@ -19,6 +19,8 @@ type Baustein = {
   kasten?: Array<[string, string]>;
   /** Hauptknopf: `pfad` in der App oder fertige `url` */
   knopf?: { text: string; pfad?: string; url?: string };
+  /** Zweiter, heller Knopf daneben (z. B. „Ich verabschiede mich“) */
+  knopf2?: { text: string; url: string };
   /** Weitere Links unter dem Knopf (Route, Kalender …), absolute URLs */
   links?: Array<{ text: string; url: string }>;
   /** Kleiner Hinweis unter dem Inhalt */
@@ -38,6 +40,11 @@ function esc(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
+/** Satzanfang groß („da Toni“ → „Da Toni“). */
+function gross(s: string): string {
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
 function url(r: MailRahmen, pfad: string): string {
   return `${r.basisUrl.replace(/\/+$/, '')}${pfad.startsWith('/') ? pfad : `/${pfad}`}`;
 }
@@ -53,6 +60,7 @@ function baue(r: MailRahmen, b: Baustein): MailInhalt {
     ...b.absaetze.flatMap((a) => [a, '']),
     ...(b.kasten ? [...b.kasten.map(([k, v]) => `${k}: ${v}`), ''] : []),
     ...(b.knopf && knopfUrl ? [`${b.knopf.text}: ${knopfUrl}`] : []),
+    ...(b.knopf2 ? [`${b.knopf2.text}: ${b.knopf2.url}`] : []),
     ...(b.links ?? []).map((l) => `${l.text}: ${l.url}`),
     ...(b.knopf || b.links?.length ? [''] : []),
     ...(b.hinweis ? [b.hinweis, ''] : []),
@@ -76,6 +84,11 @@ function baue(r: MailRahmen, b: Baustein): MailInhalt {
         <a href="${esc(knopfUrl)}" style="display:inline-block;padding:13px 22px;font-size:15px;font-weight:700;color:#fff;text-decoration:none">${esc(b.knopf.text)}</a>
       </td></tr></table>`
     : '';
+  const knopf2 = b.knopf2
+    ? `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 12px"><tr><td style="border:1.5px solid ${RAND};border-radius:12px">
+        <a href="${esc(b.knopf2.url)}" style="display:inline-block;padding:12px 22px;font-size:15px;font-weight:700;color:${NAVY};text-decoration:none">${esc(b.knopf2.text)}</a>
+      </td></tr></table>`
+    : '';
   const links = (b.links ?? [])
     .map((l) => `<div style="margin:6px 0"><a href="${esc(l.url)}" style="font-size:14px;font-weight:700;color:${NAVY}">${esc(l.text)}</a></div>`)
     .join('');
@@ -91,7 +104,7 @@ function baue(r: MailRahmen, b: Baustein): MailInhalt {
   <tr><td style="padding:22px;color:${TINTE};font-size:15px;line-height:1.55">
     <p style="margin:0 0 14px;font-weight:700">${esc(b.anrede)}</p>
     ${b.absaetze.map((a) => `<p style="margin:0 0 14px">${esc(a)}</p>`).join('')}
-    ${kasten}${knopf}${links}
+    ${kasten}${knopf}${knopf2}${links}
     ${b.hinweis ? `<p style="margin:14px 0 0;font-size:13px;color:${GRAU}">${esc(b.hinweis)}</p>` : ''}
     <p style="margin:20px 0 0;font-weight:700;color:${NAVY}">${esc(signatur)}</p>
   </td></tr>
@@ -245,7 +258,7 @@ export function mailGemeldet(
   const menge = d.hoibe === 1 ? 'eine Hoibe' : `${d.hoibe} Hoibe`;
   const inhalt = baue(r, {
     anrede: `Servus ${d.name}!`,
-    absaetze: [`${d.von} hat dich gemeldet: „${d.grund}“. Das kostet ${menge}.`, `Zahlen kannst du beim Kassenwart${d.paypal ? ' oder per PayPal' : ''}.`],
+    absaetze: [`${gross(d.von)} hat dich gemeldet: „${d.grund}“. Das kostet ${menge}.`, `Zahlen kannst du beim Kassenwart${d.paypal ? ' oder per PayPal' : ''}.`],
     knopf: { text: 'Zur Kasse', pfad: '/kasse' },
   });
   return { betreff: 'Du bist gemeldet worden', inhalt };
@@ -296,4 +309,34 @@ export function mailWillkommen(
     einstellbar: false,
   });
   return { betreff: `Servus beim ${r.stammtisch}!`, inhalt };
+}
+
+/** Wackler: dreimal in Folge unentschuldigt gefehlt, einmal pro Wackel-Phase. Kommt immer. */
+export function mailWackeln(r: MailRahmen, d: { vorname: string; anzahl: number; dabeiUrl: string; abschiedUrl: string }): { betreff: string; inhalt: MailInhalt } {
+  const inhalt = baue(r, {
+    anrede: `Servus ${d.vorname}!`,
+    absaetze: [
+      `Du hast jetzt ${d.anzahl} Stammtische hintereinander ohne Absage gefehlt. Das ist kein Vorwurf, manchmal kommt halt das Leben dazwischen.`,
+      'Wir wollen nur wissen, woran wir sind: Bist du weiter dabei, oder magst du dich lieber verabschieden?',
+      'Wenn du dich verabschiedest, bleiben deine Abende, Punkte und Bewertungen in der Chronik. Und wenn du irgendwann zurück willst, holen wir dich gern wieder rein.',
+    ],
+    knopf: { text: 'Ja, ich bin dabei', url: d.dabeiUrl },
+    knopf2: { text: 'Ich verabschiede mich', url: d.abschiedUrl },
+    hinweis: 'Wenn du nicht antwortest, entscheidet nach 14 Tagen der Präsident.',
+    einstellbar: false,
+  });
+  return { betreff: 'Bist du noch dabei?', inhalt };
+}
+
+/** Wackler hat 14 Tage nicht geantwortet: an den Präsident (oder die Admins). */
+export function mailWacklerOhneAntwort(r: MailRahmen, d: { anrede: string; wackler: string; gefragtAm: string }): { betreff: string; inhalt: MailInhalt } {
+  const inhalt = baue(r, {
+    anrede: `Servus ${d.anrede}!`,
+    absaetze: [
+      `${gross(d.wackler)} wackelt und hat sich auf unsere Frage vom ${d.gefragtAm} nicht gemeldet.`,
+      'Als Präsident entscheidest du jetzt: ausscheiden lassen oder dabei lassen. Das geht unter Spezln ganz unten.',
+    ],
+    knopf: { text: 'Jetzt entscheiden', pfad: '/spezln#wackler' },
+  });
+  return { betreff: `${gross(d.wackler)} hat nicht geantwortet`, inhalt };
 }

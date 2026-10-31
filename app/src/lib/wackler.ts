@@ -2,15 +2,15 @@ import { randomBytes } from 'node:crypto';
 import { and, desc, eq, isNull } from 'drizzle-orm';
 import { db, members, sessions, pushSubscriptions, besuche, termine, wackelAnfragen, bindTenant, currentTenant } from '@/lib/db';
 import { getAktiveMitglieder, getPraesidentId, getStats } from '@/lib/queries';
-import { WACKELT_AB_UNENTSCHULDIGT } from '@/lib/punkte';
+import { WACKELT_AB_UNENTSCHULDIGT, berlinTag } from '@/lib/punkte';
 import { appUrl } from '@/lib/tenant-config';
 import { datumKurz } from '@/lib/format';
 import { anzeigeName } from '@/lib/namen';
 import { newId, nowIso } from '@/lib/ids';
 import { mailAn } from '@/lib/mail';
 import { pushAn } from '@/lib/push';
-import { mailWackeln, mailWacklerOhneAntwort } from '@/lib/mail-vorlagen';
-import { mailRahmen, rufname } from '@/lib/mail-rahmen';
+import { mailAbschied, mailWackeln, mailWacklerOhneAntwort } from '@/lib/mail-vorlagen';
+import { mailRahmen, rufname, willMail } from '@/lib/mail-rahmen';
 
 /**
  * „Willst du no dabei sein?“ (Julius, 30.10.2026). Wer wackelt (3× in Folge
@@ -114,18 +114,40 @@ export function darfWacklerEntscheiden(m: Mitglied): boolean {
 
 /**
  * Spezl scheidet aus: Konto stilllegen (Login geht nimmer, Chronik bleibt),
- * Sessions und Push-Abos weg, alle anderen kriegen an Push.
+ * Sessions und Push-Abos weg, alle anderen kriegen Push und a kurze Mail
+ * (außer wer „Keine Mails“ eingestellt hat).
  */
 export async function ausscheiden(memberId: string, wie: 'selbst' | 'praesident'): Promise<void> {
   const m = db.select().from(members).where(eq(members.id, memberId)).get();
   if (!m || m.status !== 'aktiv') return;
-  db.update(members).set({ status: 'inaktiv' }).where(eq(members.id, memberId)).run();
+  db.update(members).set({ status: 'inaktiv', ausgeschiedenAm: nowIso(), abschied: wie }).where(eq(members.id, memberId)).run();
   db.delete(sessions).where(eq(sessions.memberId, memberId)).run();
   db.delete(pushSubscriptions).where(eq(pushSubscriptions.memberId, memberId)).run();
   db.update(wackelAnfragen).set({ erledigt: true }).where(eq(wackelAnfragen.memberId, memberId)).run();
   const name = anzeigeName(m);
   const text = wie === 'selbst' ? `${name} hat sich vom Stammtisch verabschiedet. Servus und mach’s gut!` : `${name} ist aus dem Stammtisch ausgeschieden.`;
-  await pushAn(getAktiveMitglieder().map((x) => x.id), '👋 Abschied', text, '/spezln');
+  const andere = getAktiveMitglieder();
+  const rahmen = mailRahmen();
+  const mails = andere
+    .filter((x) => willMail(x, 'termin') || willMail(x, 'erinnerung') || willMail(x, 'kasse'))
+    .map((x) => {
+      const { betreff, inhalt } = mailAbschied(rahmen, { anrede: rufname(x), name, selbst: wie === 'selbst' });
+      return mailAn([x.email], betreff, inhalt);
+    });
+  await Promise.allSettled([pushAn(andere.map((x) => x.id), '👋 Abschied', text, '/spezln'), ...mails]);
+}
+
+/** Abschiede der letzten 90 Tage für die Zeile auf /spezln. */
+export function letzteAbschiede(jetztIso = nowIso()): Array<{ id: string; name: string; am: string; selbst: boolean }> {
+  const grenze = new Date(Date.parse(jetztIso) - 90 * 86_400_000).toISOString();
+  return db
+    .select()
+    .from(members)
+    .where(eq(members.status, 'inaktiv'))
+    .orderBy(desc(members.ausgeschiedenAm))
+    .all()
+    .filter((m) => m.ausgeschiedenAm && m.ausgeschiedenAm >= grenze)
+    .map((m) => ({ id: m.id, name: anzeigeName(m), am: datumKurz(berlinTag(m.ausgeschiedenAm!)), selbst: m.abschied !== 'praesident' }));
 }
 
 export type AnfrageMitMitglied = { anfrage: Anfrage; member: Mitglied };

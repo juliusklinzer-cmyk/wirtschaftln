@@ -4,7 +4,8 @@ import { Rangliste } from './rangliste-b';
 import { ladeRanglisteDaten } from './daten';
 import { mitgliedAnlegen, amtZuweisen, wacklerEntscheidenAction } from './actions';
 import { WacklerKarte } from './wackler-karte';
-import { darfWacklerEntscheiden, offeneWackler } from '@/lib/wackler';
+import { darfWacklerEntscheiden, letzteAbschiede, offeneWackler } from '@/lib/wackler';
+import { AbschiedZeilen } from './abschied-zeilen';
 import { AmtZuweisen } from './amt-zuweisen';
 import { SpezlAufnehmen } from './spezl-aufnehmen';
 import { auszeichnungAn } from '@/lib/tenant-config';
@@ -15,11 +16,14 @@ export default async function SpezlnPage() {
   const { eintraege, aemterListe, galerie, badgeInfos, mitglieder, saison, praesidentId, letzterTerminId } = ladeRanglisteDaten(me.id);
   // Kassenwart trägt der Admin ODER der aktuelle Präsident ein
   const wackler = darfWacklerEntscheiden(me) ? offeneWackler() : [];
+  const abschiede = letzteAbschiede();
   const darfAmtZuweisen = (me.role === 'admin' || me.id === praesidentId) && auszeichnungAn('amt:kassenwart');
 
   return (
     <div className="wn-eintritt" style={{ padding: '0 16px 32px', display: 'flex', flexDirection: 'column', gap: 24 }}>
       <Rangliste eintraege={eintraege} aemter={aemterListe} galerie={galerie} badgeInfos={badgeInfos} saisonLabel={saison.label} letzterTerminId={letzterTerminId} />
+
+      {abschiede.length > 0 && <AbschiedZeilen abschiede={abschiede} />}
 
       {darfAmtZuweisen && (
         <AmtZuweisen

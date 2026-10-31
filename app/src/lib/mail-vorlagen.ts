@@ -328,6 +328,19 @@ export function mailWackeln(r: MailRahmen, d: { vorname: string; anzahl: number;
   return { betreff: 'Bist du noch dabei?', inhalt };
 }
 
+/** Einer ist ausgeschieden: kurze Info an alle anderen. */
+export function mailAbschied(r: MailRahmen, d: { anrede: string; name: string; selbst: boolean }): { betreff: string; inhalt: MailInhalt } {
+  const inhalt = baue(r, {
+    anrede: `Servus ${d.anrede}!`,
+    absaetze: [
+      d.selbst ? `${gross(d.name)} hat sich vom Stammtisch verabschiedet. Servus und mach’s gut!` : `${gross(d.name)} ist aus dem Stammtisch ausgeschieden.`,
+      'Seine Abende und Punkte bleiben in der Chronik.',
+    ],
+    knopf: { text: 'Zu den Spezln', pfad: '/spezln' },
+  });
+  return { betreff: d.selbst ? `${gross(d.name)} hat sich verabschiedet` : `${gross(d.name)} ist ausgeschieden`, inhalt };
+}
+
 /** Wackler hat 14 Tage nicht geantwortet: an den Präsident (oder die Admins). */
 export function mailWacklerOhneAntwort(r: MailRahmen, d: { anrede: string; wackler: string; gefragtAm: string }): { betreff: string; inhalt: MailInhalt } {
   const inhalt = baue(r, {

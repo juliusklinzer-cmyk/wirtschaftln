@@ -43,7 +43,7 @@ export async function mitgliedAnlegen(formData: FormData): Promise<AufnahmeErgeb
   const vorhanden = db.select().from(members).where(eq(members.email, email)).get();
   if (vorhanden && vorhanden.status === 'inaktiv') {
     db.update(members)
-      .set({ status: 'aktiv', vorname, nachname, name: `${vorname} ${nachname}`, spitzname, passwordHash: hashPassword(password), erstanmeldung: true })
+      .set({ status: 'aktiv', ausgeschiedenAm: null, abschied: null, vorname, nachname, name: `${vorname} ${nachname}`, spitzname, passwordHash: hashPassword(password), erstanmeldung: true })
       .where(eq(members.id, vorhanden.id))
       .run();
     const c = tenantConfig();

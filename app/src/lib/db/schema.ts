@@ -37,6 +37,9 @@ export const members = sqliteTable('members', {
   mailTermin: integer('mail_termin', { mode: 'boolean' }).notNull().default(true),
   mailErinnerung: integer('mail_erinnerung', { mode: 'boolean' }).notNull().default(true),
   mailKasse: integer('mail_kasse', { mode: 'boolean' }).notNull().default(true),
+  /** Wann und wie er ausgeschieden ist (31.10.2026), für die Abschieds-Zeile auf /spezln */
+  ausgeschiedenAm: text('ausgeschieden_am'),
+  abschied: text('abschied', { enum: ['selbst', 'praesident'] }),
   createdAt: text('created_at').notNull(),
 });
 

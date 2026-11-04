@@ -387,6 +387,20 @@ details[open] > summary .wn-klappe-pfeil {
 body.wn-glas .wn-statusleiste {
   display: none;
 }
+/* iOS 26 gibt im durchsichtigen Modus nur Bildschirm minus Statusleiste her
+   (WebKit-Bug 301108), ein fester Rahmen endet 62 px über der Kante. Mit 100vh
+   auf html/body und einem mitlaufenden statt festen Rahmen reicht d'App bis
+   ganz unten. */
+html:has(body.wn-glas),
+body.wn-glas {
+  height: 100vh;
+  overflow: hidden;
+}
+body.wn-glas .wn-app-rahmen {
+  position: relative !important;
+  inset: auto !important;
+  height: 100vh;
+}
 
 .wn-scroll-still {
   scrollbar-width: none;

@@ -14,7 +14,6 @@ import { strafenUebersicht } from '@/lib/strafen-regeln';
 import { publicTenantConfig } from '@/lib/tenant-config';
 import { offeneAnfragen } from '@/lib/db/directory';
 import { ZiehenAktualisieren } from '@/components/shell/ZiehenAktualisieren';
-import { GlasMessung } from '@/components/shell/GlasMessung';
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const me = await getCurrentMember();
@@ -39,6 +38,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   return (
     <TenantProvider config={config}>
     <div
+      className="wn-app-rahmen"
       style={{
         // Fest verankerter App-Rahmen (statt 100dvh): füllt den sichtbaren
         // Bildschirm IMMER exakt — koa Spalt mehr unterm Menü, wenn iOS im
@@ -53,7 +53,6 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         boxShadow: '0 0 60px rgba(7,25,58,0.45)',
       }}
     >
-      {config.features.glasLeiste && me.role === 'admin' && <GlasMessung />}
       {/* „Was ist neu“ nach einem Update, einmal pro Ausgabe (lib/neuigkeiten.ts) */}
       {neuigkeitenZeigen(me) && <Neuigkeiten stammtischName={config.name} schnapsnase={config.features.muenchenBadges && config.features.schnaps} />}
       {/* 🤳 Dani-Modus: der weiße Streifen liegt über der ganzen App (nur beim Gründer) */}

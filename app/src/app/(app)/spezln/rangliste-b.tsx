@@ -73,8 +73,8 @@ export function Rangliste({
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-      {/* Oben nur Wertung + Saison/Allzeit, sticky */}
-      <div style={{ position: 'sticky', top: 0, zIndex: 15, margin: '0 -16px', padding: 'calc(12px + env(safe-area-inset-top)) 16px 8px', background: 'var(--bg-app)', display: 'flex', gap: 8, alignItems: 'center' }}>
+      {/* Oben nur Wertung + Saison/Allzeit, sticky (in der iPhone-App mit Glas-Leiste ned, siehe .wn-rang-kopf in globals.css) */}
+      <div className="wn-rang-kopf" style={{ position: 'sticky', top: 0, zIndex: 15, margin: '0 -16px', padding: 'calc(12px + env(safe-area-inset-top)) 16px 8px', background: 'var(--bg-app)', display: 'flex', gap: 8, alignItems: 'center' }}>
         <div style={{ flex: 1, minWidth: 0 }}>
           <Segment value={metrik} onChange={setMetrik} items={METRIKEN.map((m) => ({ value: m.value, label: m.label }))} />
         </div>

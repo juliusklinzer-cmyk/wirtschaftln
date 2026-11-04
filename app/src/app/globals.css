@@ -412,6 +412,12 @@ details[open] > summary .wn-klappe-pfeil {
       inset: auto !important;
       height: 100vh;
     }
+    /* Rang: obere Reihe (Wertung, Saison/Allzeit) scrollt mit weg statt
+       unterm Blur kleben zu bleiben, und startet wia der Kopf unterhalb vom Blur */
+    body.wn-glas .wn-rang-kopf {
+      position: relative !important;
+      padding-top: calc(var(--wn-kopf-luft) + env(safe-area-inset-top)) !important;
+    }
   }
 }
 

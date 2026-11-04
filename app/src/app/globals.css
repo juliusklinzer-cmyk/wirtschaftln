@@ -387,11 +387,6 @@ details[open] > summary .wn-klappe-pfeil {
 body.wn-glas .wn-statusleiste {
   display: none;
 }
-/* Seiten mit .wn-ohne-glas (Karte): wieder der feste Navy-Streifen, der
-   iOS-Blur über einer einfarbigen Fläche fällt ned auf */
-body.wn-glas:has(.wn-ohne-glas) .wn-statusleiste {
-  display: block;
-}
 /* Der iOS-Blur reicht gut 40 px unter die Uhrzeit (am iPhone war die
    rote Messzeile bis ~110 pt verschwommen): Kopf so weit runter, dass Logo
    und Name vor dem Scrollen scharf san. */

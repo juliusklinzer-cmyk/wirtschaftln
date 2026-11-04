@@ -24,7 +24,7 @@ import { datumMittel, datumKurz } from '@/lib/format';
 import { PTS, berlinTag, bierdeckelOffen, abschlussOffen, abschlussAb, ABEND_ENDE_UHRZEIT } from '@/lib/punkte';
 import { nowIso } from '@/lib/ids';
 import { Card, Icon, Chip, Kachel, Zeile, ZeilenKarte, KlappenKopf } from '@/components/ds';
-import { neuerTermin, wirtshausFestlegen, phaseSetzen, besuchAbschliessen, meineBewertung, orgaSchnappen } from './actions';
+import { neuerTermin, wirtshausFestlegen, phaseSetzen, besuchAbschliessen, meineBewertung, orgaSchnappen, terminVerschieben } from './actions';
 import { type AbschlussWerte } from './abschluss-form';
 import { MeiBewertung } from '@/components/domain/MeiBewertung';
 import { bewertungsDaten } from '@/lib/bewertungs-daten';
@@ -344,7 +344,7 @@ async function AktiverTermin({
 
         {/* Mei Wertung, jeder für sich, scho am Abend (bis 7 Tag nach’m Abschluss) */}
         <section style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <HoamTitel action={<span style={bereichHinweisStil}>{bewertet ? '✓ abgegeben' : stammhausAbend ? 'Brodn? Schmarrn?' : `+${PTS.bewertung} WP`}</span>}>Deine Wertung</HoamTitel>
+          <HoamTitel action={<span style={bereichHinweisStil}>{bewertet ? '✓ abgegeben' : stammhausAbend ? 'Brodn? Schmarrn?' : 'jeder für sich'}</span>}>Deine Wertung</HoamTitel>
           <MeiBewertung variante="abend" wirtshausName={null} initial={daten.initial} team={daten.team} action={meineBewertung.bind(null, termin.id)} ohneSterne={stammhausAbend} />
         </section>
 
@@ -372,15 +372,15 @@ async function AktiverTermin({
                 <span style={{ fontSize: 17, fontWeight: 800, color: 'var(--navy)' }}>
                   {naechster ? `${datumMittel(naechster.datum)} · ${naechster.zeit} Uhr` : 'Noch kein Termin'}
                 </span>
-                <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink-500)' }}>
-                  Wer war da: abgehakt von {erfasser ? anzeigeName(erfasser).split(' ')[0] : 'einem Spezl'}
+                <span style={{ fontSize: 13, fontWeight: 600, lineHeight: 1.45, color: 'var(--ink-500)' }}>
+                  {naechster ? 'Ausgemacht' : '„Wer war da“ abgehakt'} von {erfasser ? anzeigeName(erfasser).split(' ')[0] : 'einem Spezl'}.{naechster ? ' Zu- und absagen geht, sobald der heutige Abend zu ist.' : ''}
                 </span>
               </div>
               <Link href="/termin/abschluss" className="wn-press" style={{ minHeight: 48, borderRadius: 'var(--r-md)', border: '1.5px solid var(--ink-200)', background: 'var(--weiss)', color: 'var(--navy)', fontSize: 15, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, textDecoration: 'none' }}>
                 <Icon name="users" size={18} />
                 Wer war da ändern
               </Link>
-              <Hinweis>Der Deckel bleibt offen bis {ABEND_ENDE_UHRZEIT} Uhr, dann schließt sich der Abend von selbst.</Hinweis>
+              <Hinweis>Bis {Number(ABEND_ENDE_UHRZEIT.slice(0, 2))} Uhr früh kann jeder noch stricheln und „Wer war da“ ändern. Dann ist der Abend zu und Punkte und Strafen werden verbucht.</Hinweis>
             </>
           ) : abschluss ? (
             <>
@@ -410,6 +410,9 @@ async function AktiverTermin({
   const stimmeHint = meinVote === 'zu' ? 'du bist dabei' : meinVote === 'ab' ? 'du hast abgesagt' : 'noch nicht abgestimmt';
   const orgaRollen = [planer ? planerName : null, 'Präsident', 'Admin'].filter(Boolean).join(' · ');
   const anmeldungSchliessen = darfVerwalten && termin.phase === 'reserviert' && heuteTag ? phaseSetzen.bind(null, termin.id, 'heute') : null;
+  const verschieben = darfVerwalten && !termin.erfasstVon
+    ? { action: terminVerschieben.bind(null, termin.id), datum: termin.datum, zeit: termin.zeit, heute: berlinTag(nowIso()) }
+    : null;
   const reservierung = termin.phase === 'reserviert' && darfVerwalten && wirtshaus
     ? { action: wirtshausFestlegen.bind(null, termin.id), bekannte: getBekannteWirtshaeuser(), aktuell: { name: wirtshaus.name, bezirk: wirtshaus.bezirk } }
     : null;
@@ -495,7 +498,7 @@ async function AktiverTermin({
         </section>
       )}
 
-      <OrganisationKarte hint={orgaRollen} anmeldungSchliessen={anmeldungSchliessen} reservierung={reservierung} nachtrag={nachtragOrga} />
+      <OrganisationKarte hint={orgaRollen} anmeldungSchliessen={anmeldungSchliessen} reservierung={reservierung} verschieben={verschieben} nachtrag={nachtragOrga} />
     </>
   );
 }

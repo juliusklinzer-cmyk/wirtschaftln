@@ -79,7 +79,8 @@ export function absageRechtzeitig(vote: Pick<Vote, 'wert' | 'abgesagtAm'>, termi
  */
 export function fehltUnentschuldigt(vote: Pick<Vote, 'wert' | 'abgesagtAm'> | undefined, termin: Termin, regel: Regel | undefined): boolean {
   if (!regel?.aktiv) return false;
-  if (!vote) return regel.nichtEingetragenZusage;
+  // „vielleicht“ = keine Antwort (Altbestand, oder zurückgesetzt beim Verschieben)
+  if (!vote || vote.wert === 'vielleicht') return regel.nichtEingetragenZusage;
   if (vote.wert === 'ab') return !absageRechtzeitig(vote, termin, regel);
   return true; // zu oder vielleicht
 }

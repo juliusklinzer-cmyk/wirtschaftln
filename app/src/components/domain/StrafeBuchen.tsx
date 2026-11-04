@@ -54,7 +54,11 @@ export function StrafeBuchen({
   };
 
   if (regeln.length === 0) {
-    return <span style={{ fontSize: 13, fontWeight: 600, lineHeight: 1.5, color: 'var(--ink-500)' }}>Noch keine eigenen Strafen im Katalog. Die legen Präsident oder Admin in der Kasse an.</span>;
+    return (
+      <span style={{ fontSize: 13, fontWeight: 600, lineHeight: 1.5, color: 'var(--ink-500)' }}>
+        Noch keine eigenen Strafen im Katalog. Die legen Präsident oder Admin unter <a href="/stammtisch" style={{ color: 'var(--muc-blau)', fontWeight: 800 }}>Unser Stammtisch</a> an.
+      </span>
+    );
   }
 
   return (

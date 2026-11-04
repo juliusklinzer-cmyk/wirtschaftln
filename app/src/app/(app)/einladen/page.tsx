@@ -34,7 +34,7 @@ export default async function EinladenPage() {
             D’Aufnahme is grad zua: es gibt koan Gründungscode.{' '}
             {me.role === 'admin' ? (
               <>
-                Leg unter <Link href="/stammtisch" style={{ color: 'var(--muc-blau)', fontWeight: 800 }}>Stammtisch verwalten</Link> an Code fest, dann gibt’s hier den Einladungs-Link.
+                Leg unter <Link href="/stammtisch" style={{ color: 'var(--muc-blau)', fontWeight: 800 }}>Unser Stammtisch</Link> an Code fest, dann gibt’s hier den Einladungs-Link.
               </>
             ) : (
               'Frag den Admin, der kann an Code festlegen.'

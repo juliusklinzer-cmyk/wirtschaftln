@@ -25,17 +25,6 @@ export type RegelZeile = {
   geaendert: string | null;
 };
 
-export type BuchungZeile = {
-  id: string;
-  wer: string;
-  name: string;
-  folge: string;
-  datum: string;
-  erlassen: boolean;
-  darfErlassen: boolean;
-  darfZuruecknehmen: boolean;
-};
-
 type Antwort = { ok: boolean; meldung: string };
 
 const BEISPIELE: Array<{ name: string; detail: string; euro: string; wp: string }> = [
@@ -160,28 +149,21 @@ function RegelForm({ regel, vorlage, speichern, fertig }: { regel: RegelZeile | 
 }
 
 /**
- * Strafenkatalog in der Kasse (04.11.2026): jeder sieht, was was kostet, wie
- * eine Satzung. Präsident und Admin legen an und ändern. Drunter die zuletzt
- * gebuchten Strafen, dort wird zurückgenommen und erlassen.
+ * Strafenkatalog auf der Stammtisch-Seite (04.11.2026): jeder sieht, was was
+ * kostet, wie eine Satzung. Präsident und Admin legen an und ändern. Gebucht
+ * wird in der Kasse und am Zettel.
  */
 export function StrafenKatalog({
   regeln,
-  gebucht,
   darfPflegen,
   speichern,
-  erlassen,
-  zuruecknehmen,
 }: {
   regeln: RegelZeile[];
-  gebucht: BuchungZeile[];
   darfPflegen: boolean;
   speichern: (fd: FormData) => Promise<Antwort>;
-  erlassen: (id: string) => Promise<boolean>;
-  zuruecknehmen: (id: string) => Promise<boolean>;
 }) {
   const [offen, setOffen] = useState<{ regel: RegelZeile | null; vorlage?: (typeof BEISPIELE)[number] } | null>(null);
   const [erfolg, setErfolg] = useState<string | null>(null);
-  const [pending, startTransition] = useTransition();
   const eigene = regeln.filter((r) => r.art === 'eigene');
 
   useEffect(() => {
@@ -211,11 +193,9 @@ export function StrafenKatalog({
     </button>
   );
 
-  const knopfKlein = (farbe: string): React.CSSProperties => ({ padding: '5px 10px', borderRadius: 999, border: `1.5px solid ${farbe}`, background: 'transparent', color: farbe, fontSize: 11, fontWeight: 800, whiteSpace: 'nowrap', cursor: 'pointer', fontFamily: 'var(--font-ui)', opacity: pending ? 0.6 : 1 });
-
   return (
     <section style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-      <HoamTitel action={<span style={bereichHinweisStil}>gilt für alle</span>}>Strafenkatalog</HoamTitel>
+      <HoamTitel action={<span style={bereichHinweisStil}>{darfPflegen ? 'antippen zum Ändern' : 'gilt für alle'}</span>}>Strafenkatalog</HoamTitel>
       <ZeilenKarte>{regeln.map((r, i) => zeile(r, i, regeln.length))}</ZeilenKarte>
 
       {darfPflegen && (
@@ -236,27 +216,6 @@ export function StrafenKatalog({
               </div>
             </div>
           )}
-        </>
-      )}
-
-      {gebucht.length > 0 && (
-        <>
-          <HoamTitel action={<span style={bereichHinweisStil}>letzte 30 Tage</span>}>Gebuchte Strafen</HoamTitel>
-          <ZeilenKarte>
-            {gebucht.map((b, i) => (
-              <div key={b.id} style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: '11px 0', borderBottom: i < gebucht.length - 1 ? '1px solid var(--ink-50)' : 'none', opacity: b.erlassen ? 0.55 : 1 }}>
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
-                  <span style={{ flex: 1, minWidth: 0, fontSize: 14, fontWeight: 800, color: 'var(--ink-900)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{b.wer} · {b.name}</span>
-                  <span className="wn-tnum" style={{ fontSize: 13, fontWeight: 800, color: b.erlassen ? 'var(--ink-300)' : 'var(--strafe)', textDecoration: b.erlassen ? 'line-through' : undefined, flex: 'none' }}>{b.folge}</span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <span style={{ flex: 1, fontSize: 11, fontWeight: 600, color: 'var(--ink-300)' }}>{b.datum}{b.erlassen ? ' · erlassen' : ''}</span>
-                  {b.darfZuruecknehmen && <button type="button" disabled={pending} onClick={() => startTransition(async () => { await zuruecknehmen(b.id); })} style={knopfKlein('var(--ink-500)')}>Zurücknehmen</button>}
-                  {b.darfErlassen && <button type="button" disabled={pending} onClick={() => startTransition(async () => { await erlassen(b.id); })} style={knopfKlein('var(--gold-700)')}>Erlassen</button>}
-                </div>
-              </div>
-            ))}
-          </ZeilenKarte>
         </>
       )}
 

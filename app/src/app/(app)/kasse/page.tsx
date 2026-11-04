@@ -7,11 +7,10 @@ import { Avatar, Icon, ZeilenKarte } from '@/components/ds';
 import { HoamTitel } from '@/components/domain/HoamTitel';
 import { KasseAktionen } from '@/components/domain/KasseAktionen';
 import { goldKnopfStil, bereichHinweisStil } from '@/components/domain/hero-stil';
-import { strafeBuchenAction, forderungStatus, einzahlung, spenden, auslage, ausgabe, regelSpeichern, strafeErlassenAction, strafeZuruecknehmenAction } from './actions';
-import { StrafenKatalog } from './strafen-katalog';
-import { katalog, regelZusammenfassung, folgeWort } from '@/lib/strafen-regeln';
+import { strafeBuchenAction, forderungStatus, einzahlung, spenden, auslage, ausgabe, strafeErlassenAction, strafeZuruecknehmenAction } from './actions';
+import { GebuchteStrafen } from './gebuchte-strafen';
+import { katalog, folgeWort } from '@/lib/strafen-regeln';
 import { letzteBuchungen, buchungZurKasse, darfErlassen as darfStrafeErlassen } from '@/lib/strafen';
-import { datumKurz } from '@/lib/format';
 
 export const metadata = { title: 'Kasse · Wirtschaftln' };
 
@@ -126,23 +125,7 @@ export default async function KassePage() {
         actions={{ strafeBuchen: strafeBuchenAction, spenden, auslage, einzahlung, ausgabe }}
       />
 
-      <StrafenKatalog
-        regeln={regeln.map((r) => ({
-          id: r.id, art: r.art, name: r.name, detail: r.detail, abzuege: r.wpStaffel.map((w) => -w), betragCents: r.betragCents,
-          fristArt: r.fristArt, fristWert: r.fristWert, nichtEingetragenZusage: r.nichtEingetragenZusage, erlassbar: r.erlassbar, aktiv: r.aktiv,
-          zusammenfassung: regelZusammenfassung(r),
-          geaendert: r.geaendertAm
-            ? `geändert am ${datumKurz(r.geaendertAm.slice(0, 10))}${nameVon(r.geaendertVon) ? ` von ${nameVon(r.geaendertVon)}` : ''}`
-            : r.erstelltVon
-              ? `angelegt am ${datumKurz(r.erstelltAm.slice(0, 10))}${nameVon(r.erstelltVon) ? ` von ${nameVon(r.erstelltVon)}` : ''}`
-              : null,
-        }))}
-        gebucht={letzteBuchungen(me)}
-        darfPflegen={darfErlassen}
-        speichern={regelSpeichern}
-        erlassen={strafeErlassenAction}
-        zuruecknehmen={strafeZuruecknehmenAction}
-      />
+      <GebuchteStrafen gebucht={letzteBuchungen(me)} erlassen={strafeErlassenAction} zuruecknehmen={strafeZuruecknehmenAction} />
 
       {/* Kassenbuch: alles aus Sicht der Kasse */}
       <section style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>

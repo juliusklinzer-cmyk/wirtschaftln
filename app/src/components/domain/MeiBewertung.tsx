@@ -127,7 +127,7 @@ export function MeiBewertung({
           style={{ background: 'var(--weiss)', borderRadius: 'var(--r-lg)', border: '1px solid var(--ink-100)', boxShadow: 'var(--sh-sm)', padding: 16, display: 'flex', flexDirection: 'column' }}
         >
           {ohneSterne ? <StammhausFelder werte={initial} titel={stammhausFrage(wirtshausName)} /> : <WertungFelder werte={initial} />}
-          <SpeichernKnopf schonBewertet={schonBewertet} />
+          <SpeichernKnopf schonBewertet={schonBewertet} wp={ohneSterne ? 0 : PTS.bewertung} />
         </form>
         {meldung && (
           <div
@@ -309,8 +309,8 @@ export function MeiBewertung({
   );
 }
 
-/** Speichern mit Pending-Zustand, damit der Knopf spürbar reagiert. */
-function SpeichernKnopf({ schonBewertet }: { schonBewertet: boolean }) {
+/** Speichern mit Pending-Zustand, damit der Knopf spürbar reagiert. Navy, damit er sich vom Gold der Hauptaktion abhebt. */
+function SpeichernKnopf({ schonBewertet, wp = 0 }: { schonBewertet: boolean; wp?: number }) {
   const { pending } = useFormStatus();
   return (
     <button
@@ -319,12 +319,14 @@ function SpeichernKnopf({ schonBewertet }: { schonBewertet: boolean }) {
       className="wn-press"
       style={{
         marginTop: 16, width: '100%', minHeight: 48, border: 'none', borderRadius: 'var(--r-md)',
-        background: 'var(--grad-gold)', boxShadow: 'var(--sh-gold)', cursor: pending ? 'default' : 'pointer',
-        fontFamily: 'var(--font-ui)', fontSize: 15, fontWeight: 800, color: 'var(--navy-900)',
+        background: 'var(--navy)', cursor: pending ? 'default' : 'pointer',
+        fontFamily: 'var(--font-ui)', fontSize: 15, fontWeight: 800, color: '#fff',
+        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
         opacity: pending ? 0.7 : 1,
       }}
     >
       {pending ? 'Speichert…' : schonBewertet ? 'Bewertung aktualisieren' : 'Bewertung abgeben'}
+      {!pending && !schonBewertet && wp > 0 && <span className="wn-tnum" style={{ color: 'var(--gold-bright)' }}>+{wp} WP</span>}
     </button>
   );
 }

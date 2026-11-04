@@ -71,7 +71,8 @@ export function AbschlussZettel({
 }) {
   const [status, setStatus] = useState<Record<string, Status>>(() => {
     const s: Record<string, Status> = {};
-    for (const m of mitglieder) s[m.id] = m.stand?.status ?? (m.live || m.zugesagt || m.id === meId ? 'da' : 'weg');
+    // Erstmal sind alle da, abgehakt wird, wer gefehlt hat (Julius, 04.11.2026)
+    for (const m of mitglieder) s[m.id] = m.stand?.status ?? 'da';
     return s;
   });
   const [strafeOffen, setStrafeOffen] = useState(false);
@@ -79,11 +80,8 @@ export function AbschlussZettel({
   const [nimmtZurueck, startZuruecknehmen] = useTransition();
 
   const dabei = mitglieder.filter((m) => status[m.id] !== 'weg');
-  // Da/z’spät zuerst, dann die Fehlenden
-  const sortiert = [...mitglieder].sort((a, b) => {
-    const rang = (id: string) => (status[id] === 'weg' ? 1 : 0);
-    return rang(a.id) - rang(b.id) || a.name.localeCompare(b.name, 'de');
-  });
+  // Reihenfolge einmal festlegen (beim Ändern springt nix, sonst verliert man den Überblick)
+  const [sortiert] = useState(() => [...mitglieder].sort((a, b) => a.name.localeCompare(b.name, 'de')));
   let schritt = 0;
 
   return (

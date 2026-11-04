@@ -4,7 +4,7 @@ import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { anzeigeName } from '@/lib/namen';
 import { and, eq } from 'drizzle-orm';
-import { db, termine, votes, besuche, wirtshaeuser, pushSubscriptions, checkins, currentTenant, wirtshausBewertungen } from '@/lib/db';
+import { db, termine, votes, besuche, wirtshaeuser, pushSubscriptions, checkins, currentTenant, wirtshausBewertungen, erinnerungen } from '@/lib/db';
 import { getCurrentMember } from '@/lib/session';
 import { getAktiveMitglieder, nachtragsfristOffen, getPraesidentId, getBekannteWirtshaeuser, getLetzterAbgeschlossenerTermin, getNaechsterTermin } from '@/lib/queries';
 import { abendRundenAufbauen } from '@/lib/abend';
@@ -16,7 +16,7 @@ import { appHost, tenantConfig } from '@/lib/tenant-config';
 import { imUmkreis, mitOrt } from '@/lib/tenant-config-public';
 import { fotoAblegen, fotoAlsDataUrl } from '@/lib/foto';
 import { mailAn } from '@/lib/mail';
-import { mailTerminFest } from '@/lib/mail-vorlagen';
+import { mailTerminFest, mailTerminVerschoben } from '@/lib/mail-vorlagen';
 import { mailAdressen, mailRahmen, rufname } from '@/lib/mail-rahmen';
 import { navigationsUrl } from '@/lib/google-maps';
 import { pushAnAlle } from '@/lib/push';
@@ -353,6 +353,42 @@ export async function orgaSchnappen(terminId: string): Promise<OrgaErgebnis> {
   const titel = '🙋 D’Orga is vergeben!';
   const text = `${anzeigeName(me)} reglt’s, organisiert den Stammtisch am ${datumLang(termin.datum)} und suacht a Wirtshaus aus.`;
   await pushAnAlle(titel, text, '/termin');
+  revalidateAll();
+  return { ok: true };
+}
+
+/**
+ * Termin verschieben (Julius, 04.11.2026): Organisator, Präsident oder Admin
+ * setzen ein neues Datum. Alle Zu-/Absagen werden zurückgesetzt (die WP fürs
+ * rechtzeitige Abstimmen bleiben, erstmalsAm bleibt stehen), Erinnerungen
+ * laufen für das neue Datum neu, alle kriegen Push und Mail.
+ */
+export async function terminVerschieben(terminId: string, formData: FormData): Promise<OrgaErgebnis> {
+  const me = await getCurrentMember();
+  if (!me) return { ok: false, meldung: 'Ned angmeldt, bitte neu einloggen.' };
+  const termin = db.select().from(termine).where(eq(termine.id, terminId)).get();
+  if (!termin || termin.phase === 'abgeschlossen' || termin.erfasstVon) return { ok: false, meldung: 'Der Abend läuft schon, verschieben geht nimmer.' };
+  if (me.role !== 'admin' && me.id !== getPraesidentId() && me.id !== termin.planerId) return { ok: false, meldung: 'Verschieben dürfen Organisator, Präsident und Admin.' };
+  const datum = String(formData.get('datum') ?? '').trim();
+  const zeitRoh = String(formData.get('zeit') ?? '').trim();
+  const zeit = /^\d{2}:\d{2}$/.test(zeitRoh) ? zeitRoh : termin.zeit;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(datum)) return { ok: false, meldung: 'Bitte ein Datum wählen.' };
+  if (datum < berlinTag(nowIso())) return { ok: false, meldung: 'In die Vergangenheit verschieben geht ned.' };
+  if (datum === termin.datum && zeit === termin.zeit) return { ok: false, meldung: 'Das ist ja der gleiche Termin.' };
+  const altText = `${datumLang(termin.datum)}, ${termin.zeit} Uhr`;
+
+  db.update(termine).set({ datum, zeit, phase: termin.phase === 'heute' ? 'reserviert' : termin.phase }).where(eq(termine.id, terminId)).run();
+  // Stimmen zurück auf „keine Antwort“ (vielleicht), Absage-Zeitpunkt weg
+  db.update(votes).set({ wert: 'vielleicht', abgesagtAm: null, updatedAt: nowIso() }).where(eq(votes.terminId, terminId)).run();
+  db.delete(erinnerungen).where(eq(erinnerungen.terminId, terminId)).run();
+
+  const wirtshaus = termin.wirtshausId ? db.select().from(wirtshaeuser).where(eq(wirtshaeuser.id, termin.wirtshausId)).get() : null;
+  const datumText = datumLang(datum);
+  const mail = mailTerminVerschoben(mailRahmen(), { altText, datumText, zeit, wirtshaus: wirtshaus?.name ?? null, von: anzeigeName(me) });
+  await Promise.allSettled([
+    pushAnAlle('📅 Stammtisch verschoben', `Neuer Termin: ${datumText}, ${zeit} Uhr. Bitte nochmal zu- oder absagen.`, '/termin'),
+    mailAn(mailAdressen(getAktiveMitglieder(), 'termin'), mail.betreff, mail.inhalt),
+  ]);
   revalidateAll();
   return { ok: true };
 }

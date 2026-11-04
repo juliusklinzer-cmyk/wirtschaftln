@@ -99,7 +99,8 @@ export async function erinnerungenVerschicken(jetztIso = nowIso()): Promise<numb
     // ── Abstimmen: erst wenn's Wirtshaus feststeht ──
     if (t.phase === 'reserviert' && (tage === 4 || tage === 1)) {
       const art: Art = tage === 1 ? 'letzte' : 'abstimmen';
-      const abgestimmt = new Set(db.select({ memberId: votes.memberId }).from(votes).where(eq(votes.terminId, t.id)).all().map((v) => v.memberId));
+      // „vielleicht“ = keine Antwort (Altbestand bzw. zurückgesetzt nach dem Verschieben)
+      const abgestimmt = new Set(db.select({ memberId: votes.memberId, wert: votes.wert }).from(votes).where(eq(votes.terminId, t.id)).all().filter((v) => v.wert !== 'vielleicht').map((v) => v.memberId));
       const fehlen = mitglieder.filter((m) => !abgestimmt.has(m.id) && !schonGesendet(t.id, art, m.id));
       const an = fehlen.filter((m) => willMail(m, 'erinnerung'));
       if (fehlen.length > 0) {

@@ -13,6 +13,7 @@ function revalidate() {
   revalidatePath('/kasse');
   revalidatePath('/termin');
   revalidatePath('/termin/abschluss');
+  revalidatePath('/stammtisch');
   revalidatePath('/');
 }
 

@@ -26,7 +26,7 @@ const TITLES: Record<string, string> = {
   '/spezln': 'Rang',
   '/kasse': 'Vereinskasse',
   '/profil': 'Mei Profil',
-  '/stammtisch': 'Stammtisch',
+  '/stammtisch': 'Unser Stammtisch',
   '/einladen': 'Spezln einladen',
   '/verzeichnis': 'Verzeichnis',
 };
@@ -326,15 +326,13 @@ function ProfilMenue({
               </button>
             )}
           />
-          <Link href="/willkommen" style={{ ...zeileStil, ...(isAdmin ? {} : { borderWidth: 0 }) }}><Zeile icon={BookOpen} label="So geht’s" hint="Erklär-Slides" /></Link>
+          <Link href="/willkommen" style={zeileStil}><Zeile icon={BookOpen} label="So geht’s" hint="Erklär-Slides" /></Link>
           {isAdmin && verzeichnis && (
             <Link href="/verzeichnis" style={zeileStil}>
               <Zeile icon={TreeStructure} label="Alle Stammtische" hint={verzeichnis.anfragen > 0 ? `${verzeichnis.anfragen} Anfrage${verzeichnis.anfragen === 1 ? '' : 'n'} offen` : 'Verzeichnis'} />
             </Link>
           )}
-          {isAdmin && (
-            <Link href="/stammtisch" style={{ ...zeileStil, borderWidth: 0 }}><Zeile icon={Gear} label="Stammtisch verwalten" /></Link>
-          )}
+          <Link href="/stammtisch" style={{ ...zeileStil, borderWidth: 0 }}><Zeile icon={Gear} label="Unser Stammtisch" hint={isAdmin ? 'verwalten' : 'Steckbrief & Strafen'} /></Link>
         </div>
 
         <button

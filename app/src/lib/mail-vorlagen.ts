@@ -194,6 +194,23 @@ export function mailTerminFest(
   return { betreff: `Stammtisch am ${d.datumText}: ${d.wirtshaus}`, inhalt };
 }
 
+/** Termin verschoben: an alle, Stimmen sind zurückgesetzt. */
+export function mailTerminVerschoben(
+  r: MailRahmen,
+  d: { altText: string; datumText: string; zeit: string; wirtshaus: string | null; von: string },
+): { betreff: string; inhalt: MailInhalt } {
+  const inhalt = baue(r, {
+    anrede: 'Servus!',
+    absaetze: [
+      `${gross(d.von)} hat den Stammtisch vom ${d.altText} verschoben.`,
+      'Deine Zu- oder Absage ist damit zurückgesetzt. Sag bitte für den neuen Termin nochmal kurz zu oder ab.',
+    ],
+    kasten: [['Neuer Termin', `${d.datumText}, ${d.zeit} Uhr`], ...(d.wirtshaus ? ([['Wirtshaus', d.wirtshaus]] as Array<[string, string]>) : [])],
+    knopf: { text: 'Jetzt abstimmen', pfad: '/termin' },
+  });
+  return { betreff: `Stammtisch verschoben auf ${d.datumText}`, inhalt };
+}
+
 /** Noch nicht abgestimmt: 1 Tag vor der Frist (letzte = am Tag vorm Termin). */
 export function mailAbstimmen(
   r: MailRahmen,

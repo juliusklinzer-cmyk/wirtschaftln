@@ -22,7 +22,7 @@ export function AuthRahmen({
   return (
     <div style={{ minHeight: '100dvh', display: 'flex', flexDirection: 'column', background: 'radial-gradient(120% 70% at 50% 25%, #1B4C8A 0%, #0C2B5A 55%, #07193A 100%)', fontFamily: 'var(--font-ui)' }}>
       <div className="wn-raute wn-raute--sm" style={{ height: 8, flex: 'none' }} />
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 'calc(32px + env(safe-area-inset-top)) 28px 24px', textAlign: 'center', gap: 8 }}>
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 'calc(32px + var(--wn-oben)) 28px 24px', textAlign: 'center', gap: 8 }}>
         <Image
           src="/brand/rauten-app.svg"
           alt=""

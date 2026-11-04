@@ -15,7 +15,7 @@ export function Schliessen({ klein = false }: { klein?: boolean }) {
     );
   }
   return (
-    <button type="button" onClick={zu} aria-label="Schließen" className="wn-press" style={{ position: 'absolute', right: 16, top: 'calc(14px + env(safe-area-inset-top))', zIndex: 25, width: 36, height: 36, borderRadius: '50%', border: 'none', background: 'var(--ink-100)', color: 'var(--ink-500)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0 }}>
+    <button type="button" onClick={zu} aria-label="Schließen" className="wn-press" style={{ position: 'absolute', right: 16, top: 'calc(14px + var(--wn-oben))', zIndex: 25, width: 36, height: 36, borderRadius: '50%', border: 'none', background: 'var(--ink-100)', color: 'var(--ink-500)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0 }}>
       <X size={17} />
     </button>
   );

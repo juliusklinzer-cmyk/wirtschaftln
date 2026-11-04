@@ -38,8 +38,8 @@ export function ProfilBearbeiten({ werte, variante = 'bearbeiten', anfangsOffen 
 
       {offen && (
         <div className="wn-scroll-still wn-profil-auf" style={{ position: 'fixed', inset: 0, zIndex: 60, maxWidth: 'var(--container-app)', margin: '0 auto', background: 'var(--ink-50)', overflowY: 'auto', overscrollBehavior: 'contain' }}>
-          <div style={{ padding: 'calc(14px + env(safe-area-inset-top)) 16px calc(32px + env(safe-area-inset-bottom))', display: 'flex', flexDirection: 'column', gap: 24, position: 'relative' }}>
-            <button type="button" onClick={() => setOffen(false)} aria-label="Schließen" className="wn-press" style={{ position: 'absolute', right: 16, top: 'calc(14px + env(safe-area-inset-top))', width: 36, height: 36, borderRadius: '50%', border: 'none', background: 'var(--ink-100)', color: 'var(--ink-500)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0, zIndex: 2 }}>
+          <div style={{ padding: 'calc(14px + var(--wn-oben)) 16px calc(32px + env(safe-area-inset-bottom))', display: 'flex', flexDirection: 'column', gap: 24, position: 'relative' }}>
+            <button type="button" onClick={() => setOffen(false)} aria-label="Schließen" className="wn-press" style={{ position: 'absolute', right: 16, top: 'calc(14px + var(--wn-oben))', width: 36, height: 36, borderRadius: '50%', border: 'none', background: 'var(--ink-100)', color: 'var(--ink-500)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0, zIndex: 2 }}>
               <X size={17} />
             </button>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: '4px 52px 0 4px' }}>

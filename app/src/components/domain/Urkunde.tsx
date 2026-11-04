@@ -92,13 +92,13 @@ export function Urkunde({ daten, onClose }: { daten: UrkundeDaten; onClose: () =
   return (
     <div className="wn-scroll-still" style={{ position: 'fixed', inset: 0, zIndex: 95, maxWidth: 'var(--container-app)', margin: '0 auto', background: 'var(--ink-50)', overflowY: 'auto', overscrollBehavior: 'contain', animation: 'wnUrkundeAuf 260ms cubic-bezier(0.32, 0.72, 0, 1) both', fontFamily: 'var(--font-ui)' }}>
       <style>{`@keyframes wnUrkundeAuf { from { transform: translateY(24px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }`}</style>
-      <div style={{ padding: 'calc(60px + env(safe-area-inset-top)) 16px calc(28px + env(safe-area-inset-bottom))', display: 'flex', flexDirection: 'column', gap: 20, position: 'relative', minHeight: '100%' }}>
+      <div style={{ padding: 'calc(60px + var(--wn-oben)) 16px calc(28px + env(safe-area-inset-bottom))', display: 'flex', flexDirection: 'column', gap: 20, position: 'relative', minHeight: '100%' }}>
         <button
           type="button"
           onClick={onClose}
           aria-label="Schließen"
           className="wn-press"
-          style={{ position: 'absolute', right: 16, top: 'calc(16px + env(safe-area-inset-top))', width: 36, height: 36, borderRadius: 999, border: 'none', background: 'var(--ink-100)', color: 'var(--ink-500)', display: 'grid', placeItems: 'center', cursor: 'pointer', padding: 0 }}
+          style={{ position: 'absolute', right: 16, top: 'calc(16px + var(--wn-oben))', width: 36, height: 36, borderRadius: 999, border: 'none', background: 'var(--ink-100)', color: 'var(--ink-500)', display: 'grid', placeItems: 'center', cursor: 'pointer', padding: 0 }}
         >
           <X size={17} weight="bold" />
         </button>

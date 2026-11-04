@@ -74,7 +74,7 @@ export function Rangliste({
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
       {/* Oben nur Wertung + Saison/Allzeit, sticky (in der iPhone-App mit Glas-Leiste ned, siehe .wn-rang-kopf in globals.css) */}
-      <div className="wn-rang-kopf" style={{ position: 'sticky', top: 0, zIndex: 15, margin: '0 -16px', padding: 'calc(12px + env(safe-area-inset-top)) 16px 8px', background: 'var(--bg-app)', display: 'flex', gap: 8, alignItems: 'center' }}>
+      <div className="wn-rang-kopf" style={{ position: 'sticky', top: 0, zIndex: 15, margin: '0 -16px', padding: 'calc(12px + var(--wn-oben)) 16px 8px', background: 'var(--bg-app)', display: 'flex', gap: 8, alignItems: 'center' }}>
         <div style={{ flex: 1, minWidth: 0 }}>
           <Segment value={metrik} onChange={setMetrik} items={METRIKEN.map((m) => ({ value: m.value, label: m.label }))} />
         </div>
@@ -282,8 +282,8 @@ function SpezlDetail({
         @keyframes wnSpezlRein { from { transform: translateY(24px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
         @keyframes wnFederPop { 0% { transform: scale(0.4); opacity: 0; } 62% { transform: scale(1.12); opacity: 1; } 100% { transform: scale(1); opacity: 1; } }
       `}</style>
-      <div style={{ position: 'relative', background: 'radial-gradient(120% 90% at 50% 25%, #1B4C8A 0%, #0C2B5A 55%, #07193A 100%)', color: 'var(--pergament)', padding: 'calc(16px + env(safe-area-inset-top)) 20px 22px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, textAlign: 'center' }}>
-        <button type="button" onClick={onClose} aria-label="Schließen" className="wn-press" style={{ position: 'absolute', right: 16, top: 'calc(14px + env(safe-area-inset-top))', width: 40, height: 40, borderRadius: '50%', border: 'none', background: 'rgba(255,255,255,0.14)', color: '#fff', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0 }}>
+      <div style={{ position: 'relative', background: 'radial-gradient(120% 90% at 50% 25%, #1B4C8A 0%, #0C2B5A 55%, #07193A 100%)', color: 'var(--pergament)', padding: 'calc(16px + var(--wn-oben)) 20px 22px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, textAlign: 'center' }}>
+        <button type="button" onClick={onClose} aria-label="Schließen" className="wn-press" style={{ position: 'absolute', right: 16, top: 'calc(14px + var(--wn-oben))', width: 40, height: 40, borderRadius: '50%', border: 'none', background: 'rgba(255,255,255,0.14)', color: '#fff', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0 }}>
           <Icon name="x" size={18} />
         </button>
         <div style={{ position: 'relative', marginTop: 20, animation: 'wnFederPop 500ms cubic-bezier(0.34, 1.56, 0.64, 1) both' }}>

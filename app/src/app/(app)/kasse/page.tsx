@@ -57,7 +57,7 @@ export default async function KassePage() {
   const kassenwartName = kassenwart ? vorname(anzeigeName(kassenwart)) : null;
 
   return (
-    <div className="wn-eintritt" style={{ padding: 'calc(16px + env(safe-area-inset-top)) 16px 32px', display: 'flex', flexDirection: 'column', gap: 24 }}>
+    <div className="wn-eintritt" style={{ padding: 'calc(16px + var(--wn-oben)) 16px 32px', display: 'flex', flexDirection: 'column', gap: 24 }}>
       {/* Kassenstand */}
       <div style={{ borderRadius: 22, background: 'radial-gradient(120% 90% at 50% 20%, #1B4C8A 0%, #0C2B5A 55%, #07193A 100%)', color: 'var(--pergament)', border: '1.5px solid var(--gold)', overflow: 'hidden', boxShadow: 'var(--sh-lg)' }}>
         <div className="wn-raute wn-raute--sm" style={{ height: 8 }} />

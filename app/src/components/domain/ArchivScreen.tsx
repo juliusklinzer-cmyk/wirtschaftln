@@ -195,11 +195,11 @@ export function ArchivScreen({
           standort={standort}
         />
         {/* Oben nur die vier Ansichten */}
-        <div style={{ position: 'absolute', left: 12, right: 12, top: 'calc(12px + env(safe-area-inset-top))', zIndex: 5 }}>
+        <div style={{ position: 'absolute', left: 12, right: 12, top: 'calc(12px + var(--wn-oben))', zIndex: 5 }}>
           <Ansichten value={view} onChange={setView} ohneKarte={ohneKarte} aufKarte />
         </div>
         {/* Rechts: mein Standort + Pin-Legende */}
-        <div style={{ position: 'absolute', right: 16, top: 'calc(70px + env(safe-area-inset-top))', zIndex: 5, display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-end' }}>
+        <div style={{ position: 'absolute', right: 16, top: 'calc(70px + var(--wn-oben))', zIndex: 5, display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-end' }}>
           <button type="button" aria-label="Mein Standort" title="Mein Standort" onClick={meinStandort} className="wn-press" style={rundKnopf}>
             <Icon name="navigation" size={20} stroke={2.2} style={{ fill: standort ? 'currentColor' : 'none' } as React.CSSProperties} />
           </button>
@@ -213,7 +213,7 @@ export function ArchivScreen({
         {legende && (
           <>
             <div onClick={() => setLegende(false)} style={{ position: 'absolute', inset: 0, zIndex: 6 }} />
-            <div style={{ position: 'absolute', left: 12, right: 12, top: 'calc(124px + env(safe-area-inset-top))', zIndex: 7, ...karteStil, boxShadow: 'var(--sh-lg)', padding: 16, display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <div style={{ position: 'absolute', left: 12, right: 12, top: 'calc(124px + var(--wn-oben))', zIndex: 7, ...karteStil, boxShadow: 'var(--sh-lg)', padding: 16, display: 'flex', flexDirection: 'column', gap: 14 }}>
               <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--ink-500)' }}>Was die Pins bedeuten</span>
               {([['var(--gold)', 'solid #fff', 'var(--navy-900)', 'Top 3 nach Sternen · nächstes Ziel'], ['var(--navy)', 'solid #fff', 'var(--pergament)', 'Besucht · auch vor der App'], ['var(--muc-blau)', 'solid #fff', '#fff', 'Ausgewählt'], ['#fff', 'dashed var(--ink-300)', 'var(--ink-500)', 'Vorschlag, noch nicht besucht']] as const).map(([bg, rand, fg, text]) => (
                 <div key={text} style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
@@ -287,7 +287,7 @@ export function ArchivScreen({
   return (
     <div style={{ padding: '0 16px 32px', display: 'flex', flexDirection: 'column', gap: 20 }}>
       {/* Sticky-Ansichts-Wechsel, wia auf der Karte */}
-      <div style={{ position: 'sticky', top: 0, zIndex: 15, margin: '0 -16px', padding: 'calc(12px + env(safe-area-inset-top)) 16px 8px', background: 'var(--bg-app)' }}>
+      <div style={{ position: 'sticky', top: 0, zIndex: 15, margin: '0 -16px', padding: 'calc(12px + var(--wn-oben)) 16px 8px', background: 'var(--bg-app)' }}>
         <Ansichten value={view} onChange={setView} ohneKarte={ohneKarte} />
       </div>
 
@@ -545,8 +545,8 @@ export function DetailModal({
       {/* Foto-Kopf: Chip, Name, Adresse, Brauerei-Logo */}
       <div style={{ position: 'relative', height: e.photoUrl ? 290 : 210, background: e.photoUrl ? `url(${JSON.stringify(e.photoUrl)}) center/cover` : 'var(--grad-navy)' }}>
         <div style={{ position: 'absolute', inset: 'auto 0 0 0', height: 140, background: 'linear-gradient(180deg, rgba(7,25,58,0), rgba(7,25,58,0.88))' }} />
-        <div style={{ position: 'absolute', inset: '0 0 auto 0', height: 'calc(60px + env(safe-area-inset-top))', background: 'linear-gradient(rgba(7,25,58,0.45), rgba(7,25,58,0))' }} />
-        <button type="button" onClick={onClose} aria-label="Schließen" className="wn-press" style={{ position: 'absolute', right: 16, top: 'calc(14px + env(safe-area-inset-top))', width: 40, height: 40, borderRadius: '50%', border: 'none', background: 'rgba(7,25,58,0.55)', color: '#fff', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0 }}>
+        <div style={{ position: 'absolute', inset: '0 0 auto 0', height: 'calc(60px + var(--wn-oben))', background: 'linear-gradient(rgba(7,25,58,0.45), rgba(7,25,58,0))' }} />
+        <button type="button" onClick={onClose} aria-label="Schließen" className="wn-press" style={{ position: 'absolute', right: 16, top: 'calc(14px + var(--wn-oben))', width: 40, height: 40, borderRadius: '50%', border: 'none', background: 'rgba(7,25,58,0.55)', color: '#fff', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0 }}>
           <Icon name="x" size={18} />
         </button>
         {logo ? (

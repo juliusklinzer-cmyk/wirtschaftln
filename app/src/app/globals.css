@@ -369,6 +369,11 @@ details[open] > summary .wn-klappe-pfeil {
 /* App-Scroller ohne sichtbare Scrollleiste (Handy-App-Look) */
 /* Navy-Streifen hinter Uhrzeit und Akku (Root-Layout), liegt über allem,
    fängt aber koane Klicks ab. */
+/* Abstand oben bis unter Uhrzeit und Akku. In der iPhone-App mit Glas-Leiste
+   größer (siehe unten), damit nix unterm iOS-Blur anfängt. */
+:root {
+  --wn-oben: env(safe-area-inset-top, 0px);
+}
 .wn-statusleiste {
   position: fixed;
   top: 0;
@@ -393,10 +398,10 @@ details[open] > summary .wn-klappe-pfeil {
       display: none;
     }
     /* Der iOS-Blur reicht gut 40 px unter die Uhrzeit (am iPhone war die
-       rote Messzeile bis ~110 pt verschwommen): Kopf so weit runter, dass
-       Logo und Name vor dem Scrollen scharf san. */
+       rote Messzeile bis ~110 pt verschwommen): alles, was oben an der
+       Uhrzeit beginnt (var(--wn-oben)), rutscht 30 px weiter runter. */
     body.wn-glas {
-      --wn-kopf-luft: 40px;
+      --wn-oben: calc(env(safe-area-inset-top, 0px) + 30px);
     }
     /* iOS 26 gibt im durchsichtigen Modus nur Bildschirm minus Statusleiste
        her (WebKit-Bug 301108), ein fester Rahmen endet 62 px über der Kante.
@@ -413,10 +418,9 @@ details[open] > summary .wn-klappe-pfeil {
       height: 100vh;
     }
     /* Rang: obere Reihe (Wertung, Saison/Allzeit) scrollt mit weg statt
-       unterm Blur kleben zu bleiben, und startet wia der Kopf unterhalb vom Blur */
+       unterm Blur kleben zu bleiben */
     body.wn-glas .wn-rang-kopf {
       position: relative !important;
-      padding-top: calc(var(--wn-kopf-luft) + env(safe-area-inset-top)) !important;
     }
   }
 }

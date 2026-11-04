@@ -101,7 +101,7 @@ export function SlideStrecke({ slides, fertig, pending, letzterKnopf }: { slides
     >
       <div className="wn-raute wn-raute--sm" style={{ height: 8, flex: 'none' }} />
       {!letzter && (
-        <button type="button" onClick={fertig} disabled={pending} className="wn-press" style={{ position: 'absolute', right: 12, top: 'calc(14px + env(safe-area-inset-top))', zIndex: 2, border: 'none', background: 'transparent', padding: '8px', fontFamily: 'var(--font-ui)', fontSize: 14, fontWeight: 800, color: 'rgba(246,240,226,0.75)', cursor: 'pointer' }}>
+        <button type="button" onClick={fertig} disabled={pending} className="wn-press" style={{ position: 'absolute', right: 12, top: 'calc(14px + var(--wn-oben))', zIndex: 2, border: 'none', background: 'transparent', padding: '8px', fontFamily: 'var(--font-ui)', fontSize: 14, fontWeight: 800, color: 'rgba(246,240,226,0.75)', cursor: 'pointer' }}>
           Überspringen
         </button>
       )}
@@ -116,7 +116,7 @@ export function SlideStrecke({ slides, fertig, pending, letzterKnopf }: { slides
       >
         {slides.map((s, n) => (
           <div key={`${s.eyebrow}-${s.titel}`} aria-hidden={n !== i} style={{ width: `${100 / slides.length}%`, flex: 'none', display: 'flex', flexDirection: 'column' }}>
-            <div style={{ height: 'clamp(250px, 40dvh, 380px)', flex: 'none', display: 'grid', placeItems: 'center', padding: 'calc(28px + env(safe-area-inset-top)) 0 10px' }}>
+            <div style={{ height: 'clamp(250px, 40dvh, 380px)', flex: 'none', display: 'grid', placeItems: 'center', padding: 'calc(28px + var(--wn-oben)) 0 10px' }}>
               <div style={{ width: 300, maxWidth: 'calc(100vw - 48px)' }}>{s.bild}</div>
             </div>
             <div style={{ flex: 1, background: 'var(--weiss)', borderRadius: '28px 28px 0 0', padding: '26px 24px calc(30px + env(safe-area-inset-bottom))', display: 'flex', flexDirection: 'column', gap: 18, boxShadow: '0 -10px 40px rgba(7,25,58,0.35)' }}>

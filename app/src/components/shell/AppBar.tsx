@@ -114,8 +114,7 @@ export function AppBar({
           alignItems: 'center',
           justifyContent: 'space-between',
           gap: 10,
-          // Mit Glas-Leiste (body.wn-glas) mehr Luft, damit der iOS-Blur Logo und Name ned erwischt
-          padding: 'calc(var(--wn-kopf-luft, 10px) + env(safe-area-inset-top)) 16px 12px',
+          padding: 'calc(10px + var(--wn-oben)) 16px 12px',
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
@@ -275,7 +274,7 @@ function ProfilMenue({
         className="wn-scroll-still"
         style={{
           flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 16,
-          padding: 'calc(16px + env(safe-area-inset-top)) 16px calc(24px + env(safe-area-inset-bottom))',
+          padding: 'calc(16px + var(--wn-oben)) 16px calc(24px + env(safe-area-inset-bottom))',
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '6px 4px 0' }}>

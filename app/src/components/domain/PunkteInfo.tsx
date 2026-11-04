@@ -48,8 +48,8 @@ export function PunkteInfo({ knopf }: { knopf?: (oeffnen: () => void) => React.R
             @keyframes wnPunkteRein { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
           `}</style>
           {/* Kopf: Navy mit Rautenband */}
-          <div style={{ position: 'relative', background: 'radial-gradient(circle at 50% 30%, #123E78 0%, #07193A 80%)', color: 'var(--pergament)', textAlign: 'center', padding: 'calc(16px + env(safe-area-inset-top)) 20px 18px' }}>
-            <button type="button" onClick={() => setOffen(false)} aria-label="Schließen" className="wn-press" style={{ position: 'absolute', top: 'calc(14px + env(safe-area-inset-top))', right: 16, width: 40, height: 40, borderRadius: '50%', border: 'none', background: 'rgba(255,255,255,0.14)', color: '#fff', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0, zIndex: 2 }}>
+          <div style={{ position: 'relative', background: 'radial-gradient(circle at 50% 30%, #123E78 0%, #07193A 80%)', color: 'var(--pergament)', textAlign: 'center', padding: 'calc(16px + var(--wn-oben)) 20px 18px' }}>
+            <button type="button" onClick={() => setOffen(false)} aria-label="Schließen" className="wn-press" style={{ position: 'absolute', top: 'calc(14px + var(--wn-oben))', right: 16, width: 40, height: 40, borderRadius: '50%', border: 'none', background: 'rgba(255,255,255,0.14)', color: '#fff', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0, zIndex: 2 }}>
               <Icon name="x" size={18} />
             </button>
             <div style={{ fontFamily: 'var(--font-fraktur)', fontSize: 30, lineHeight: 1, color: 'var(--gold-bright)', marginTop: 28 }}>Die Wirtschaftln-Punkte</div>

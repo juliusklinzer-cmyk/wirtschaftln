@@ -148,7 +148,7 @@ export function BadgeFeier({ terminId, feiern }: { terminId: string; feiern: Fei
         style={{
           position: 'absolute', inset: 0, overflowY: 'auto', overscrollBehavior: 'contain',
           display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-          padding: 'calc(24px + env(safe-area-inset-top)) 28px calc(24px + env(safe-area-inset-bottom))', textAlign: 'center',
+          padding: 'calc(24px + var(--wn-oben)) 28px calc(24px + env(safe-area-inset-bottom))', textAlign: 'center',
           opacity: wechsel ? 0 : 1, transition: 'opacity 250ms ease',
         }}
       >

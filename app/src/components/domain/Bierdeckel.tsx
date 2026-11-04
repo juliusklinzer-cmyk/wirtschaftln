@@ -702,7 +702,7 @@ export function Bierdeckel({
       <div
         style={
           voll
-            ? { position: 'fixed', inset: 0, zIndex: 70, maxWidth: 'var(--container-app)', margin: '0 auto', background: 'radial-gradient(120% 80% at 50% 45%, #1B4C8A 0%, #0C2B5A 52%, #07193A 100%)', color: 'var(--pergament)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14, padding: 'calc(16px + env(safe-area-inset-top)) 18px calc(28px + env(safe-area-inset-bottom))' }
+            ? { position: 'fixed', inset: 0, zIndex: 70, maxWidth: 'var(--container-app)', margin: '0 auto', background: 'radial-gradient(120% 80% at 50% 45%, #1B4C8A 0%, #0C2B5A 52%, #07193A 100%)', color: 'var(--pergament)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14, padding: 'calc(16px + var(--wn-oben)) 18px calc(28px + env(safe-area-inset-bottom))' }
             : { borderRadius: 'var(--r-lg)', background: 'var(--grad-navy)', color: 'var(--pergament)', border: '1.5px solid var(--gold)', boxShadow: 'var(--sh-lg)', overflow: 'hidden', display: 'flex', flexDirection: 'column' }
         }
       >

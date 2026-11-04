@@ -89,7 +89,7 @@ export default async function ProfilPage({ searchParams }: { searchParams: Promi
   // ── Erster Login (1c): Willkommen + Formular, sonst nix ──
   if (me.erstanmeldung) {
     return (
-      <div className="wn-eintritt" style={{ padding: 'calc(16px + env(safe-area-inset-top)) 16px 32px', display: 'flex', flexDirection: 'column', gap: 24 }}>
+      <div className="wn-eintritt" style={{ padding: 'calc(16px + var(--wn-oben)) 16px 32px', display: 'flex', flexDirection: 'column', gap: 24 }}>
         <div style={{ borderRadius: 22, overflow: 'hidden', border: '1.5px solid var(--gold)', background: 'radial-gradient(120% 90% at 50% 20%, #1B4C8A 0%, #0C2B5A 55%, #07193A 100%)', boxShadow: 'var(--sh-lg)' }}>
           <div className="wn-raute wn-raute--sm" style={{ height: 8 }} />
           <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -145,14 +145,14 @@ export default async function ProfilPage({ searchParams }: { searchParams: Promi
     : null;
 
   return (
-    <div className="wn-eintritt" style={{ padding: 'calc(14px + env(safe-area-inset-top)) 16px 32px', display: 'flex', flexDirection: 'column', gap: 24, position: 'relative' }}>
+    <div className="wn-eintritt" style={{ padding: 'calc(14px + var(--wn-oben)) 16px 32px', display: 'flex', flexDirection: 'column', gap: 24, position: 'relative' }}>
       <Schliessen />
 
       {/* ── Urkunden-Kopf (1a), beim Scrollen die Mini-Pille (2a) ── */}
       <SchrumpfKopf
         gapAusgleich={24}
         kompakt={
-          <div style={{ paddingTop: 'calc(8px + env(safe-area-inset-top))' }}>
+          <div style={{ paddingTop: 'calc(8px + var(--wn-oben))' }}>
             <MiniKopfLeiste photoUrl={me.photoUrl} name={name} wp={meineSaison?.punkte ?? 0} verein={me.verein} rechts={<Schliessen klein />} />
           </div>
         }

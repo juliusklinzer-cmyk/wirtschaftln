@@ -25,7 +25,7 @@ export default async function GruendenFertigPage() {
   const wa = `https://wa.me/?text=${encodeURIComponent(text)}`;
 
   return (
-    <div style={{ minHeight: '100dvh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16, padding: 'calc(24px + env(safe-area-inset-top)) 28px calc(24px + env(safe-area-inset-bottom))', textAlign: 'center', background: 'radial-gradient(circle at 50% 34%, #123E78 0%, #07193A 70%)', fontFamily: 'var(--font-ui)' }}>
+    <div style={{ minHeight: '100dvh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16, padding: 'calc(24px + var(--wn-oben)) 28px calc(24px + env(safe-area-inset-bottom))', textAlign: 'center', background: 'radial-gradient(circle at 50% 34%, #123E78 0%, #07193A 70%)', fontFamily: 'var(--font-ui)' }}>
       <div style={{ width: '100%', maxWidth: 360, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
         <div style={{ width: 140, height: 140, borderRadius: 32, background: 'radial-gradient(120% 90% at 50% 20%, #1B4C8A, #07193A)', border: '2px solid var(--gold)', display: 'grid', placeItems: 'center', boxShadow: '0 0 0 10px rgba(230,198,132,0.12), 0 20px 40px rgba(0,0,0,0.4)', overflow: 'hidden' }}>
           {config.logoUrl ? (

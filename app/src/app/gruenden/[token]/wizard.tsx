@@ -143,13 +143,13 @@ export function GruendungsWizard({ token, von, fuer = null }: { token: string; /
 
       {/* Kopf: groß auf der Einladung, kompakt im Wizard */}
       {schritt === 0 ? (
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: 'calc(28px + env(safe-area-inset-top)) 28px 26px', textAlign: 'center', gap: 8 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: 'calc(28px + var(--wn-oben)) 28px 26px', textAlign: 'center', gap: 8 }}>
           <Image src="/brand/rauten-app.svg" alt="" width={100} height={100} priority style={{ height: 'clamp(72px, 14vh, 100px)', width: 'auto', filter: 'drop-shadow(0 10px 24px rgba(0,0,0,0.4))' }} />
           <span style={{ fontFamily: 'var(--font-fraktur)', fontSize: 38, lineHeight: 1, color: 'var(--gold-bright)', marginTop: 10 }}>Wirtschaftln</span>
           <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(246,240,226,0.75)' }}>Eine Ehren-Einladung</span>
         </div>
       ) : (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 'calc(20px + env(safe-area-inset-top)) 22px 18px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 'calc(20px + var(--wn-oben)) 22px 18px' }}>
           <Image src="/brand/rauten-app.svg" alt="" width={44} height={44} priority style={{ height: 44, width: 'auto', filter: 'drop-shadow(0 4px 10px rgba(0,0,0,0.35))' }} />
           <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
             <span style={{ fontFamily: 'var(--font-fraktur)', fontSize: 24, lineHeight: 1, color: 'var(--gold-bright)' }}>Stammtisch gründen</span>

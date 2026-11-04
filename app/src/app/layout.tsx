@@ -54,7 +54,7 @@ export async function generateMetadata(): Promise<Metadata> {
       // Web-Apps die unteren ~62px dann nicht her, d'Tab-Leiste kann nie
       // an d'Bildschirmkante (ausprobiert & gemessen, 29.08.2026).
       // Glas-Leiste (Test bei Wirtschaftln, 04.11.2026): doch black-translucent,
-      // den Spalt unten gleicht GlasHoehe aus, den Blur oben malt .wn-statusleiste.
+      // den Spalt unten gleicht GlasHoehe aus, den Blur oben malt iOS 26 selber.
       statusBarStyle: c?.features.glasLeiste ? 'black-translucent' : 'default',
     },
   };

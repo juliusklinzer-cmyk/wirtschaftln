@@ -1,56 +1,100 @@
 import Image from 'next/image';
-import { auszeichnungsWahl } from '@/lib/badges';
+import { MapPin } from '@phosphor-icons/react/dist/ssr/MapPin';
+import { CalendarBlank } from '@phosphor-icons/react/dist/ssr/CalendarBlank';
+import { HouseLine } from '@phosphor-icons/react/dist/ssr/HouseLine';
+import { BeerStein } from '@phosphor-icons/react/dist/ssr/BeerStein';
+import { Wine } from '@phosphor-icons/react/dist/ssr/Wine';
+import { Cards } from '@phosphor-icons/react/dist/ssr/Cards';
+import { UsersThree } from '@phosphor-icons/react/dist/ssr/UsersThree';
+import { Key } from '@phosphor-icons/react/dist/ssr/Key';
+import { auszeichnungsWahl, saisonBadges, AEMTER_INFO } from '@/lib/badges';
 import { getCurrentMember, erzwingeProfil } from '@/lib/session';
 import { currentTenant } from '@/lib/db';
-import { tenantConfig } from '@/lib/tenant-config';
+import { tenantConfig, auszeichnungAn } from '@/lib/tenant-config';
 import { anzeigeName } from '@/lib/namen';
-import { getAktiveMitglieder, getPraesidentId } from '@/lib/queries';
+import { getAktiveMitglieder, getPraesidentId, getKassenwartId, getVergabeStand } from '@/lib/queries';
 import { katalog, regelZusammenfassung } from '@/lib/strafen-regeln';
+import { stammtischRekorde } from '@/lib/rekorde';
+import { eingeladenVon } from '@/lib/verzeichnis';
+import { bierLogo } from '@/lib/biersorten';
 import { datumKurz } from '@/lib/format';
+import { Avatar } from '@/components/ds';
 import { HoamTitel } from '@/components/domain/HoamTitel';
-import { BearbeitenKlappe } from '@/app/(app)/verzeichnis/knoepfe';
-import { StammtischForm } from './stammtisch-form';
+import { BadgeBild } from '@/components/domain/BadgeBild';
+import { bereichHinweisStil } from '@/components/domain/hero-stil';
+import { StammdatenKlappe } from './stammdaten-klappe';
 import { StrafenKatalog } from './strafen-katalog';
 import { regelSpeichern } from '../kasse/actions';
 
 export const metadata = { title: 'Unser Stammtisch' };
 
 const karteStil: React.CSSProperties = { background: 'var(--weiss)', borderRadius: 20, border: '1px solid var(--ink-100)', boxShadow: 'var(--sh-sm)' };
+const ikon = { size: 20, color: 'var(--gold-700)', style: { width: 22, flex: 'none' } as React.CSSProperties };
+
+type Mitglied = ReturnType<typeof getAktiveMitglieder>[number];
+
+/** Zeile im Steckbrief: Icon, Begriff, Wert (mit Logo oder Avatar). */
+function Zeile({ icon, label, children, letzte }: { icon: React.ReactNode; label: string; children: React.ReactNode; letzte?: boolean }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 0', borderBottom: letzte ? 'none' : '1px solid var(--ink-50)' }}>
+      {icon}
+      <span style={{ width: 92, flex: 'none', fontSize: 12, fontWeight: 700, color: 'var(--ink-500)' }}>{label}</span>
+      <span style={{ flex: 1, minWidth: 0, fontSize: 14, fontWeight: 700, color: 'var(--ink-900)', display: 'flex', alignItems: 'center', gap: 8 }}>{children}</span>
+    </div>
+  );
+}
+
+function Person({ m, zusatz }: { m: Mitglied; zusatz?: string }) {
+  return (
+    <>
+      <Avatar src={m.photoUrl} name={anzeigeName(m)} size={30} verein={m.verein} />
+      <span style={{ minWidth: 0, display: 'flex', flexDirection: 'column' }}>
+        <span>{anzeigeName(m)}</span>
+        {zusatz && <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink-500)' }}>{zusatz}</span>}
+      </span>
+    </>
+  );
+}
 
 /**
- * „Unser Stammtisch“ (04.11.2026): erst das Profil vom Stammtisch, das jeder
- * sieht, mit dem Strafenkatalog. Bearbeiten nur der Admin (Stammdaten) bzw.
- * Admin und Präsident (Strafen).
+ * „Unser Stammtisch“ (04.11.2026): das Profil vom Stammtisch, für alle.
+ * Steckbrief, Ämter, Badges, Strafenkatalog, Rekorde. Bearbeiten dürfen
+ * Präsident und Admin (Stammdaten und Strafen).
  */
 export default async function StammtischPage() {
   const me = (await getCurrentMember())!;
   erzwingeProfil(me);
   const config = tenantConfig();
   const gruppe = currentTenant().gruppe;
-  const istAdmin = me.role === 'admin';
   const mitglieder = getAktiveMitglieder();
   const praesidentId = getPraesidentId();
   const praesident = mitglieder.find((m) => m.id === praesidentId);
-  const darfStrafen = istAdmin || me.id === praesidentId;
-  const nameVon = (id: string | null) => {
+  const kassenwart = mitglieder.find((m) => m.id === getKassenwartId());
+  const darfBearbeiten = me.role === 'admin' || me.id === praesidentId;
+  const gruender = mitglieder.filter((m) => m.role === 'admin').sort((a, b) => a.createdAt.localeCompare(b.createdAt))[0];
+  const einladung = config.istGruender ? null : eingeladenVon(gruppe.id);
+  const schafkopfer = mitglieder.filter((m) => m.schafkopfer).length;
+  const logo = bierLogo(config.bierName);
+  const vergabe = getVergabeStand();
+  const nameVon = (id: string | null | undefined) => {
     const m = id ? mitglieder.find((x) => x.id === id) : null;
-    return m ? anzeigeName(m).split(' ')[0] : null;
+    if (!m) return null;
+    // „da Toni“ bleibt ganz, „Moritz Fleischmann“ wird „Moritz“
+    const [erster, ...rest] = anzeigeName(m).split(' ');
+    return erster.length <= 3 && rest.length > 0 ? anzeigeName(m) : erster;
   };
-
-  const steckbrief: Array<[string, string]> = [
-    ['Stadt', gruppe.stadt ?? '–'],
-    ['Gegründet', gruppe.gruendungsjahr ? String(gruppe.gruendungsjahr) : '–'],
-    ['Art', config.typ === 'stammhaus' ? 'Fester Stammtisch im Stammhaus' : 'Jedes Mal ein anderes Wirtshaus'],
-    ['Bier', config.bierName],
-    ['Schnaps', config.features.schnaps ? 'Ja' : 'Nein'],
-    ['Spezln', String(mitglieder.length)],
-    ['Präsident', praesident ? anzeigeName(praesident) : 'noch keiner'],
-    ...(istAdmin ? ([['Gründungscode', gruppe.gruendungscode ?? 'Aufnahme zu'], ['Kennung', config.id]] as Array<[string, string]>) : []),
+  const badges = [
+    ...['Präsident', 'Schriftführer', 'Kassenwart']
+      .filter((t) => t === 'Präsident' || auszeichnungAn(`amt:${t === 'Schriftführer' ? 'schriftfuehrer' : 'kassenwart'}`))
+      .map((t) => ({ key: `amt:${t}`, name: t, icon: AEMTER_INFO[t].icon, slug: AEMTER_INFO[t].slug as string | null, traeger: t === 'Präsident' ? nameVon(praesidentId) : t === 'Kassenwart' ? nameVon(kassenwart?.id) : null })),
+    ...saisonBadges().map((b) => ({ key: b.key, name: b.name, icon: b.icon, slug: b.slug, traeger: nameVon(vergabe.get(b.key)) })),
   ];
+  const rekorde = stammtischRekorde();
 
   const regeln = katalog().map((r) => ({
     id: r.id, art: r.art, name: r.name, detail: r.detail, abzuege: r.wpStaffel.map((w) => -w), betragCents: r.betragCents,
     fristArt: r.fristArt, fristWert: r.fristWert, nichtEingetragenZusage: r.nichtEingetragenZusage, erlassbar: r.erlassbar, aktiv: r.aktiv,
+    ausloeser: r.ausloeser, ausloeserWert: r.ausloeserWert,
     zusammenfassung: regelZusammenfassung(r),
     geaendert: r.geaendertAm
       ? `geändert am ${datumKurz(r.geaendertAm.slice(0, 10))}${nameVon(r.geaendertVon) ? ` von ${nameVon(r.geaendertVon)}` : ''}`
@@ -85,35 +129,105 @@ export default async function StammtischPage() {
       <section style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         <HoamTitel>Steckbrief</HoamTitel>
         <div style={{ ...karteStil, padding: '2px 16px' }}>
-          {steckbrief.map(([k, v], i, arr) => (
-            <div key={k} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, padding: '11px 0', borderBottom: i < arr.length - 1 ? '1px solid #EEF1F5' : 'none' }}>
-              <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink-500)', flex: 'none' }}>{k}</span>
-              <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink-900)', textAlign: 'right', minWidth: 0, overflowWrap: 'anywhere' }}>{v}</span>
-            </div>
-          ))}
+          <Zeile icon={<MapPin {...ikon} />} label="Stadt">{gruppe.stadt ?? '–'}</Zeile>
+          <Zeile icon={<CalendarBlank {...ikon} />} label="Gegründet">{gruppe.gruendungsjahr ?? '–'}</Zeile>
+          <Zeile icon={<HouseLine {...ikon} />} label="Art">{config.typ === 'stammhaus' ? 'Fest im Stammhaus' : 'Jedes Mal ein anderes Wirtshaus'}</Zeile>
+          <Zeile icon={<BeerStein {...ikon} />} label="Bier">
+            {logo && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={logo} alt="" style={{ width: 24, height: 24, objectFit: 'contain', flex: 'none' }} />
+            )}
+            <span style={{ minWidth: 0 }}>{config.bierName}</span>
+          </Zeile>
+          <Zeile icon={<Wine {...ikon} />} label="Schnaps">{config.features.schnaps ? 'Wird gschnapselt' : 'Nein'}</Zeile>
+          <Zeile icon={<Cards {...ikon} />} label="Schafkopf">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/brand/vereine/eichel.png" alt="" style={{ width: 24, height: 24, objectFit: 'contain', flex: 'none' }} />
+            <span>{schafkopfer === 0 ? 'Noch keiner' : `${schafkopfer} von ${mitglieder.length} Spezln`}</span>
+          </Zeile>
+          <Zeile icon={<UsersThree {...ikon} />} label="Spezln" letzte={!darfBearbeiten}>{mitglieder.length}</Zeile>
+          {darfBearbeiten && (
+            <Zeile icon={<Key {...ikon} />} label="Aufnahme" letzte>{gruppe.gruendungscode ? `Code ${gruppe.gruendungscode}` : 'zu'}</Zeile>
+          )}
         </div>
-        {istAdmin && (
-          <BearbeitenKlappe>
-            <div style={{ ...karteStil, padding: 16 }}>
-              <StammtischForm
-                werte={{
-                  name: gruppe.name,
-                  motto: gruppe.motto ?? '',
-                  stadt: gruppe.stadt ?? '',
-                  gruendungsjahr: gruppe.gruendungsjahr ? String(gruppe.gruendungsjahr) : '',
-                  gruendungscode: gruppe.gruendungscode ?? '',
-                  logo: config.logo,
-                  bierName: config.bierName,
-                  schnaps: config.features.schnaps,
-                  auszeichnungen: auszeichnungsWahl(config.auszeichnungenAus),
-                }}
-              />
-            </div>
-          </BearbeitenKlappe>
+      </section>
+
+      {/* Leute */}
+      <section style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <HoamTitel>Wer den Laden schmeißt</HoamTitel>
+        <div style={{ ...karteStil, padding: '2px 16px' }}>
+          <Zeile icon={<span style={{ width: 22, textAlign: 'center', fontSize: 18 }}>{AEMTER_INFO['Präsident'].icon}</span>} label="Präsident" letzte={!kassenwart && !gruender && !einladung}>
+            {praesident ? <Person m={praesident} zusatz="die meisten WP der Saison" /> : <span>Noch keiner</span>}
+          </Zeile>
+          {kassenwart && (
+            <Zeile icon={<span style={{ width: 22, textAlign: 'center', fontSize: 18 }}>{AEMTER_INFO['Kassenwart'].icon}</span>} label="Kassenwart" letzte={!gruender && !einladung}>
+              <Person m={kassenwart} />
+            </Zeile>
+          )}
+          {gruender && (
+            <Zeile icon={<span style={{ width: 22, textAlign: 'center', fontSize: 18 }}>📱</span>} label="App-Gründer" letzte={!einladung}>
+              <Person m={gruender} zusatz={`seit ${datumKurz(gruender.createdAt.slice(0, 10))} in der App`} />
+            </Zeile>
+          )}
+          {einladung && (
+            <Zeile icon={<span style={{ width: 22, textAlign: 'center', fontSize: 18 }}>✉️</span>} label="Eingeladen" letzte>
+              <span style={{ display: 'flex', flexDirection: 'column' }}>
+                <span>von {einladung.vonName}</span>
+                <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink-500)' }}>{einladung.gruppeName}{einladung.widmung ? ` · „${einladung.widmung}“` : ''}</span>
+              </span>
+            </Zeile>
+          )}
+        </div>
+        {darfBearbeiten && (
+          <StammdatenKlappe
+            werte={{
+              name: gruppe.name,
+              motto: gruppe.motto ?? '',
+              stadt: gruppe.stadt ?? '',
+              gruendungsjahr: gruppe.gruendungsjahr ? String(gruppe.gruendungsjahr) : '',
+              gruendungscode: gruppe.gruendungscode ?? '',
+              logo: config.logo,
+              bierName: config.bierName,
+              schnaps: config.features.schnaps,
+              auszeichnungen: auszeichnungsWahl(config.auszeichnungenAus),
+            }}
+          />
         )}
       </section>
 
-      <StrafenKatalog regeln={regeln} darfPflegen={darfStrafen} speichern={regelSpeichern} />
+      {/* Ämter & Badges, klein */}
+      {badges.length > 0 && (
+        <section style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <HoamTitel action={<span style={bereichHinweisStil}>diese Saison</span>}>Ämter & Badges</HoamTitel>
+          <div style={{ ...karteStil, padding: 14, display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '14px 6px' }}>
+            {badges.map((b) => (
+              <div key={b.key} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, textAlign: 'center', minWidth: 0 }}>
+                <BadgeBild slug={b.slug} icon={b.icon} name={b.name} size={40} />
+                <span style={{ fontSize: 10, fontWeight: 800, lineHeight: 1.2, color: 'var(--ink-900)' }}>{b.name}</span>
+                <span style={{ fontSize: 10, fontWeight: 600, lineHeight: 1.2, color: 'var(--ink-500)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '100%' }}>{b.traeger ?? 'frei'}</span>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      <StrafenKatalog regeln={regeln} darfPflegen={darfBearbeiten} speichern={regelSpeichern} />
+
+      {/* Rekorde ganz unten */}
+      {rekorde.length > 0 && (
+        <section style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <HoamTitel action={<span style={bereichHinweisStil}>seit es die App gibt</span>}>Stammtisch-Rekorde</HoamTitel>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+            {rekorde.map((r) => (
+              <div key={r.titel} style={{ ...karteStil, borderRadius: 16, padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 3, minWidth: 0 }}>
+                <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--ink-500)' }}>{r.titel}</span>
+                <span className="wn-tnum" style={{ fontSize: 20, fontWeight: 800, color: 'var(--navy)' }}>{r.wert}</span>
+                {r.wer && <span style={{ fontSize: 11, fontWeight: 600, lineHeight: 1.35, color: 'var(--ink-500)' }}>{r.wer}</span>}
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
     </div>
   );
 }

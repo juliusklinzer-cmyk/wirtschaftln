@@ -53,17 +53,21 @@ export function ZiehenAktualisieren() {
     // den Wisch am Ende von main an die Seite weiter und das Scrollen hängt.
     scroller.style.overscrollBehaviorY = gesperrt ? 'none' : 'contain';
     // Sperre: ganz oben nach unten ziehen wird abgefangen (nicht-passiv, damit preventDefault greift)
+    // Nur nach unten am oberen Rand prüfen, und die teure Vorfahren-Suche erst ganz zum Schluss
     const sperren = (e: TouchEvent) => {
-      if (!gesperrt || scroller.scrollTop > 0 || e.touches.length !== 1 || inEigenemScroller(e.target, scroller)) return;
-      if (e.touches[0].clientY - startY.current > 0 && e.cancelable) e.preventDefault();
+      if (scroller.scrollTop > 0 || e.touches.length !== 1 || !e.cancelable) return;
+      if (e.touches[0].clientY - startY.current <= 0 || inEigenemScroller(e.target, scroller)) return;
+      e.preventDefault();
     };
     const start = (e: TouchEvent) => {
       if (e.touches.length === 1) startY.current = e.touches[0].clientY;
-      if (aus || gesperrt || scroller.scrollTop > 0 || e.touches.length !== 1 || inEigenemScroller(e.target, scroller)) return;
+      if (aus || gesperrt || scroller.scrollTop > 0 || e.touches.length !== 1) return;
       aktiv.current = true;
     };
     const bewegen = (e: TouchEvent) => {
       if (!aktiv.current) return;
+      // Eigener Scroll-Bereich (Vollbild-Blatt)? Einmal beim ersten Zug prüfen statt bei jedem touchstart
+      if (zugRef.current === 0 && inEigenemScroller(e.target, scroller)) { aktiv.current = false; return; }
       const dy = e.touches[0].clientY - startY.current;
       if (dy <= 0 || scroller.scrollTop > 0) { if (zugRef.current) setzen(0); return; }
       // Gedämpft: je weiter, desto zäher, wia a Gummiband
@@ -80,7 +84,8 @@ export function ZiehenAktualisieren() {
       }
     };
     scroller.addEventListener('touchstart', start, { passive: true });
-    scroller.addEventListener('touchmove', sperren, { passive: false });
+    // Nicht-passiv NUR auf Rang und Kasse: sonst wartet iOS bei jedem Wisch auf JavaScript (iPhone zäh, 04.11.2026)
+    if (gesperrt) scroller.addEventListener('touchmove', sperren, { passive: false });
     scroller.addEventListener('touchmove', bewegen, { passive: true });
     scroller.addEventListener('touchend', ende, { passive: true });
     scroller.addEventListener('touchcancel', ende, { passive: true });

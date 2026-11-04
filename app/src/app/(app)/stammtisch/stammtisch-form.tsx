@@ -1,6 +1,6 @@
 'use client';
 
-import { useActionState, useState } from 'react';
+import { useActionState, useEffect, useState } from 'react';
 import { Button, Input } from '@/components/ds';
 import { LogoWahl } from '@/components/domain/LogoWahl';
 import { BierWahl } from '@/components/domain/BierWahl';
@@ -16,7 +16,6 @@ export type StammtischWerte = {
   stadt: string;
   gruendungsjahr: string;
   gruendungscode: string;
-  /** Strafe fürs Fehlen in Euro, leer = a Runde */
   /** Aktuelles Logo als Data-URL (null = Wirtschaftln-Wappen) */
   logo: string | null;
   bierName: string;
@@ -25,8 +24,11 @@ export type StammtischWerte = {
   auszeichnungen: AuszeichnungWahl[];
 };
 
-export function StammtischForm({ werte, speichern = stammtischSpeichern }: { werte: StammtischWerte; /** Server Action, Standard = eigener Stammtisch; das Verzeichnis gibt die gebundene Variante rein */ speichern?: (prev: StammtischState, fd: FormData) => Promise<StammtischState> }) {
+export function StammtischForm({ werte, speichern = stammtischSpeichern, onGespeichert }: { werte: StammtischWerte; /** Server Action, Standard = eigener Stammtisch; das Verzeichnis gibt die gebundene Variante rein */ speichern?: (prev: StammtischState, fd: FormData) => Promise<StammtischState>; /** Nach erfolgreichem Speichern (z. B. Formular zuklappen) */ onGespeichert?: () => void }) {
   const [state, action, pending] = useActionState<StammtischState, FormData>(speichern, {});
+  useEffect(() => {
+    if (state.ok) onGespeichert?.();
+  }, [state, onGespeichert]);
   const [bier, setBier] = useState(werte.bierName);
   const [schnaps, setSchnaps] = useState(werte.schnaps);
   const [aus, setAus] = useState<string[]>(() => werte.auszeichnungen.filter((a) => !a.an).map((a) => a.key));

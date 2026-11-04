@@ -3,7 +3,8 @@
 // v5: Plopp-Sound fürn Bierdeckel im Precache (14.10.2026)
 // v4: Precache ohne München-Assets (Kindl, Panorama laufen beim Gründer über
 // stale-while-revalidate), Push-Icon kommt pro Stammtisch im Payload mit.
-const CACHE = 'wirtschaftln-v5';
+// v6: nur erfolgreiche Antworten cachen, sonst blieb ein 404/500 eines Skripts für immer hängen (iPhone, 04.11.2026)
+const CACHE = 'wirtschaftln-v6';
 const ASSETS = ['/brand/shield-256.png', '/brand/shield-512.png', '/brand/rauten-256.png', '/brand/rauten-512.png', '/sounds/plopp.mp3'];
 
 self.addEventListener('install', (event) => {
@@ -62,8 +63,10 @@ self.addEventListener('fetch', (event) => {
         (hit) =>
           hit ??
           fetch(event.request).then((res) => {
-            const copy = res.clone();
-            caches.open(CACHE).then((c) => c.put(event.request, copy));
+            if (res.ok) {
+              const copy = res.clone();
+              caches.open(CACHE).then((c) => c.put(event.request, copy));
+            }
             return res;
           })
       )

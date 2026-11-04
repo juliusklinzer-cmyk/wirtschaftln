@@ -4,7 +4,7 @@ import { alleGruppen } from '@/lib/db/directory';
 import { getAktiveMitglieder, getVergabeStand } from '@/lib/queries';
 import { vergabeWechsel, wechselTexte } from '@/lib/badges';
 import { abendVorbei } from '@/lib/punkte';
-import { abendStrafenBuchen } from '@/lib/strafen';
+import { abendStrafenBuchen, autoStrafenPruefen } from '@/lib/strafen';
 import { pushAn } from '@/lib/push';
 import { anzeigeName } from '@/lib/namen';
 import { newId, nowIso } from '@/lib/ids';
@@ -129,6 +129,9 @@ export async function abendeAllerStammtischeSchliessen(): Promise<void> {
     try {
       const n = await runWithTenant(g.id, () => abgelaufeneAbendeSchliessen());
       if (n > 0) console.log(`[abend] ${g.id}: ${n} Abend(e) automatisch geschlossen`);
+      // Automatische eigene Strafen (Reservierung, Abstimmen, Bewertung, Orga-Flop)
+      const s = await runWithTenant(g.id, () => autoStrafenPruefen());
+      if (s > 0) console.log(`[strafen] ${g.id}: ${s} automatisch gebucht`);
     } catch (e) {
       console.error(`[abend] ${g.id}:`, e);
     }

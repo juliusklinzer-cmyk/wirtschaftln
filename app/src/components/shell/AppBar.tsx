@@ -74,7 +74,8 @@ export function AppBar({
   const pathname = usePathname();
   const title = Object.entries(TITLES).find(([p]) => pathname.startsWith(p) && p !== '/')?.[1];
 
-  // Seitenwechsel aus dem Menü raus → Menü zua
+  // Seitenwechsel aus dem Menü raus → Menü zua (die Zeilen schließen's zusätzlich sofort beim Antippen,
+  // sonst bleibt's offen, bis die neue Seite da is, und wirkt wia eingefroren)
   useEffect(() => setMenu(false), [pathname]);
 
   // Frisch verdiente Punkte zählen sichtbar hoch: kleiner „+n WP"-Flug an der Pill
@@ -315,10 +316,10 @@ function ProfilMenue({
         </div>
 
         <div style={{ background: 'var(--weiss)', borderRadius: 18, overflow: 'hidden' }}>
-          <Link href="/profil" style={zeileStil}><Zeile icon={UserCircle} label="Mein Profil" hint="Steckbrief" /></Link>
-          <Link href="/profil#badges" style={zeileStil}><Zeile icon={Medal} label="Badges & Ämter" hint={String(badges)} /></Link>
-          <Link href="/einladen" style={zeileStil}><Zeile icon={UserPlus} label="Spezl einladen" /></Link>
-          <Link href="/profil#push" style={zeileStil}><Zeile icon={Bell} label="Benachrichtigungen" hint={push || undefined} /></Link>
+          <Link onClick={onClose} href="/profil" style={zeileStil}><Zeile icon={UserCircle} label="Mein Profil" hint="Steckbrief" /></Link>
+          <Link onClick={onClose} href="/profil#badges" style={zeileStil}><Zeile icon={Medal} label="Badges & Ämter" hint={String(badges)} /></Link>
+          <Link onClick={onClose} href="/einladen" style={zeileStil}><Zeile icon={UserPlus} label="Spezl einladen" /></Link>
+          <Link onClick={onClose} href="/profil#push" style={zeileStil}><Zeile icon={Bell} label="Benachrichtigungen" hint={push || undefined} /></Link>
           <PunkteInfo
             knopf={(oeffnen) => (
               <button type="button" onClick={oeffnen} style={zeileStil}>
@@ -326,13 +327,13 @@ function ProfilMenue({
               </button>
             )}
           />
-          <Link href="/willkommen" style={zeileStil}><Zeile icon={BookOpen} label="So geht’s" hint="Erklär-Slides" /></Link>
+          <Link onClick={onClose} href="/willkommen" style={zeileStil}><Zeile icon={BookOpen} label="So geht’s" hint="Erklär-Slides" /></Link>
           {isAdmin && verzeichnis && (
-            <Link href="/verzeichnis" style={zeileStil}>
+            <Link onClick={onClose} href="/verzeichnis" style={zeileStil}>
               <Zeile icon={TreeStructure} label="Alle Stammtische" hint={verzeichnis.anfragen > 0 ? `${verzeichnis.anfragen} Anfrage${verzeichnis.anfragen === 1 ? '' : 'n'} offen` : 'Verzeichnis'} />
             </Link>
           )}
-          <Link href="/stammtisch" style={{ ...zeileStil, borderWidth: 0 }}><Zeile icon={Gear} label="Unser Stammtisch" hint={isAdmin ? 'verwalten' : 'Steckbrief & Strafen'} /></Link>
+          <Link onClick={onClose} href="/stammtisch" style={{ ...zeileStil, borderWidth: 0 }}><Zeile icon={Gear} label="Unser Stammtisch" hint={isAdmin ? 'verwalten' : 'Steckbrief & Strafen'} /></Link>
         </div>
 
         <button

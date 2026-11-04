@@ -79,7 +79,7 @@ export default async function AbschlussPage() {
         mindestDatum={termin.datum}
         action={abschliessenUndZurueck.bind(null, termin.id)}
         strafen={{
-          regeln: regeln.filter((r) => r.art === 'eigene' && r.aktiv).map((r) => ({ id: r.id, name: r.name, detail: r.detail, folge: folgeWort(r.betragCents, -(r.wpStaffel[0] ?? 0)) })),
+          regeln: regeln.filter((r) => r.art === 'eigene' && r.aktiv && !r.ausloeser).map((r) => ({ id: r.id, name: r.name, detail: r.detail, folge: folgeWort(r.betragCents, -(r.wpStaffel[0] ?? 0)) })),
           gebucht: gebucht.map((b) => ({ id: b.id, text: `${nameVon.get(b.memberId) ?? '?'}: ${b.name}`, folge: folgeWort(b.betragCents, b.wp != null ? -b.wp : 0), darfWeg: darfZuruecknehmen(me, b) })),
           terminId: termin.id,
           buchen: strafeBuchenAction,

@@ -257,6 +257,15 @@ export const strafenRegeln = sqliteTable('strafen_regeln', {
   fristArt: text('frist_art', { enum: ['beginn', 'tage', 'stunden'] }).notNull().default('beginn'),
   fristWert: integer('frist_wert').notNull().default(0),
   nichtEingetragenZusage: integer('nicht_eingetragen_zusage', { mode: 'boolean' }).notNull().default(true),
+  /**
+   * Eigene Strafe automatisch buchen (04.11.2026), null = von Hand:
+   * reservierung: Organisator hat x Tage vorher noch nicht reserviert
+   * abstimmen: x Tage vorher noch nicht zu- oder abgesagt
+   * bewertung: x Tage nach dem Abend noch nicht bewertet (nur wer da war)
+   * orga_flop: Abend-Schnitt unter x Sternen (an den Organisator, nach der Nachtragsfrist)
+   */
+  ausloeser: text('ausloeser', { enum: ['reservierung', 'abstimmen', 'bewertung', 'orga_flop'] }),
+  ausloeserWert: integer('ausloeser_wert').notNull().default(0),
   erlassbar: integer('erlassbar', { mode: 'boolean' }).notNull().default(true),
   aktiv: integer('aktiv', { mode: 'boolean' }).notNull().default(true),
   sort: integer('sort').notNull().default(0),
@@ -287,6 +296,8 @@ export const strafen = sqliteTable('strafen', {
   status: text('status', { enum: ['offen', 'erlassen'] }).notNull().default('offen'),
   gebuchtVon: text('gebucht_von').references(() => members.id),
   benachrichtigt: integer('benachrichtigt', { mode: 'boolean' }).notNull().default(false),
+  /** Von einer automatischen eigenen Strafe gebucht (eindeutig je Termin, Regel, Spezl) */
+  auto: integer('auto', { mode: 'boolean' }).notNull().default(false),
   createdAt: text('created_at').notNull(),
 });
 

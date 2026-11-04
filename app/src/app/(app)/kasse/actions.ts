@@ -83,9 +83,28 @@ export async function forderungStatus(id: string, status: 'offen' | 'beglichen' 
   revalidate();
 }
 
+/** Fürs Kassenbuch (Formular-Knöpfe ohne Rückgabewert). */
+export async function strafeErlassenFormular(strafeId: string) {
+  await strafeErlassenAction(strafeId);
+}
+export async function strafeZuruecknehmenFormular(strafeId: string) {
+  await strafeZuruecknehmenAction(strafeId);
+}
+
 /** Katalog pflegen dürfen Admin und Präsident. */
 function darfKatalog(me: { id: string; role: string }): boolean {
   return me.role === 'admin' || me.id === getPraesidentId();
+}
+
+const AUSLOESER = ['reservierung', 'abstimmen', 'bewertung', 'orga_flop'] as const;
+
+/** „Wann wird gebucht?“: von Hand (null) oder automatisch mit Zahl (Tage bzw. Sterne). */
+function ausloeserAus(formData: FormData): { ausloeser: (typeof AUSLOESER)[number] | null; ausloeserWert: number } {
+  const roh = String(formData.get('ausloeser') ?? '');
+  const ausloeser = (AUSLOESER as readonly string[]).includes(roh) ? (roh as (typeof AUSLOESER)[number]) : null;
+  const max = ausloeser === 'orga_flop' ? 5 : 60;
+  const wert = Math.min(max, Math.max(ausloeser === 'orga_flop' ? 1 : 0, Math.round(Number(formData.get('ausloeserWert')) || 0)));
+  return { ausloeser, ausloeserWert: ausloeser ? wert : 0 };
 }
 
 /** WP-Abzüge aus dem Formular („5“ heißt −5 WP), höchstens 99. */
@@ -121,6 +140,7 @@ export async function regelSpeichern(formData: FormData): Promise<StrafAntwort> 
     betragCents,
     erlassbar: formData.get('erlassbar') === 'on',
     aktiv: formData.get('aktiv') !== 'aus',
+    ...(art === 'eigene' ? ausloeserAus(formData) : {}),
     ...(art === 'unentschuldigt'
       ? { fristArt: fristArt as 'beginn' | 'tage' | 'stunden', fristWert: fristArt === 'beginn' ? 0 : fristWert, nichtEingetragenZusage: formData.get('nichtEingetragenZusage') === 'on' }
       : {}),

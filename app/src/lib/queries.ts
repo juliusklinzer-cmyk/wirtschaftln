@@ -1,7 +1,7 @@
 import { desc, eq, ne, and, asc } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/sqlite-core';
 import { anzeigeName } from '@/lib/namen';
-import { db, members, termine, votes, besuche, wirtshaeuser, kasse, aemter, umfragen, umfrageStimmen, wirtshausBewertungen, checkins, strafen } from '@/lib/db';
+import { db, currentTenant, members, termine, votes, besuche, wirtshaeuser, kasse, aemter, umfragen, umfrageStimmen, wirtshausBewertungen, checkins, strafen } from '@/lib/db';
 import {
   PTS,
   wirtschaftlnPunkte,
@@ -238,6 +238,28 @@ export type MitgliedStats = {
  * Mit `bisDatum` gibt's den historischen Stand zu diesem Datum (Hall of Fame).
  */
 export function getStats(optionen?: { abDatum?: string; bisDatum?: string; ohneTerminId?: string }): MitgliedStats[] {
+  return [...gemerkt(`stats|${optionen?.abDatum ?? ''}|${optionen?.bisDatum ?? ''}|${optionen?.ohneTerminId ?? ''}`, () => berechneStats(optionen))];
+}
+
+/**
+ * Teure Auswertungen (getStats, getArchiv) merken, bis sich in der DB was
+ * ändert (04.11.2026, iPhone wurde zäh): Schlüssel ist Mandant + SQLites
+ * total_changes() der Verbindung, jeder Schreibzugriff macht's also frisch.
+ * Pro Seitenaufruf wurde getStats vorher 5–10× komplett neu gerechnet.
+ */
+const merker = new Map<string, unknown>();
+function gemerkt<T>(was: string, rechne: () => T): T {
+  const t = currentTenant();
+  const stand = (t.sqlite.prepare('SELECT total_changes() AS n').get() as { n: number }).n;
+  const key = `${t.id}|${stand}|${was}`;
+  if (merker.has(key)) return merker.get(key) as T;
+  const wert = rechne();
+  if (merker.size > 300) merker.clear();
+  merker.set(key, wert);
+  return wert;
+}
+
+function berechneStats(optionen?: { abDatum?: string; bisDatum?: string; ohneTerminId?: string }): MitgliedStats[] {
   const alleMitglieder = getAktiveMitglieder();
   // Chronologisch alt → neu, damit die Serien-Zähler sauber mitlaufen
   const chronologisch = db
@@ -524,6 +546,10 @@ export type ArchivTeilnehmer = {
 
 /** Besuchte Wirtshäuser inkl. Ø-Bewertungen (Sterne/Kaisi/Brodn), Teilnehmern und Hinweisen. */
 export function getArchiv() {
+  return [...gemerkt('archiv', berechneArchiv)];
+}
+
+function berechneArchiv() {
   const abgeschlossene = db
     .select()
     .from(termine)

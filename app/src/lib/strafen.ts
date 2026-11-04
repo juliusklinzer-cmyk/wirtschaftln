@@ -5,7 +5,7 @@ import { WACKELT_AB_UNENTSCHULDIGT } from '@/lib/punkte';
 import { tenantConfig } from '@/lib/tenant-config';
 import { pushAn } from '@/lib/push';
 import { mailAn } from '@/lib/mail';
-import { mailStrafe } from '@/lib/mail-vorlagen';
+import { mailStrafe, berlinNachUtc } from '@/lib/mail-vorlagen';
 import { mailRahmen, rufname, willMail } from '@/lib/mail-rahmen';
 import { anzeigeName } from '@/lib/namen';
 import { newId, nowIso } from '@/lib/ids';
@@ -28,13 +28,13 @@ function wirtshausVon(terminId: string | null): string | null {
 }
 
 /** Buchung + ggf. Kassenzeile anlegen. */
-function anlegen(d: { regel: Regel; memberId: string; terminId: string | null; wp: number | null; gebuchtVon: string | null }): Buchung {
+function anlegen(d: { regel: Regel; memberId: string; terminId: string | null; wp: number | null; gebuchtVon: string | null; auto?: boolean }): Buchung {
   const jetzt = nowIso();
   const kasseId = d.regel.betragCents > 0 ? newId('k') : null;
   const ort = wirtshausVon(d.terminId);
   const buchung: Buchung = {
     id: newId('st'), regelId: d.regel.id, art: d.regel.art, name: d.regel.name, memberId: d.memberId, terminId: d.terminId,
-    wp: d.wp, betragCents: d.regel.betragCents, kasseId, status: 'offen', gebuchtVon: d.gebuchtVon, benachrichtigt: false, createdAt: jetzt,
+    wp: d.wp, betragCents: d.regel.betragCents, kasseId, status: 'offen', gebuchtVon: d.gebuchtVon, benachrichtigt: false, auto: !!d.auto, createdAt: jetzt,
   };
   // In einer Transaktion: kracht der eindeutige Index (zwei Läufe gleichzeitig), bleibt auch keine Kassenzeile übrig
   db.transaction((tx) => {
@@ -100,6 +100,7 @@ export async function abendStrafenBuchen(terminId: string): Promise<void> {
   if (!termin || termin.datum < STRAFEN_KATALOG_AB) return;
   const regeln = katalog();
   const regelU = festeRegel('unentschuldigt', regeln);
+  const regelE = festeRegel('entschuldigt', regeln);
   const regelS = festeRegel('serie', regeln);
 
   const besuchVon = new Map(db.select().from(besuche).where(eq(besuche.terminId, terminId)).all().map((b) => [b.memberId, b]));
@@ -108,14 +109,21 @@ export async function abendStrafenBuchen(terminId: string): Promise<void> {
   const mitglieder = getAktiveMitglieder();
   const jobs: Promise<void>[] = [];
 
-  // ── Unentschuldigt ──
+  // ── Unentschuldigt (immer gebucht, friert den Status ein) und entschuldigt (nur wenn's Geld kostet) ──
   const soll = new Set<string>();
+  const entschuldigtSoll = new Set<string>();
   for (const m of mitglieder) {
     const besuch = besuchVon.get(m.id);
     if (besuch?.anwesend) continue;
     if (!besuch && m.createdAt.slice(0, 10) > termin.datum) continue; // erst danach dazugekommen
     if (fehltUnentschuldigt(voteVon.get(m.id), termin, regelU)) soll.add(m.id);
+    else if (regelE?.aktiv && regelE.betragCents > 0) entschuldigtSoll.add(m.id);
   }
+  for (const b of vorhanden.filter((x) => x.art === 'entschuldigt')) {
+    if (entschuldigtSoll.has(b.memberId)) entschuldigtSoll.delete(b.memberId);
+    else if (b.status === 'offen' && !beglichen(b)) jobs.push(loeschen(b));
+  }
+  for (const memberId of entschuldigtSoll) einmalig(() => anlegen({ regel: regelE!, memberId, terminId, wp: null, gebuchtVon: null }));
   for (const b of vorhanden.filter((x) => x.art === 'unentschuldigt')) {
     if (soll.has(b.memberId)) soll.delete(b.memberId);
     else if (b.status === 'offen' && !beglichen(b)) jobs.push(loeschen(b));
@@ -154,6 +162,7 @@ export async function abendStrafenBuchen(terminId: string): Promise<void> {
 export async function strafeBuchen(me: Mitglied, memberId: string, regelId: string, terminId: string | null): Promise<{ ok: boolean; meldung: string }> {
   const regel = katalog().find((r) => r.id === regelId);
   if (!regel || regel.art !== 'eigene' || !regel.aktiv) return { ok: false, meldung: 'Diese Strafe gibt’s nicht (mehr).' };
+  if (regel.ausloeser) return { ok: false, meldung: 'Die bucht die App von allein.' };
   const opfer = getAktiveMitglieder().find((m) => m.id === memberId);
   if (!opfer) return { ok: false, meldung: 'Den Spezl gibt’s nicht.' };
   if (terminId && !db.select().from(termine).where(eq(termine.id, terminId)).get()) return { ok: false, meldung: 'Den Termin gibt’s nicht.' };
@@ -216,26 +225,93 @@ export function buchungStatusAusKasse(kasseId: string, status: 'offen' | 'beglic
   db.update(strafen).set({ status: status === 'aufgehoben' ? 'erlassen' : 'offen' }).where(eq(strafen.id, b.id)).run();
 }
 
-/** Gebuchte Strafen der letzten 30 Tage für die Liste unterm Katalog, mit Rechten für `me`. */
-export function letzteBuchungen(me: Mitglied) {
-  const grenze = new Date(Date.now() - 30 * 86_400_000).toISOString();
-  const alle = db.select().from(strafen).all().filter((b) => b.createdAt >= grenze && b.art !== 'entschuldigt');
-  const namen = new Map(db.select().from(members).all().map((m) => [m.id, anzeigeName(m)]));
-  return alle
-    .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
-    .slice(0, 40)
-    .map((b) => {
-      const wp = b.wp != null ? -b.wp : 0;
-      const folge = folgeWort(b.betragCents, wp);
-      return {
-        id: b.id,
-        wer: namen.get(b.memberId) ?? '?',
-        name: b.name,
-        folge: folge === 'nichts' ? (b.art === 'unentschuldigt' ? 'WP-Abzug' : '') : folge,
-        datum: new Date(b.createdAt).toLocaleDateString('de-DE', { timeZone: 'Europe/Berlin', day: 'numeric', month: 'short' }),
-        erlassen: b.status === 'erlassen',
-        darfErlassen: darfErlassen(me, b),
-        darfZuruecknehmen: darfZuruecknehmen(me, b),
-      };
+/** Zeitpunkt „bis 24 Uhr am Tag `datum` + `tage`“ (Berliner Zeit) als UTC-Millisekunden. */
+function tagesEnde(datum: string, tage: number): number {
+  const d = new Date(`${datum}T12:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + tage + 1);
+  return berlinNachUtc(d.toISOString().slice(0, 10), '00:00').getTime();
+}
+
+/**
+ * Automatische eigene Strafen (Julius, 04.11.2026): läuft alle paar Minuten
+ * im Hintergrund. Gebucht wird nur, wenn die Frist NACH dem Anlegen bzw.
+ * Ändern der Regel abgelaufen ist (nix rückwirkend), je Termin, Regel und
+ * Spezl genau einmal.
+ */
+export async function autoStrafenPruefen(jetztIso = nowIso()): Promise<number> {
+  const jetzt = Date.parse(jetztIso);
+  const regeln = katalog().filter((r) => r.art === 'eigene' && r.aktiv && r.ausloeser);
+  if (regeln.length === 0) return 0;
+  const alleTermine = db.select().from(termine).all().filter((t) => t.datum >= STRAFEN_KATALOG_AB);
+  const mitglieder = getAktiveMitglieder();
+  const neu: Array<{ b: Buchung; opfer: Mitglied }> = [];
+  const buchen = (regel: Regel, terminId: string, memberId: string) => {
+    const opfer = mitglieder.find((m) => m.id === memberId);
+    if (!opfer) return;
+    einmalig(() => {
+      const wp = regel.wpStaffel[0] ?? 0;
+      neu.push({ b: anlegen({ regel, memberId, terminId, wp: wp || null, gebuchtVon: null, auto: true }), opfer });
     });
+  };
+  const schonGebucht = new Set(db.select().from(strafen).all().filter((b) => b.auto).map((b) => `${b.terminId}:${b.regelId}:${b.memberId}`));
+
+  for (const r of regeln) {
+    const ab = Date.parse(r.geaendertAm ?? r.erstelltAm);
+    const x = Math.max(0, r.ausloeserWert);
+    const faellig = (frist: number) => jetzt >= frist && frist >= ab;
+    for (const t of alleTermine) {
+      const offen = (memberId: string) => !schonGebucht.has(`${t.id}:${r.id}:${memberId}`);
+      if (r.ausloeser === 'reservierung') {
+        // „bis x Tage vorher reserviert“: Frist = 24 Uhr, x Tage vor dem Termin
+        if (t.phase === 'planung' && t.planerId && faellig(tagesEnde(t.datum, -x)) && offen(t.planerId)) buchen(r, t.id, t.planerId);
+      } else if (r.ausloeser === 'abstimmen') {
+        if (t.phase === 'abgeschlossen' || !faellig(tagesEnde(t.datum, -x))) continue;
+        const gestimmt = new Set(db.select().from(votes).where(eq(votes.terminId, t.id)).all().filter((v) => v.wert !== 'vielleicht').map((v) => v.memberId));
+        for (const m of mitglieder) if (!gestimmt.has(m.id) && m.createdAt.slice(0, 10) <= t.datum && offen(m.id)) buchen(r, t.id, m.id);
+      } else if (r.ausloeser === 'bewertung') {
+        if (t.phase !== 'abgeschlossen' || !faellig(tagesEnde(t.datum, x))) continue;
+        for (const b of db.select().from(besuche).where(eq(besuche.terminId, t.id)).all()) {
+          const bewertet = b.sterne != null || !!b.kommentar?.trim() || b.kaiserSterne != null || b.brodnSterne != null;
+          if (b.anwesend && !bewertet && offen(b.memberId)) buchen(r, t.id, b.memberId);
+        }
+      } else if (r.ausloeser === 'orga_flop') {
+        if (t.phase !== 'abgeschlossen' || !t.planerId || !t.abgeschlossenAm) continue;
+        if (!faellig(Date.parse(t.abgeschlossenAm) + 7 * 86_400_000)) continue;
+        const sterne = db.select().from(besuche).where(eq(besuche.terminId, t.id)).all().filter((b) => b.anwesend && b.sterne != null).map((b) => b.sterne!);
+        if (sterne.length < 2) continue;
+        const schnitt = sterne.reduce((a, b) => a + b, 0) / sterne.length;
+        if (schnitt < x && offen(t.planerId)) buchen(r, t.id, t.planerId);
+      }
+    }
+  }
+  await Promise.allSettled(neu.map(({ b, opfer }) => melden(b, opfer, null)));
+  return neu.length;
+}
+
+/**
+ * Eigene Strafen, die nur WP kosten (koa Kassenzeile), im Format vom
+ * Kassenbuch, damit sie dort ganz normal mit drinstehen.
+ */
+export function wpStrafenFuerKassenbuch() {
+  const alle = db.select().from(strafen).all().filter((b) => b.art === 'eigene' && !b.kasseId && b.wp);
+  if (alle.length === 0) return [];
+  const leute = new Map(db.select().from(members).all().map((m) => [m.id, m]));
+  const termin = new Map(db.select().from(termine).all().map((t) => [t.id, t]));
+  const wirtshaus = new Map(db.select().from(wirtshaeuser).all().map((w) => [w.id, w]));
+  return alle.map((b) => {
+    const t = b.terminId ? termin.get(b.terminId) ?? null : null;
+    const eintrag: typeof kasse.$inferSelect = {
+      id: b.id, memberId: b.memberId, terminId: b.terminId, grund: b.name, betragCents: 0, kind: 'strafe',
+      status: b.status === 'erlassen' ? 'aufgehoben' : 'offen', gemeldetVon: b.gebuchtVon, createdAt: b.createdAt,
+    };
+    return {
+      eintrag,
+      member: leute.get(b.memberId) ?? null,
+      melder: b.gebuchtVon ? leute.get(b.gebuchtVon) ?? null : null,
+      termin: t,
+      wirtshaus: t?.wirtshausId ? wirtshaus.get(t.wirtshausId) ?? null : null,
+      wp: -(b.wp ?? 0) as number | null,
+      buchung: b as Buchung | null,
+    };
+  });
 }

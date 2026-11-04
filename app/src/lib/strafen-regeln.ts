@@ -130,11 +130,22 @@ export function regelZusammenfassung(r: Regel): string {
   const staffel = r.wpStaffel.map((w) => (w === 0 ? '±0' : String(w))).join('/');
   const geld = r.betragCents > 0 ? folgeWort(r.betragCents, 0) : null;
   if (r.art === 'unentschuldigt') return [`Absagen ${fristAllgemein(r)}`, `${staffel} WP`, geld].filter(Boolean).join(' · ');
-  if (r.art === 'entschuldigt') return `${staffel} WP`;
+  if (r.art === 'entschuldigt') return [`${staffel} WP`, geld ? `${geld} je Absage` : null].filter(Boolean).join(' · ');
   const wp = r.wpStaffel[0] ?? 0;
   const folge = folgeWort(r.betragCents, -wp);
   if (r.art === 'serie') return folge === 'nichts' ? 'Nur die Frage „Bist du noch dabei?“' : folge;
   return folge;
+}
+
+/** Wann eine automatische eigene Strafe greift, als Satz. null = von Hand. */
+export function ausloeserText(r: Pick<Regel, 'ausloeser' | 'ausloeserWert'>): string | null {
+  const x = r.ausloeserWert;
+  const tage = x === 1 ? '1 Tag' : `${x} Tage`;
+  if (r.ausloeser === 'reservierung') return `Organisator hat ${tage} vorher noch nicht reserviert`;
+  if (r.ausloeser === 'abstimmen') return `${tage} vorher noch nicht zu- oder abgesagt`;
+  if (r.ausloeser === 'bewertung') return `${tage} nach dem Abend noch nicht bewertet`;
+  if (r.ausloeser === 'orga_flop') return `Abend unter ${x} Sternen, zahlt der Organisator`;
+  return null;
 }
 
 /**

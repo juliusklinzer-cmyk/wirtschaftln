@@ -17,6 +17,9 @@ export type RegelZeile = {
   fristArt: 'beginn' | 'tage' | 'stunden';
   fristWert: number;
   nichtEingetragenZusage: boolean;
+  /** Eigene Strafe automatisch (null = von Hand) */
+  ausloeser: 'reservierung' | 'abstimmen' | 'bewertung' | 'orga_flop' | null;
+  ausloeserWert: number;
   erlassbar: boolean;
   aktiv: boolean;
   /** „Bis zum Beginn absagen · 20 € · −5/−10/−15 WP“ */
@@ -36,11 +39,30 @@ const BEISPIELE: Array<{ name: string; detail: string; euro: string; wp: string 
 ];
 
 const ART_TEXT: Record<RegelZeile['art'], string> = {
-  unentschuldigt: 'Fest · bucht automatisch',
-  entschuldigt: 'Fest · nur WP, automatisch',
-  serie: 'Fest · bucht automatisch',
-  eigene: 'Eigene · wird gebucht',
+  unentschuldigt: 'Feste Strafe',
+  entschuldigt: 'Feste Strafe',
+  serie: 'Feste Strafe',
+  eigene: 'Eigene Strafe',
 };
+
+/** „Wann wird gebucht?“ bei eigenen Strafen: Text vorm Feld und Einheit dahinter. */
+const AUSLOESER: Array<{ wert: NonNullable<RegelZeile['ausloeser']>; label: string; feld: string; einheit: string; start: number }> = [
+  { wert: 'reservierung', label: 'Reservierung zu spät', feld: 'Organisator hat … vorher noch nicht reserviert', einheit: 'Tage', start: 7 },
+  { wert: 'abstimmen', label: 'Nicht abgestimmt', feld: 'Noch nicht zu- oder abgesagt, … vorher', einheit: 'Tage', start: 3 },
+  { wert: 'bewertung', label: 'Nicht bewertet', feld: 'Noch nicht bewertet, … nach dem Abend', einheit: 'Tage', start: 3 },
+  { wert: 'orga_flop', label: 'Schlecht bewerteter Abend', feld: 'Organisator zahlt, wenn der Abend-Schnitt unter … liegt', einheit: 'Sterne', start: 3 },
+];
+
+/** Läuft die Strafe von allein? */
+const automatisch = (r: Pick<RegelZeile, 'art' | 'ausloeser'>) => r.art !== 'eigene' || !!r.ausloeser;
+
+function WannChip({ auto }: { auto: boolean }) {
+  return (
+    <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: '0.04em', textTransform: 'uppercase', padding: '3px 8px', borderRadius: 999, whiteSpace: 'nowrap', flex: 'none', background: auto ? 'var(--info-bg)' : 'var(--ink-50)', color: auto ? 'var(--muc-blau)' : 'var(--ink-500)' }}>
+      {auto ? 'automatisch' : 'von Hand'}
+    </span>
+  );
+}
 
 function Feld({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
   return (
@@ -68,6 +90,8 @@ function RegelForm({ regel, vorlage, speichern, fertig }: { regel: RegelZeile | 
   const [zusage, setZusage] = useState(regel?.nichtEingetragenZusage ?? true);
   const [erlassbar, setErlassbar] = useState(regel?.erlassbar ?? true);
   const [aktiv, setAktiv] = useState(regel?.aktiv ?? true);
+  const [ausloeser, setAusloeser] = useState<RegelZeile['ausloeser']>(regel?.ausloeser ?? null);
+  const ausl = AUSLOESER.find((a) => a.wert === ausloeser);
   const [fehler, setFehler] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const staffel = art === 'unentschuldigt' || art === 'entschuldigt';
@@ -95,6 +119,28 @@ function RegelForm({ regel, vorlage, speichern, fertig }: { regel: RegelZeile | 
       <Feld label="Detail (optional)" hint="Beschluss, Ausnahmen, alles was dazu gehört.">
         <textarea name="detail" maxLength={500} rows={2} defaultValue={regel?.detail ?? vorlage?.detail ?? ''} placeholder="z. B. Beschluss vom 7.8.2025" style={{ ...feldStil, height: 'auto', minHeight: 64, paddingTop: 10, resize: 'vertical' }} />
       </Feld>
+
+      {art === 'eigene' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, padding: 12, borderRadius: 14, background: 'var(--weiss)', border: '1px solid var(--ink-100)' }}>
+          <Feld label="Wann wird gebucht?">
+            <select name="ausloeser" value={ausloeser ?? ''} onChange={(e) => setAusloeser((e.target.value || null) as RegelZeile['ausloeser'])} style={{ ...feldStil, appearance: 'auto' }}>
+              <option value="">Von Hand (am Tisch oder in der Kasse)</option>
+              {AUSLOESER.map((a) => <option key={a.wert} value={a.wert}>Automatisch: {a.label}</option>)}
+            </select>
+          </Feld>
+          {ausl && (
+            <Feld label={ausl.feld}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <input key={ausl.wert} name="ausloeserWert" type="number" min={ausl.wert === 'orga_flop' ? 1 : 0} max={ausl.wert === 'orga_flop' ? 5 : 60} defaultValue={regel?.ausloeser === ausl.wert ? regel.ausloeserWert : ausl.start} style={{ ...feldStil, width: 90, textAlign: 'center' }} />
+                <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink-700)' }}>{ausl.einheit}</span>
+              </div>
+            </Feld>
+          )}
+          <span style={{ fontSize: 11, fontWeight: 600, lineHeight: 1.4, color: 'var(--ink-500)' }}>
+            {ausl ? 'Die App bucht die Strafe von allein, nur für Termine ab jetzt. Der Betroffene bekommt Bescheid.' : 'Wird am Zettel „Wer war da“ oder in der Kasse unter „Strafe“ gebucht.'}
+          </span>
+        </div>
+      )}
 
       {art === 'unentschuldigt' && (
         <>
@@ -131,11 +177,9 @@ function RegelForm({ regel, vorlage, speichern, fertig }: { regel: RegelZeile | 
         </Feld>
       )}
 
-      {art !== 'entschuldigt' && (
-        <Feld label="Betrag (€)" hint="Leer oder 0 = kostet kein Geld. Steht dann als offene Forderung in der Kasse.">
-          <input name="betrag" type="number" step="0.10" min={0} inputMode="decimal" defaultValue={euroStart} placeholder="0,00" style={feldStil} />
-        </Feld>
-      )}
+      <Feld label="Betrag (€)" hint={art === 'entschuldigt' ? 'Kostet jede Absage Geld? Leer oder 0 = nein.' : 'Leer oder 0 = kostet kein Geld. Steht dann als offene Forderung in der Kasse.'}>
+        <input name="betrag" type="number" step="0.10" min={0} inputMode="decimal" defaultValue={euroStart} placeholder="0,00" style={feldStil} />
+      </Feld>
 
       <Haken name="erlassbar" label="Kann vom Präsidenten erlassen werden" an={erlassbar} onChange={setErlassbar} />
       {regel && <Haken name="_aktiv" label="Aktiv (abgeschaltet bucht sie nichts mehr)" an={aktiv} onChange={setAktiv} />}
@@ -184,9 +228,13 @@ export function StrafenKatalog({
         <Gavel size={18} weight="fill" />
       </span>
       <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
-        <span style={{ fontSize: 15, fontWeight: 800, color: 'var(--ink-900)' }}>{r.name}{r.aktiv ? '' : ' · abgeschaltet'}</span>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+          <span style={{ fontSize: 15, fontWeight: 800, color: 'var(--ink-900)' }}>{r.name}{r.aktiv ? '' : ' · abgeschaltet'}</span>
+          <WannChip auto={automatisch(r)} />
+        </span>
         <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--strafe)' }}>{r.zusammenfassung}</span>
         {r.detail && <span style={{ fontSize: 12, fontWeight: 600, lineHeight: 1.4, color: 'var(--ink-500)' }}>{r.detail}</span>}
+        {r.art === 'eigene' && r.ausloeser && <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--muc-blau)' }}>Wenn: {AUSLOESER.find((a) => a.wert === r.ausloeser)?.feld.replace('…', r.ausloeser === 'orga_flop' ? `${r.ausloeserWert} Sterne` : `${r.ausloeserWert} Tage`)}</span>}
         <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink-300)' }}>{ART_TEXT[r.art]}{r.erlassbar ? ' · erlassbar' : ' · nicht erlassbar'}{r.geaendert ? ` · ${r.geaendert}` : ''}</span>
       </span>
       {darfPflegen && <Icon name="chevron" size={18} color="var(--ink-300)" style={{ flex: 'none', marginTop: 8 }} />}
@@ -241,7 +289,7 @@ export function StrafenKatalog({
                 <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, padding: '0 4px' }}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                     <span style={{ fontFamily: 'var(--font-fraktur)', fontSize: 30, lineHeight: 1, color: 'var(--navy)' }}>{offen.regel ? 'Strafe ändern' : 'Neue Strafe'}</span>
-                    <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink-500)' }}>{offen.regel ? ART_TEXT[offen.regel.art] : 'Wird am Tisch oder in der Kasse gebucht'}</span>
+                    <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink-500)' }}>{offen.regel ? (automatisch(offen.regel) ? `${ART_TEXT[offen.regel.art]} · bucht automatisch` : `${ART_TEXT[offen.regel.art]} · wird von Hand gebucht`) : 'Von Hand oder automatisch'}</span>
                   </div>
                   <button type="button" onClick={() => setOffen(null)} aria-label="Schließen" className="wn-press" style={{ width: 36, height: 36, flex: 'none', borderRadius: '50%', border: 'none', background: 'var(--ink-100)', color: 'var(--ink-500)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0 }}>
                     <Icon name="x" size={17} />

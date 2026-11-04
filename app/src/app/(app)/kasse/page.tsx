@@ -172,8 +172,12 @@ export default async function KassePage() {
                   </span>
                 )}
                 <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
-                  <span style={{ fontSize: 15, fontWeight: 800, color: 'var(--ink-900)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {member ? (member.id === me.id ? 'Du' : vorname(anzeigeName(member))) : 'Vereinskasse'}
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+                    <span style={{ fontSize: 15, fontWeight: 800, color: 'var(--ink-900)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>
+                      {member ? (member.id === me.id ? 'Du' : vorname(anzeigeName(member))) : 'Vereinskasse'}
+                    </span>
+                    {/* Strafen auf einen Blick (Julius, 04.11.2026) */}
+                    {istForderung && <span style={{ flex: 'none', fontSize: 10, fontWeight: 800, letterSpacing: '0.04em', textTransform: 'uppercase', padding: '2px 8px', borderRadius: 999, background: 'var(--strafe-bg)', color: 'var(--strafe)' }}>Strafe</span>}
                   </span>
                   <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink-700)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{eintrag.grund}</span>
                   <span className="wn-tnum" style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink-300)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{meta.join(' · ')}</span>

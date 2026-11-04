@@ -380,6 +380,27 @@ details[open] > summary .wn-klappe-pfeil {
   pointer-events: none;
 }
 
+/* Glas-Leiste (Test bei Wirtschaftln, 04.11.2026, Vorbild iOS-Apps):
+   Statusleiste durchsichtig (black-translucent), der Inhalt scrollt unter
+   Uhrzeit und Akku durch und wird dort weich verwischt. Leicht Navy getönt,
+   weil iOS die Uhrzeit in dem Modus immer weiß schreibt. Läuft nach unten
+   ohne Kante aus. */
+body.wn-glas .wn-statusleiste {
+  /* Auslauf nur mit Notch: ohne (Desktop, Android) is env() = 0 und der Streifen 0 hoch */
+  height: calc(env(safe-area-inset-top, 0px) + min(22px, env(safe-area-inset-top, 0px) * 100));
+  background: linear-gradient(180deg, rgba(7, 25, 58, 0.62) 0%, rgba(7, 25, 58, 0.38) 60%, rgba(7, 25, 58, 0) 100%);
+  -webkit-backdrop-filter: blur(14px) saturate(160%);
+  backdrop-filter: blur(14px) saturate(160%);
+  -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 55%, transparent 100%);
+  mask-image: linear-gradient(180deg, #000 0%, #000 55%, transparent 100%);
+}
+/* iOS lässt im durchsichtigen Modus unten an Spalt: GlasHoehe setzt
+   --wn-app-h auf die volle Bildschirmhöhe, der Rahmen streckt sich drauf. */
+body.wn-glas .wn-app-rahmen {
+  bottom: auto !important;
+  height: var(--wn-app-h, 100%);
+}
+
 .wn-scroll-still {
   scrollbar-width: none;
   -ms-overflow-style: none;

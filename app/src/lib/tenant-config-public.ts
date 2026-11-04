@@ -34,6 +34,8 @@ export type TenantFeatures = {
   muenchenBranding: boolean;
   /** Schnapselt ihr? → Schnaps am Bierdeckel, in der Statistik und der Schnapsler-Badge */
   schnaps: boolean;
+  /** Statusleiste aus Glas: Inhalt scrollt unter Uhrzeit und Akku durch, mit Blur (Test ab 04.11.2026) */
+  glasLeiste: boolean;
 };
 
 export type PublicTenantConfig = {
@@ -76,6 +78,7 @@ export const GRUENDER_FEATURES: TenantFeatures = {
   wirtshausFotos: true,
   muenchenBranding: true,
   schnaps: false,
+  glasLeiste: true,
 };
 
 /** Neue Stammtische: die Münchner Sonderlocken bleiben aus. */
@@ -92,6 +95,7 @@ export const GENERISCHE_FEATURES: TenantFeatures = {
   wirtshausFotos: false,
   muenchenBranding: false,
   schnaps: false,
+  glasLeiste: false,
 };
 
 export const MUENCHEN_GEO: TenantGeo = {

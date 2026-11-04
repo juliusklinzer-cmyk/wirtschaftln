@@ -17,11 +17,15 @@ export default async function KartePage() {
   const termin = getAktuellerTermin();
   const reservierbar = !!termin && termin.phase === 'planung' && !!termin.planerId && (darfModerieren || termin.planerId === me.id);
   return (
+    <>
+    {/* Glas-Leiste: auf der Karte fester Navy-Streifen statt verwischter Straßen (globals.css) */}
+    <span className="wn-ohne-glas" hidden />
     <ArchivScreen
       eintraege={ladeArchivEintraege(me.id)}
       ich={{ id: me.id, darfModerieren }}
       ohneKarte={!tenantConfig().features.archivKarte}
       reservieren={reservierbar && termin ? wirtshausFestlegen.bind(null, termin.id) : null}
     />
+    </>
   );
 }

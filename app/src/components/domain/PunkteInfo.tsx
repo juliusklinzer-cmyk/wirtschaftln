@@ -19,7 +19,7 @@ export function PunkteInfo({ knopf }: { knopf?: (oeffnen: () => void) => React.R
   const { strafen } = useTenantConfig();
   // Ohne Katalog-Daten (außerhalb vom App-Layout) die Standardwerte zeigen
   const u = strafen?.unentschuldigt ?? { aktiv: true, staffel: [1, 2, 3].map(unentschuldigtMalus), cents: 0, frist: 'bis zum Beginn', nichtEingetragenZusage: true };
-  const e = strafen?.entschuldigt ?? { aktiv: true, staffel: [1, 2, 3, 4].map(entschuldigtMalus) };
+  const e = strafen?.entschuldigt ?? { aktiv: true, staffel: [1, 2, 3, 4].map(entschuldigtMalus), cents: 0 };
   const serie = strafen?.serie ?? { aktiv: true, wp: 0, cents: 0 };
   const serieFolge = [serie.cents > 0 ? eu(serie.cents) : null, serie.wp < 0 ? `${-serie.wp} WP` : null].filter(Boolean).join(' und ');
 
@@ -81,7 +81,7 @@ export function PunkteInfo({ knopf }: { knopf?: (oeffnen: () => void) => React.R
             </div>
 
             <Ueberschrift text="Absagen" abstand />
-            <div style={erklaerText}>Wer {u.frist} absagt, ist entschuldigt. {e.aktiv ? 'In Folge wird’s teurer:' : 'Das kostet keine WP.'}</div>
+            <div style={erklaerText}>Wer {u.frist} absagt, ist entschuldigt{e.aktiv && e.cents > 0 ? `, zahlt aber ${eu(e.cents)} je Absage` : ''}. {e.aktiv ? 'In Folge wird’s teurer:' : 'Das kostet keine WP.'}</div>
             {e.aktiv && (
               <div style={{ display: 'flex', gap: 6 }}>
                 {e.staffel.map((_, i) => {
@@ -111,6 +111,18 @@ export function PunkteInfo({ knopf }: { knopf?: (oeffnen: () => void) => React.R
               <Icon name="warning" size={18} color="var(--strafe)" style={{ flex: 'none' }} />
               <span style={{ fontSize: 12, fontWeight: 700, lineHeight: 1.5, color: 'var(--strafe)' }}>Beim {WACKELT_AB_UNENTSCHULDIGT}. Mal in Folge wackelst du{serie.aktiv && serieFolge ? ` und zahlst ${serieFolge}` : ''}. Wieder dabei sein setzt alles zurück.</span>
             </div>
+
+            {(strafen?.eigene.length ?? 0) > 0 && (
+              <>
+                <Ueberschrift text="Eure Strafen" abstand />
+                <div style={erklaerText}>Aus eurem Strafenkatalog, kosten WP (und manche zusätzlich Geld):</div>
+                <div>
+                  {strafen!.eigene.map((st, i, arr) => (
+                    <Zeile key={st.name} icon="warning" text={st.name} wp={String(st.wp)} letzte={i === arr.length - 1} />
+                  ))}
+                </div>
+              </>
+            )}
 
             <Ueberschrift text="So läuft ein Abend" abstand />
             <div style={erklaerText}>

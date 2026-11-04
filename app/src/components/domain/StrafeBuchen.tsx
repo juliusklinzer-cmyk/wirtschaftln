@@ -23,12 +23,15 @@ export function StrafeBuchen({
   terminId,
   buchen,
   onGebucht,
+  neuErstellen = false,
 }: {
   mitglieder: StrafSpezl[];
   regeln: StrafWahl[];
   terminId?: string;
   buchen: (formData: FormData) => Promise<StrafAntwort>;
   onGebucht?: (meldung: string) => void;
+  /** Präsident und Admin: Knopf „Neue Strafe erstellen“ (springt in den Katalog auf „Unser Stammtisch“) */
+  neuErstellen?: boolean;
 }) {
   const [wer, setWer] = useState<string | null>(null);
   const [regel, setRegel] = useState<string | null>(null);
@@ -53,11 +56,20 @@ export function StrafeBuchen({
     });
   };
 
+  const neuKnopf = neuErstellen && (
+    <a href="/stammtisch#neue-strafe" className="wn-press" style={{ minHeight: 46, borderRadius: 14, border: '1.5px dashed var(--ink-200)', background: 'var(--weiss)', color: 'var(--navy)', fontFamily: 'var(--font-ui)', fontSize: 14, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, textDecoration: 'none' }}>
+      + Neue Strafe erstellen
+    </a>
+  );
+
   if (regeln.length === 0) {
     return (
-      <span style={{ fontSize: 13, fontWeight: 600, lineHeight: 1.5, color: 'var(--ink-500)' }}>
-        Noch keine eigenen Strafen im Katalog. Die legen Präsident oder Admin unter <a href="/stammtisch" style={{ color: 'var(--muc-blau)', fontWeight: 800 }}>Unser Stammtisch</a> an.
-      </span>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <span style={{ fontSize: 13, fontWeight: 600, lineHeight: 1.5, color: 'var(--ink-500)' }}>
+          Noch keine eigenen Strafen im Katalog. Die legen Präsident oder Admin unter <a href="/stammtisch" style={{ color: 'var(--muc-blau)', fontWeight: 800 }}>Unser Stammtisch</a> an.
+        </span>
+        {neuKnopf}
+      </div>
     );
   }
 
@@ -103,6 +115,7 @@ export function StrafeBuchen({
           })}
         </div>
       </div>
+      {neuKnopf}
       {fehler && <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--strafe)' }}>{fehler}</span>}
       <button type="button" onClick={los} disabled={!gueltig || pending} className="wn-press" style={{ height: 52, borderRadius: 14, border: 'none', background: 'var(--strafe)', color: '#fff', fontFamily: 'var(--font-ui)', fontSize: 16, fontWeight: 800, cursor: gueltig ? 'pointer' : 'default', opacity: gueltig && !pending ? 1 : 0.55, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
         <Gavel size={22} weight="fill" />

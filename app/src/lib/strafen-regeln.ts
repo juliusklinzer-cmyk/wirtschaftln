@@ -120,8 +120,9 @@ export function strafenUebersicht(alle = katalog()): StrafenUebersicht {
   const s = festeRegel('serie', alle);
   return {
     unentschuldigt: { aktiv: !!u?.aktiv, staffel: u?.wpStaffel ?? [], cents: u?.betragCents ?? 0, frist: u ? fristAllgemein(u) : 'bis zum Beginn', nichtEingetragenZusage: u?.nichtEingetragenZusage ?? true },
-    entschuldigt: { aktiv: !!e?.aktiv, staffel: e?.wpStaffel ?? [] },
+    entschuldigt: { aktiv: !!e?.aktiv, staffel: e?.wpStaffel ?? [], cents: e?.betragCents ?? 0 },
     serie: { aktiv: !!s?.aktiv, wp: s?.wpStaffel[0] ?? 0, cents: s?.betragCents ?? 0 },
+    eigene: alle.filter((r) => r.art === 'eigene' && r.aktiv && (r.wpStaffel[0] ?? 0) < 0).map((r) => ({ name: r.name, wp: r.wpStaffel[0] })),
   };
 }
 

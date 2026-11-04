@@ -287,31 +287,3 @@ export async function autoStrafenPruefen(jetztIso = nowIso()): Promise<number> {
   await Promise.allSettled(neu.map(({ b, opfer }) => melden(b, opfer, null)));
   return neu.length;
 }
-
-/**
- * Eigene Strafen, die nur WP kosten (koa Kassenzeile), im Format vom
- * Kassenbuch, damit sie dort ganz normal mit drinstehen.
- */
-export function wpStrafenFuerKassenbuch() {
-  const alle = db.select().from(strafen).all().filter((b) => b.art === 'eigene' && !b.kasseId && b.wp);
-  if (alle.length === 0) return [];
-  const leute = new Map(db.select().from(members).all().map((m) => [m.id, m]));
-  const termin = new Map(db.select().from(termine).all().map((t) => [t.id, t]));
-  const wirtshaus = new Map(db.select().from(wirtshaeuser).all().map((w) => [w.id, w]));
-  return alle.map((b) => {
-    const t = b.terminId ? termin.get(b.terminId) ?? null : null;
-    const eintrag: typeof kasse.$inferSelect = {
-      id: b.id, memberId: b.memberId, terminId: b.terminId, grund: b.name, betragCents: 0, kind: 'strafe',
-      status: b.status === 'erlassen' ? 'aufgehoben' : 'offen', gemeldetVon: b.gebuchtVon, createdAt: b.createdAt,
-    };
-    return {
-      eintrag,
-      member: leute.get(b.memberId) ?? null,
-      melder: b.gebuchtVon ? leute.get(b.gebuchtVon) ?? null : null,
-      termin: t,
-      wirtshaus: t?.wirtshausId ? wirtshaus.get(t.wirtshausId) ?? null : null,
-      wp: -(b.wp ?? 0) as number | null,
-      buchung: b as Buchung | null,
-    };
-  });
-}

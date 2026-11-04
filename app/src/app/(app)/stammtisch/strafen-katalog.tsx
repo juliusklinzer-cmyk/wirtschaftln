@@ -210,6 +210,11 @@ export function StrafenKatalog({
   const [erfolg, setErfolg] = useState<string | null>(null);
   const eigene = regeln.filter((r) => r.art === 'eigene');
 
+  // Aus „Strafe buchen“ kommend (/stammtisch#neue-strafe): gleich das Formular für eine neue aufmachen
+  useEffect(() => {
+    if (darfPflegen && window.location.hash === '#neue-strafe') setOffen({ regel: null });
+  }, [darfPflegen]);
+
   useEffect(() => {
     if (!erfolg) return;
     const t = setTimeout(() => { setErfolg(null); setOffen(null); }, 1500);

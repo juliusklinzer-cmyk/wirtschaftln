@@ -19,6 +19,7 @@ import {
   nachtragsfristOffen,
   getWirtshausById,
   getNaechsterTermin,
+  getStrafenFuerTermin,
 } from '@/lib/queries';
 import { PTS, WACKELT_AB_UNENTSCHULDIGT, checkinOffen, bierdeckelOffen, abschlussOffen, berlinTag } from '@/lib/punkte';
 import { nowIso } from '@/lib/ids';
@@ -558,6 +559,8 @@ function LetzterStammtisch({
   if (vorschlagDelta !== 0) posten.push(['Dei Wirtshaus-Vorschlag', vorschlagDelta]);
   if (serienDelta !== 0) posten.push(['Serienbonus', serienDelta]);
   if (fehlDelta !== 0) posten.push(['Gfehlt', fehlDelta]);
+  // Strafen aus dem Katalog, die WP kosten (Geld steht in der Kasse)
+  for (const st of getStrafenFuerTermin(letzter.id)) if (st.memberId === meId && st.art === 'eigene' && st.status === 'offen' && st.wp) posten.push([st.name, st.wp]);
 
   // Badge-/Amt-Wechsel durch diesen Abend
   const mitglieder = getAktiveMitglieder();

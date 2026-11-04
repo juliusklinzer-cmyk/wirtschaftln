@@ -58,8 +58,10 @@ export type PublicTenantConfig = {
 /** Die drei festen Strafen, wie sie der Stammtisch eingestellt hat. WP negativ = Abzug. */
 export type StrafenUebersicht = {
   unentschuldigt: { aktiv: boolean; staffel: number[]; cents: number; frist: string; nichtEingetragenZusage: boolean };
-  entschuldigt: { aktiv: boolean; staffel: number[] };
+  entschuldigt: { aktiv: boolean; staffel: number[]; cents: number };
   serie: { aktiv: boolean; wp: number; cents: number };
+  /** Eigene Strafen, die WP kosten (wp negativ) */
+  eigene: Array<{ name: string; wp: number }>;
 };
 
 /** Der eigene Stammtisch: alles an, wie's immer war. */

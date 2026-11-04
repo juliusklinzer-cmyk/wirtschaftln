@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { getCurrentMember, erzwingeProfil } from '@/lib/session';
 import { anzeigeName } from '@/lib/namen';
-import { getAktuellerTermin, getNaechsterTermin, getTerminMitWirtshaus, getVotesFuerTermin, getAktiveMitglieder, getBesucheFuerTermin, getStats } from '@/lib/queries';
+import { getAktuellerTermin, getNaechsterTermin, getTerminMitWirtshaus, getVotesFuerTermin, getAktiveMitglieder, getBesucheFuerTermin, getStats, getPraesidentId } from '@/lib/queries';
 import { abschlussOffen } from '@/lib/punkte';
 import { nowIso } from '@/lib/ids';
 import { datumKurz } from '@/lib/format';
@@ -84,6 +84,7 @@ export default async function AbschlussPage() {
           terminId: termin.id,
           buchen: strafeBuchenAction,
           zuruecknehmen: strafeZuruecknehmenAction,
+          neuErstellen: me.role === 'admin' || me.id === getPraesidentId(),
         }}
       />
     </div>

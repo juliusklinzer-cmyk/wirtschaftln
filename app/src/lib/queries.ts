@@ -525,6 +525,11 @@ export function getKasseEintraege() {
     .all();
 }
 
+/** Gebuchte Strafen eines Abends (Strafenkatalog). */
+export function getStrafenFuerTermin(terminId: string) {
+  return db.select().from(strafen).where(eq(strafen.terminId, terminId)).all();
+}
+
 export function getOffeneStrafen() {
   return db
     .select({ eintrag: kasse, member: members })

@@ -67,6 +67,8 @@ export function AbschlussZettel({
     terminId: string;
     buchen: (fd: FormData) => Promise<StrafAntwort>;
     zuruecknehmen: (id: string) => Promise<boolean>;
+    /** Präsident oder Admin: „Neue Strafe erstellen“ */
+    neuErstellen?: boolean;
   };
 }) {
   const [status, setStatus] = useState<Record<string, Status>>(() => {
@@ -144,6 +146,7 @@ export function AbschlussZettel({
                 regeln={strafen.regeln}
                 terminId={strafen.terminId}
                 buchen={strafen.buchen}
+                neuErstellen={strafen.neuErstellen}
                 onGebucht={(meldung) => { setStrafMeldung(meldung); setStrafeOffen(false); }}
               />
             ) : (

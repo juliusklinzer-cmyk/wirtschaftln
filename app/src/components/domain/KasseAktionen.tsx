@@ -32,6 +32,7 @@ export function KasseAktionen({
   meId,
   regeln,
   darfKasse,
+  darfKatalog = false,
   actions,
 }: {
   mitglieder: KasseSpezl[];
@@ -39,6 +40,8 @@ export function KasseAktionen({
   /** Eigene Strafen aus dem Katalog */
   regeln: StrafWahl[];
   darfKasse: boolean;
+  /** Präsident oder Admin → „Neue Strafe erstellen“ im Buchen-Sheet */
+  darfKatalog?: boolean;
   actions: { strafeBuchen: (fd: FormData) => Promise<StrafAntwort>; spenden: Action; auslage: Action; einzahlung: Action; ausgabe: Action };
 }) {
   const [offen, setOffen] = useState<Aktion | null>(null);
@@ -110,7 +113,7 @@ export function KasseAktionen({
     inhalt = (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
         {sheetKopf('Strafe buchen', 'aus eurem Strafenkatalog')}
-        <StrafeBuchen mitglieder={mitglieder} regeln={regeln} buchen={actions.strafeBuchen} onGebucht={(meldung) => setErfolg({ titel: 'Gebucht!', text: meldung })} />
+        <StrafeBuchen mitglieder={mitglieder} regeln={regeln} neuErstellen={darfKatalog} buchen={actions.strafeBuchen} onGebucht={(meldung) => setErfolg({ titel: 'Gebucht!', text: meldung })} />
       </div>
     );
   } else if (offen === 'spenden') {

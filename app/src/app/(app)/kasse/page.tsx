@@ -9,7 +9,7 @@ import { KasseAktionen } from '@/components/domain/KasseAktionen';
 import { goldKnopfStil, bereichHinweisStil } from '@/components/domain/hero-stil';
 import { strafeBuchenAction, forderungStatus, einzahlung, spenden, auslage, ausgabe, strafeErlassenFormular, strafeZuruecknehmenFormular } from './actions';
 import { katalog, folgeWort } from '@/lib/strafen-regeln';
-import { buchungZurKasse, darfErlassen as darfStrafeErlassen, darfZuruecknehmen, wpStrafenFuerKassenbuch } from '@/lib/strafen';
+import { buchungZurKasse, darfErlassen as darfStrafeErlassen, darfZuruecknehmen } from '@/lib/strafen';
 
 export const metadata = { title: 'Kasse · Wirtschaftln' };
 
@@ -33,9 +33,8 @@ export default async function KassePage() {
   const me = (await getCurrentMember())!;
   erzwingeProfil(me);
   const saldo = getSaldo();
-  // Kassenbuch: Geldbewegungen plus Strafen, die nur WP kosten (Julius: bei vielen besteht das Kassenbuch nur aus Strafen)
-  const eintraege = [...getKasseEintraege().map((e) => ({ ...e, wp: null as number | null, buchung: buchungZurKasse(e.eintrag.id) ?? null })), ...wpStrafenFuerKassenbuch()]
-    .sort((a, b) => b.eintrag.createdAt.localeCompare(a.eintrag.createdAt));
+  // Kassenbuch: alle Geldbewegungen, Strafen mit Geld mittendrin. Strafen, die nur WP kosten, stehen in der Abend-Auswertung auf Hoam.
+  const eintraege = getKasseEintraege().map((e) => ({ ...e, buchung: buchungZurKasse(e.eintrag.id) ?? null }));
   const offene = getOffeneStrafen();
   const mitglieder = getAktiveMitglieder();
   const offeneSumme = offene.reduce((sum, o) => sum + Math.abs(o.eintrag.betragCents), 0);
@@ -123,6 +122,7 @@ export default async function KassePage() {
         meId={me.id}
         regeln={regeln.filter((r) => r.art === 'eigene' && r.aktiv && !r.ausloeser).map((r) => ({ id: r.id, name: r.name, detail: r.detail, folge: folgeWort(r.betragCents, -(r.wpStaffel[0] ?? 0)) }))}
         darfKasse={darfKasse}
+        darfKatalog={darfErlassen}
         actions={{ strafeBuchen: strafeBuchenAction, spenden, auslage, einzahlung, ausgabe }}
       />
 
@@ -142,12 +142,11 @@ export default async function KassePage() {
               <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink-500)' }}>Noch keine Bewegungen, brav seid’s.</span>
             </div>
           )}
-          {eintraege.map(({ eintrag, member, melder, termin, wirtshaus, wp, buchung }, i) => {
+          {eintraege.map(({ eintrag, member, melder, termin, wirtshaus, buchung }, i) => {
             const istForderung = eintrag.kind === 'strafe';
             const erlassen = eintrag.status === 'aufgehoben';
             // Kassen-Perspektive: a Forderung is a Plus für d'Kasse, „offen" heißt nur, da Kassenwart hat's no ned kassiert
             const anzeigeCents = istForderung ? Math.abs(eintrag.betragCents) : eintrag.betragCents;
-            const nurWp = wp != null;
             const darfWeg = !!buchung && darfZuruecknehmen(me, buchung);
             const darfErl = buchung ? darfStrafeErlassen(me, buchung) : darfErlassen && erlassbarIm(eintrag.id);
             const betragFarbe = erlassen ? 'var(--ink-300)' : istForderung ? (eintrag.status === 'beglichen' ? 'var(--erfolg)' : '#B7791F') : anzeigeCents < 0 ? 'var(--strafe)' : 'var(--erfolg)';
@@ -187,10 +186,10 @@ export default async function KassePage() {
                       erlassen
                     </span>
                   )}
-                  {istForderung && !erlassen && ((darfKasse && !nurWp) || darfErl || darfWeg) && (
+                  {istForderung && !erlassen && (darfKasse || darfErl || darfWeg) && (
                     <div style={{ display: 'flex', gap: 6, marginTop: 6, flexWrap: 'wrap' }}>
-                      {darfKasse && !nurWp && eintrag.status === 'offen' && <StatusKnopf id={eintrag.id} status="beglichen" label="✓ beglichen" farbe="var(--erfolg)" />}
-                      {darfKasse && !nurWp && eintrag.status === 'beglichen' && <StatusKnopf id={eintrag.id} status="offen" label="wieder offen" farbe="#B7791F" />}
+                      {darfKasse && eintrag.status === 'offen' && <StatusKnopf id={eintrag.id} status="beglichen" label="✓ beglichen" farbe="var(--erfolg)" />}
+                      {darfKasse && eintrag.status === 'beglichen' && <StatusKnopf id={eintrag.id} status="offen" label="wieder offen" farbe="#B7791F" />}
                       {darfErl && eintrag.status === 'offen' && (buchung ? <KleinKnopf action={strafeErlassenFormular.bind(null, buchung.id)} label="Erlassen" farbe="var(--gold-700)" /> : <StatusKnopf id={eintrag.id} status="aufgehoben" label="Erlassen" farbe="var(--gold-700)" />)}
                       {darfWeg && buchung && <KleinKnopf action={strafeZuruecknehmenFormular.bind(null, buchung.id)} label="Zurücknehmen" farbe="var(--ink-500)" />}
                     </div>
@@ -198,9 +197,9 @@ export default async function KassePage() {
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 5, flex: 'none' }}>
                   <span className="wn-tnum" style={{ fontSize: 15, fontWeight: 800, color: betragFarbe, textDecoration: erlassen ? 'line-through' : undefined, whiteSpace: 'nowrap' }}>
-                    {nurWp ? `−${wp} WP` : `${anzeigeCents > 0 ? '+' : ''}${euro(anzeigeCents).replace('-', '−')}`}
+                    {anzeigeCents > 0 ? '+' : ''}{euro(anzeigeCents).replace('-', '−')}
                   </span>
-                  {istForderung && !nurWp && <StatusChip status={eintrag.status} />}
+                  {istForderung && <StatusChip status={eintrag.status} />}
                 </div>
               </div>
             );

@@ -10,7 +10,6 @@ import { tenantConfig, parseTenantConfig } from '@/lib/tenant-config';
 import { findGruppe, tokensFuerGruppe, anfragenFuerGruppe } from '@/lib/db/directory';
 import { eingeladenVon, mitgliederVon, tokensMitNamen } from '@/lib/verzeichnis';
 import { tokenAnspruch } from '@/lib/gruendung';
-import { hoibePreisEuro } from '@/lib/preise';
 import { datumKurz, datumMitJahr } from '@/lib/format';
 import { Avatar } from '@/components/ds';
 import { HoamTitel } from '@/components/domain/HoamTitel';
@@ -89,7 +88,7 @@ export default async function VerzeichnisDetailPage({ params }: { params: Promis
         <div style={{ ...karteStil, padding: '2px 16px' }}>
           {[
             ['Name', gruppe.name], ['Stadt', gruppe.stadt ?? '—'], ['Gegründet', gruppe.gruendungsjahr ? String(gruppe.gruendungsjahr) : '—'], ['Motto', gruppe.motto ?? '—'],
-            ['Gründungscode', gruppe.gruendungscode ?? 'Aufnahme zu'], ['Hoibe', `${hoibePreisEuro(config.hoibePreisCents)} €`], ['Angelegt', datumMitJahr(gruppe.createdAt.slice(0, 10))],
+            ['Gründungscode', gruppe.gruendungscode ?? 'Aufnahme zu'], ['Angelegt', datumMitJahr(gruppe.createdAt.slice(0, 10))],
           ].map(([k, v], i, arr) => (
             <div key={k} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, padding: '11px 0', borderBottom: i < arr.length - 1 ? '1px solid #EEF1F5' : 'none' }}>
               <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink-500)', flex: 'none' }}>{k}</span>
@@ -107,8 +106,6 @@ export default async function VerzeichnisDetailPage({ params }: { params: Promis
                 stadt: gruppe.stadt ?? '',
                 gruendungsjahr: gruppe.gruendungsjahr ? String(gruppe.gruendungsjahr) : '',
                 gruendungscode: gruppe.gruendungscode ?? '',
-                hoibePreis: hoibePreisEuro(config.hoibePreisCents),
-            strafeFehlen: config.strafeFehlenCents != null ? hoibePreisEuro(config.strafeFehlenCents) : '',
                 logo: config.logo,
                 bierName: config.bierName,
                 schnaps: config.features.schnaps,

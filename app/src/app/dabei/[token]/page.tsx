@@ -1,7 +1,7 @@
 import { and, eq } from 'drizzle-orm';
 import { db, kasse } from '@/lib/db';
 import { anfrageZuToken } from '@/lib/wackler';
-import { hoibePreisCents } from '@/lib/preise';
+import { euro } from '@/lib/format';
 import { AuthRahmen } from '@/components/domain/AuthRahmen';
 import { AuthFehlerBox, AuthLink } from '@/components/domain/AuthFeld';
 import { AntwortForm } from './antwort-form';
@@ -26,8 +26,7 @@ export default async function DabeiPage({ params, searchParams }: { params: Prom
   // Offene Strafen/Runden für den Hinweis nach dem Abschied
   const offen = db.select().from(kasse).where(and(eq(kasse.memberId, t.member.id), eq(kasse.status, 'offen'))).all();
   const cents = -offen.reduce((s, k) => s + Math.min(0, k.betragCents), 0);
-  const hoibe = Math.ceil(cents / hoibePreisCents());
-  const schulden = hoibe > 0 ? (hoibe === 1 ? 'eine Hoibe' : `${hoibe} Hoibe`) : null;
+  const schulden = cents > 0 ? euro(cents) : null;
   const vorname = t.member.vorname?.trim() || t.member.name;
 
   return (

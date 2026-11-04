@@ -19,6 +19,7 @@ export function AbstimmungKarte({
   dabei,
   offen,
   abgesagt,
+  fristHinweis,
 }: {
   terminId: string;
   terminDatum: string;
@@ -26,6 +27,8 @@ export function AbstimmungKarte({
   dabei: AbstimmSpezl[];
   offen: AbstimmSpezl[];
   abgesagt: AbstimmSpezl[];
+  /** Absage-Frist aus dem Strafenkatalog */
+  fristHinweis?: string | null;
 }) {
   const stimme = meinVote === 'zu' || meinVote === 'ab' ? meinVote : null;
   const [pending, startTransition] = useTransition();
@@ -98,6 +101,9 @@ export function AbstimmungKarte({
         <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink-500)', padding: '4px 4px 0' }}>
           Bis 3 Tage vorher abstimmen bringt +{PTS.abstimmen} WP.
         </div>
+      )}
+      {fristHinweis && (
+        <div style={{ fontSize: 12, fontWeight: 700, lineHeight: 1.4, color: 'var(--strafe)', padding: '4px 4px 0' }}>{fristHinweis}</div>
       )}
       <div>
         <Zeile kachel={stapel(dabei)} titel="Dabei" untertitel={dabei.length ? namen(dabei) : 'no koaner'} chip={<Chip ton="erfolg">{dabei.length}</Chip>} pfeil={false} />

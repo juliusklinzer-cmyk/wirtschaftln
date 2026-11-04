@@ -33,7 +33,7 @@ import { PushAktivieren } from '@/components/domain/PushAktivieren';
 import { AppInstallieren } from '@/components/domain/AppInstallieren';
 import { WirtshausGfunden } from '@/components/domain/WirtshausGfunden';
 import { tenantConfig } from '@/lib/tenant-config';
-import { strafeFehlenWort } from '@/lib/tenant-config-public';
+import { strafenUebersicht, folgeWort, absageHinweis } from '@/lib/strafen-regeln';
 import { RichtungsKnopf } from '@/components/domain/RichtungsKnopf';
 import { BadgeFeier, type FeierBadge } from '@/components/domain/BadgeFeier';
 import { CheckinKarte } from '@/components/domain/CheckinKarte';
@@ -72,6 +72,8 @@ export default async function HomePage() {
   const strafSumme = meineStrafen.reduce((sum, s) => sum + Math.abs(s.eintrag.betragCents), 0);
   const unentschuldigt = meineAllzeit?.unentschuldigtStreak ?? 0;
   const wackelt = unentschuldigt >= WACKELT_AB_UNENTSCHULDIGT;
+  const serieStrafe = strafenUebersicht().serie;
+  const serieFolge = serieStrafe.aktiv && (serieStrafe.cents > 0 || serieStrafe.wp < 0) ? folgeWort(serieStrafe.cents, -serieStrafe.wp) : null;
   const termin = getAktuellerTermin();
   const letzter = getLetzterAbgeschlossenerTermin();
   // Stammtisch-Typ „Stammhaus“ (Hoam · Stammhaus 5a–5c): immer dasselbe Wirtshaus, Ausflüge als Ausnahme
@@ -167,6 +169,7 @@ export default async function HomePage() {
     const { wirtshaus, planer } = getTerminMitWirtshaus(termin);
     const alleVotes = getVotesFuerTermin(termin.id);
     const meinVote = alleVotes.find((v) => v.vote.memberId === me.id)?.vote.wert ?? null;
+    const fristHinweis = absageHinweis(termin, alleVotes.find((v) => v.vote.memberId === me.id)?.vote, unentschuldigt, jetzt);
     const zugesagte = alleVotes
       .filter((v) => v.vote.wert === 'zu')
       .map((v) => ({ name: anzeigeName(v.member), photoUrl: v.member.photoUrl, verein: v.member.verein }));
@@ -294,7 +297,7 @@ export default async function HomePage() {
           </div>
 
           {/* Vorher: Zusagen/Absagen. Am Stammtisch-Tag is die Abstimmung durch. */}
-          {!stammtischTag && <AbstimmungsStand terminId={termin.id} terminDatum={termin.datum} meinVote={meinVote} />}
+          {!stammtischTag && <AbstimmungsStand terminId={termin.id} terminDatum={termin.datum} meinVote={meinVote} fristHinweis={fristHinweis} />}
           {!stammtischTag && stammhausAbend && planer && (
             <span style={hinweisStil}>Tisch bestätigt von {anzeigeName(planer)}</span>
           )}
@@ -389,7 +392,7 @@ export default async function HomePage() {
 
       {hero}
 
-      {/* 3c: ab 3× unentschuldigt in Folge, Strafrunde fällig */}
+      {/* 3c: ab 3× unentschuldigt in Folge (Strafe laut Katalog) */}
       {wackelt && (
         <div style={{ padding: 16, borderRadius: 16, background: 'var(--strafe-bg)', border: '1.5px solid var(--strafe)', display: 'flex', flexDirection: 'column', gap: 10 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -397,7 +400,7 @@ export default async function HomePage() {
             <span style={{ fontSize: 16, fontWeight: 800, color: 'var(--strafe)' }}>Du wackelst!</span>
           </div>
           <span style={{ fontSize: 13, fontWeight: 600, lineHeight: 1.5, color: 'var(--ink-700)' }}>
-            {unentschuldigt}× unentschuldigt gefehlt, dafür ist {strafeFehlenWort(config.strafeFehlenCents)} fällig. Beim nächsten Stammtisch wieder dabei sein!
+            {unentschuldigt}× unentschuldigt gefehlt{serieFolge ? `, dafür sind ${serieFolge} fällig` : ''}. Beim nächsten Stammtisch wieder dabei sein!
           </span>
           {PAYPAL_POOL_URL && (
             <a

@@ -17,7 +17,7 @@ export function mailUnter(w: MailWerte): string {
 const ARTEN: Array<{ key: keyof MailWerte; titel: string; unter: string }> = [
   { key: 'termin', titel: 'Termin steht fest', unter: 'Wirtshaus, Kalendereintrag und Route' },
   { key: 'erinnerung', titel: 'Erinnerungen', unter: 'Abstimmen, Orga, Reservierung' },
-  { key: 'kasse', titel: 'Kasse und Strafen', unter: 'wenn dich wer meldet' },
+  { key: 'kasse', titel: 'Kasse und Strafen', unter: 'wenn du eine Strafe bekommst' },
 ];
 
 /**

@@ -3,14 +3,13 @@ import { auszeichnungsWahl } from '@/lib/badges';
 import { getCurrentMember, erzwingeProfil } from '@/lib/session';
 import { currentTenant } from '@/lib/db';
 import { tenantConfig } from '@/lib/tenant-config';
-import { hoibePreisEuro } from '@/lib/preise';
 import { Card, SectionHeader } from '@/components/ds';
 import { StammtischForm } from './stammtisch-form';
 
 export const metadata = { title: 'Stammtisch verwalten' };
 
 /**
- * Admin-Seite „Stammtisch": Stammdaten und Hoibe-Preis des eigenen
+ * Admin-Seite „Stammtisch": Stammdaten und Einstellungen des eigenen
  * Stammtischs. Alles andere (Feature-Flags, Geo, Typ) kommt aus dem
  * Gründungs-Wizard bzw. bleibt beim Gründer auf den gewohnten Werten.
  */
@@ -36,8 +35,6 @@ export default async function StammtischPage() {
             stadt: gruppe.stadt ?? '',
             gruendungsjahr: gruppe.gruendungsjahr ? String(gruppe.gruendungsjahr) : '',
             gruendungscode: gruppe.gruendungscode ?? '',
-            hoibePreis: hoibePreisEuro(config.hoibePreisCents),
-            strafeFehlen: config.strafeFehlenCents != null ? hoibePreisEuro(config.strafeFehlenCents) : '',
             logo: config.logo,
             bierName: config.bierName,
             schnaps: config.features.schnaps,

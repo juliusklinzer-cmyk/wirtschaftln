@@ -1,13 +1,11 @@
 import { desc, eq, ne, and, asc } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/sqlite-core';
 import { anzeigeName } from '@/lib/namen';
-import { db, members, termine, votes, besuche, wirtshaeuser, kasse, aemter, umfragen, umfrageStimmen, wirtshausBewertungen, checkins } from '@/lib/db';
+import { db, members, termine, votes, besuche, wirtshaeuser, kasse, aemter, umfragen, umfrageStimmen, wirtshausBewertungen, checkins, strafen } from '@/lib/db';
 import {
   PTS,
   wirtschaftlnPunkte,
   anwesenheitsBonus,
-  entschuldigtMalus,
-  unentschuldigtMalus,
   orgaPunkte,
   rechtzeitigAbgestimmt,
   bierdeckelOffen,
@@ -17,6 +15,7 @@ import { vergabeStand } from '@/lib/badges';
 import { aktuelleSaison } from '@/lib/saison';
 import { auszeichnungAn, tenantConfig } from '@/lib/tenant-config';
 import type { BekanntesWirtshaus } from '@/lib/wirtshaus-abgleich';
+import { katalog, festeRegel, staffelWert, STRAFEN_KATALOG_AB } from '@/lib/strafen-regeln';
 
 export type Termin = typeof termine.$inferSelect;
 export type Member = typeof members.$inferSelect;
@@ -216,6 +215,8 @@ export type MitgliedStats = {
   orgaSumme: number;
   serienBonus: number;
   fehlMalus: number;
+  /** WP aus gebuchten eigenen Strafen (Strafenkatalog), negativ = Abzug */
+  strafWp: number;
   abstimmBonus: number;
   vorschlagPunkte: number;
   /** Eigene Bewertung zum Abend abgegeben (+1 je Abend). */
@@ -268,6 +269,16 @@ export function getStats(optionen?: { abDatum?: string; bisDatum?: string; ohneT
     const werte = [...(byTermin.get(t.id)?.values() ?? [])].filter((b) => b.anwesend && b.sterne != null).map((b) => b.sterne!);
     orgaVon.set(t.id, orgaPunkte(werte.length ? werte.reduce((a, b) => a + b, 0) / werte.length : 0));
   }
+
+  // Strafenkatalog: Staffeln der festen Regeln, eingefrorene Buchungen
+  const regeln = katalog();
+  const regelU = festeRegel('unentschuldigt', regeln);
+  const regelE = festeRegel('entschuldigt', regeln);
+  const regelS = festeRegel('serie', regeln);
+  const alleStrafen = db.select().from(strafen).all();
+  /** „termin:member“ → Buchung der festen Art */
+  const festeBuchung = new Map<string, (typeof alleStrafen)[number]>();
+  for (const st of alleStrafen) if (st.art !== 'eigene' && st.terminId) festeBuchung.set(`${st.art}:${st.terminId}:${st.memberId}`, st);
 
   // Runden: Saison-Zuordnung über das Termin-Datum (Nachträge ändern die Saison nicht)
   const terminDatum = new Map(db.select().from(termine).all().map((t) => [t.id, t.datum]));
@@ -379,13 +390,25 @@ export function getStats(optionen?: { abDatum?: string; bisDatum?: string; ohneT
         if (zaehlt) serienBonus += anwesenheitsBonus(besuchtInFolge);
       } else {
         besuchtInFolge = 0;
-        // abgsagt = entschuldigt; zugesagt/„vielleicht"/gar nix + ned da = unentschuldigt
-        if (vote?.wert === 'ab') {
+        // Ab dem Strafenkatalog entscheidet die beim Abschluss eingefrorene Buchung
+        // (erlassen = entschuldigt). Davor: abgsagt = entschuldigt, sonst unentschuldigt.
+        let unentschuldigt: boolean;
+        if (t.datum >= STRAFEN_KATALOG_AB) {
+          const u = festeBuchung.get(`unentschuldigt:${t.id}:${member.id}`);
+          unentschuldigt = !!u && u.status === 'offen';
+        } else {
+          unentschuldigt = vote?.wert !== 'ab';
+        }
+        if (!unentschuldigt) {
           entschuldigtInFolge += 1;
-          if (zaehlt) fehlMalus += entschuldigtMalus(entschuldigtInFolge);
+          if (zaehlt && regelE?.aktiv) fehlMalus += staffelWert(regelE.wpStaffel, entschuldigtInFolge);
         } else {
           unentschuldigtInFolge += 1;
-          if (zaehlt) fehlMalus += unentschuldigtMalus(unentschuldigtInFolge);
+          if (zaehlt && regelU?.aktiv) fehlMalus += staffelWert(regelU.wpStaffel, unentschuldigtInFolge);
+          // Serien-Strafe nur mit echter Buchung (ab dem Katalog), sonst würd's alte Abende rückwirkend treffen
+          if (zaehlt && regelS?.aktiv && festeBuchung.get(`serie:${t.id}:${member.id}`)?.status === 'offen') {
+            fehlMalus += staffelWert(regelS.wpStaffel, 1);
+          }
         }
       }
     }
@@ -416,8 +439,18 @@ export function getStats(optionen?: { abDatum?: string; bisDatum?: string; ohneT
       if (besuchtAm && imFenster(besuchtAm)) vorschlagPunkte += PTS.vorschlagBesucht;
     }
 
+    // Eigene Strafen mit WP (eingefroren beim Buchen), Saison über Termin-Datum bzw. Buchungstag
+    let strafWp = 0;
+    for (const st of alleStrafen) {
+      if (st.memberId !== member.id || st.art !== 'eigene' || st.status !== 'offen' || !st.wp) continue;
+      if (optionen?.ohneTerminId && st.terminId === optionen.ohneTerminId) continue;
+      const datum = (st.terminId ? terminDatum.get(st.terminId) : null) ?? st.createdAt.slice(0, 10);
+      if (!imFenster(datum) || (optionen?.bisDatum && datum > optionen.bisDatum)) continue;
+      strafWp += st.wp;
+    }
+
     const runden = rundenJeMitglied.get(member.id) ?? 0;
-    const komponenten = { hoiben, abende, taxi, runden, abschluesse, abschlussPunkte, orgaSumme, serienBonus, fehlMalus, abstimmBonus, vorschlagPunkte, bewertungsBonus, textBonus, checkinBonus };
+    const komponenten = { hoiben, abende, taxi, runden, abschluesse, abschlussPunkte, orgaSumme, serienBonus, fehlMalus, strafWp, abstimmBonus, vorschlagPunkte, bewertungsBonus, textBonus, checkinBonus };
     return {
       member,
       ...komponenten,

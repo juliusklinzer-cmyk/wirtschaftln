@@ -52,9 +52,6 @@ export function GruendungsWizard({ token, von, fuer = null }: { token: string; /
   const [jahr, setJahr] = useState('');
   const [jahrFehler, setJahrFehler] = useState<string | null>(null);
   const [bier, setBier] = useState(STANDARD_BIERSORTE);
-  // Bewusst leer: jeder Stammtisch tragt sein eigenen Preis ein, ned unsern Münchner
-  const [preis, setPreis] = useState('');
-  const [strafe, setStrafe] = useState('');
   const [schnaps, setSchnaps] = useState(false);
   const [code, setCode] = useState('');
   const [codeFrei, setCodeFrei] = useState<boolean | null>(null);
@@ -284,27 +281,6 @@ export function GruendungsWizard({ token, von, fuer = null }: { token: string; /
               <input type="hidden" name="bierName" value={bier} />
               <BierChips value={bier} onChange={setBier} />
             </div>
-            <AuthFeld
-              label="Preis für eine Hoibe"
-              name="hoibePreis"
-              inputMode="decimal"
-              required
-              placeholder="z. B. 4,20"
-              value={preis}
-              onChange={(e) => setPreis(e.target.value)}
-              rechts={<span style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink-500)' }}>€</span>}
-              meldung={{ art: 'hinweis', text: 'Was kostet bei euch eine Hoibe? Damit rechnen Runden, Spenden und gemeldete Strafen.' }}
-            />
-            <AuthFeld
-              label="Strafe fürs Fehlen (optional)"
-              name="strafeFehlen"
-              inputMode="decimal"
-              placeholder="leer = eine Runde"
-              value={strafe}
-              onChange={(e) => setStrafe(e.target.value)}
-              rechts={<span style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink-500)' }}>€</span>}
-              meldung={{ art: 'hinweis', text: 'Wer zusagt und nicht kommt, zahlt diesen Betrag, z. B. 50 €. Leer lassen: eine Runde für alle, die da waren.' }}
-            />
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', borderRadius: 14, background: 'var(--pergament)', border: '1px solid var(--pergament-edge)' }}>
               <Wine size={26} weight="fill" color="var(--gold-700)" style={{ flex: 'none', opacity: schnaps ? 1 : 0.5 }} />
               <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -340,8 +316,8 @@ export function GruendungsWizard({ token, von, fuer = null }: { token: string; /
                 <span style={{ fontFamily: 'var(--font-fraktur)', fontSize: 24, lineHeight: 1, color: 'var(--navy)' }}>{name || 'Euer Stammtisch'}</span>
                 <Zeile icon={<MapPin size={16} weight="fill" />}>{[stadt, jahr ? `seit ${jahr}` : ''].filter(Boolean).join(', ') || 'Stadt und Jahr'}</Zeile>
                 <Zeile icon={typ === 'stammhaus' ? <House size={16} weight="fill" /> : <Path size={16} weight="fill" />}>{typ === 'stammhaus' ? 'Stammhaus' : 'Wandernd'}</Zeile>
-                <Zeile icon={<BeerStein size={16} weight="fill" />}>{bier.split(' – ')[0]} · Hoibe {preis.trim() || '?'} €</Zeile>
-                <Zeile icon={<Gavel size={16} weight="fill" />}>Fehlen: {strafe.trim() ? `${strafe.trim()} €` : 'eine Runde'}</Zeile>
+                <Zeile icon={<BeerStein size={16} weight="fill" />}>{bier.split(' – ')[0]}</Zeile>
+                <Zeile icon={<Gavel size={16} weight="fill" />}>Strafen stellt ihr danach in der Kasse ein</Zeile>
                 <Zeile icon={<Wine size={16} weight="fill" />}>{schnaps ? 'Mit Schnaps' : 'Ohne Schnaps'}</Zeile>
                 <Zeile icon={<UserCircle size={16} weight="fill" />}>Du bist Admin</Zeile>
               </div>

@@ -3,8 +3,11 @@
 import { useState } from 'react';
 import { Icon } from '@/components/ds';
 import { useTenantConfig } from '@/components/shell/TenantProvider';
-import { strafeFehlenWort } from '@/lib/tenant-config-public';
 import { PTS, WACKELT_AB_UNENTSCHULDIGT, ABSCHLUSS_SPERRE_STUNDEN, anwesenheitsBonus, entschuldigtMalus, unentschuldigtMalus } from '@/lib/punkte';
+
+const eu = (cents: number) => `${(cents / 100).toLocaleString('de-DE', { minimumFractionDigits: cents % 100 ? 2 : 0, maximumFractionDigits: 2 })} €`;
+/** Staffelwert beim n-ten Mal (letzter gilt ab da). */
+const stufe = (staffel: number[], n: number) => (staffel.length ? staffel[Math.min(n, staffel.length) - 1] ?? 0 : 0);
 
 /**
  * „Punktesystem", Aufklärung im Urkunden-Stil (Rauten-Band, Fraktur, Gold).
@@ -13,7 +16,12 @@ import { PTS, WACKELT_AB_UNENTSCHULDIGT, ABSCHLUSS_SPERRE_STUNDEN, anwesenheitsB
  */
 export function PunkteInfo({ knopf }: { knopf?: (oeffnen: () => void) => React.ReactNode } = {}) {
   const [offen, setOffen] = useState(false);
-  const { strafeFehlenCents } = useTenantConfig();
+  const { strafen } = useTenantConfig();
+  // Ohne Katalog-Daten (außerhalb vom App-Layout) die Standardwerte zeigen
+  const u = strafen?.unentschuldigt ?? { aktiv: true, staffel: [1, 2, 3].map(unentschuldigtMalus), cents: 0, frist: 'bis zum Beginn', nichtEingetragenZusage: true };
+  const e = strafen?.entschuldigt ?? { aktiv: true, staffel: [1, 2, 3, 4].map(entschuldigtMalus) };
+  const serie = strafen?.serie ?? { aktiv: true, wp: 0, cents: 0 };
+  const serieFolge = [serie.cents > 0 ? eu(serie.cents) : null, serie.wp < 0 ? `${-serie.wp} WP` : null].filter(Boolean).join(' und ');
 
   return (
     <>
@@ -73,23 +81,35 @@ export function PunkteInfo({ knopf }: { knopf?: (oeffnen: () => void) => React.R
             </div>
 
             <Ueberschrift text="Absagen" abstand />
-            <div style={erklaerText}>Wer absagt, ist entschuldigt. Die erste Absage kostet nichts, dann wird’s in Folge teurer:</div>
-            <div style={{ display: 'flex', gap: 6 }}>
-              {[1, 2, 3, 4].map((n) => (
-                <Kachel key={n} oben={n === 4 ? 'ab 4.' : `${n}.`} unten={entschuldigtMalus(n) === 0 ? '±0' : String(entschuldigtMalus(n))} farbe={entschuldigtMalus(n) === 0 ? 'var(--erfolg)' : 'var(--strafe)'} />
-              ))}
-            </div>
+            <div style={erklaerText}>Wer {u.frist} absagt, ist entschuldigt. {e.aktiv ? 'In Folge wird’s teurer:' : 'Das kostet keine WP.'}</div>
+            {e.aktiv && (
+              <div style={{ display: 'flex', gap: 6 }}>
+                {e.staffel.map((_, i) => {
+                  const w = stufe(e.staffel, i + 1);
+                  const letzte = i === e.staffel.length - 1;
+                  return <Kachel key={i} oben={letzte && i > 0 ? `ab ${i + 1}.` : `${i + 1}.`} unten={w === 0 ? '±0' : String(w)} farbe={w === 0 ? 'var(--erfolg)' : 'var(--strafe)'} />;
+                })}
+              </div>
+            )}
 
             <Ueberschrift text="Unentschuldigt" abstand />
-            <div style={erklaerText}>Keine Stimme und nicht da, oder zugesagt und nicht gekommen:</div>
-            <div style={{ display: 'flex', gap: 6 }}>
-              {[1, 2, 3].map((n) => (
-                <Kachel key={n} oben={n === 3 ? 'ab 3.' : `${n}.`} unten={String(unentschuldigtMalus(n))} farbe="var(--strafe)" />
-              ))}
+            <div style={erklaerText}>
+              {u.nichtEingetragenZusage ? 'Keine Stimme und nicht da, zugesagt und nicht gekommen' : 'Zugesagt und nicht gekommen'}, oder zu spät abgesagt
+              {u.cents > 0 ? `. Kostet jedes Mal ${eu(u.cents)}, dazu WP:` : ':'}
             </div>
+            {u.aktiv ? (
+              <div style={{ display: 'flex', gap: 6 }}>
+                {u.staffel.map((_, i) => {
+                  const letzte = i === u.staffel.length - 1;
+                  return <Kachel key={i} oben={letzte && i > 0 ? `ab ${i + 1}.` : `${i + 1}.`} unten={String(stufe(u.staffel, i + 1))} farbe="var(--strafe)" />;
+                })}
+              </div>
+            ) : (
+              <div style={erklaerText}>Bei euch abgeschaltet.</div>
+            )}
             <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', padding: '10px 12px', borderRadius: 12, background: 'var(--strafe-bg)', marginTop: 4 }}>
               <Icon name="warning" size={18} color="var(--strafe)" style={{ flex: 'none' }} />
-              <span style={{ fontSize: 12, fontWeight: 700, lineHeight: 1.5, color: 'var(--strafe)' }}>Beim {WACKELT_AB_UNENTSCHULDIGT}. Mal in Folge wackelst du und {strafeFehlenWort(strafeFehlenCents)} ist fällig. Wieder dabei sein setzt alles zurück.</span>
+              <span style={{ fontSize: 12, fontWeight: 700, lineHeight: 1.5, color: 'var(--strafe)' }}>Beim {WACKELT_AB_UNENTSCHULDIGT}. Mal in Folge wackelst du{serie.aktiv && serieFolge ? ` und zahlst ${serieFolge}` : ''}. Wieder dabei sein setzt alles zurück.</span>
             </div>
 
             <Ueberschrift text="So läuft ein Abend" abstand />
@@ -101,7 +121,7 @@ export function PunkteInfo({ knopf }: { knopf?: (oeffnen: () => void) => React.R
 
             <Ueberschrift text="Gut zu wissen" abstand />
             <div style={erklaerText}>
-              Geldstrafen laufen über die Kasse und kosten Geld, keine WP. Hoibe- und Wirtshäuser-Ranglisten sind eigene Wertungen ohne Punkte. Die Saison zählt ab 1.7. bzw. 1.1., die Serie läuft über die ganze Chronik. Nachbewertungen bringen keine Punkte.
+              Was sonst noch was kostet, steht im Strafenkatalog in der Kasse. Hoibe- und Wirtshäuser-Ranglisten sind eigene Wertungen ohne Punkte. Die Saison zählt ab 1.7. bzw. 1.1., die Serie läuft über die ganze Chronik. Nachbewertungen bringen keine Punkte.
             </div>
           </div>
         </div>

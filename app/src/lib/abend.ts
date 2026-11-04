@@ -1,11 +1,10 @@
 import { and, eq, ne } from 'drizzle-orm';
-import { db, termine, votes, besuche, wirtshaeuser, kasse, checkins, runWithTenant } from '@/lib/db';
+import { db, termine, besuche, wirtshaeuser, kasse, checkins, runWithTenant } from '@/lib/db';
 import { alleGruppen } from '@/lib/db/directory';
-import { getAktiveMitglieder, getVergabeStand, getStats } from '@/lib/queries';
+import { getAktiveMitglieder, getVergabeStand } from '@/lib/queries';
 import { vergabeWechsel, wechselTexte } from '@/lib/badges';
-import { WACKELT_AB_UNENTSCHULDIGT, abendVorbei } from '@/lib/punkte';
-import { hoibePreisCents, hoibePreisEuro, strafeFehlen } from '@/lib/preise';
-import { tenantConfig } from '@/lib/tenant-config';
+import { abendVorbei } from '@/lib/punkte';
+import { abendStrafenBuchen } from '@/lib/strafen';
 import { pushAn } from '@/lib/push';
 import { anzeigeName } from '@/lib/namen';
 import { newId, nowIso } from '@/lib/ids';
@@ -17,24 +16,18 @@ import { newId, nowIso } from '@/lib/ids';
  * von allein: Runden in die Kasse, Strafen, Serien, Ämter-Wechsel.
  */
 
-export const STRAFE_GRUND_PREFIX = 'Zugesagt & nicht erschienen';
-
 function wirtshausNameVon(wirtshausId: string | null): string {
   return wirtshausId ? (db.select().from(wirtshaeuser).where(eq(wirtshaeuser.id, wirtshausId)).get()?.name ?? 'Wirtshaus') : 'Wirtshaus';
 }
 
 /**
- * Kasse eines Abends neu aufbauen: geschmissene Runden (Teilnehmer × Hoibe,
- * zahlt sich am Tisch, also beglichen) und offene „zugesagt & ned kemma“-
- * Strafen für `strafIds`. Beglichene Strafen bleiben, wia sie san.
+ * Geschmissene Runden eines Abends in die Kasse (zahlt sich am Tisch, also
+ * beglichen, ohne Geldwert seit dem Strafenkatalog 04.11.2026). Zählen für
+ * Großbauer und Runden-WP, fließen ned in den Saldo.
  */
-export function abendKasseAufbauen(terminId: string, wirtshausId: string | null, strafIds: string[]) {
+export function abendRundenAufbauen(terminId: string, wirtshausId: string | null) {
   const wirtshausName = wirtshausNameVon(wirtshausId);
-  const alle = db.select().from(besuche).where(eq(besuche.terminId, terminId)).all();
-  const dabei = alle.filter((b) => b.anwesend);
-
-  // ⭐ Runden: zählt für Großbauer + Runden-WP, fließt ned in den Saldo
-  const rundenWert = dabei.length * hoibePreisCents();
+  const dabei = db.select().from(besuche).where(and(eq(besuche.terminId, terminId), eq(besuche.anwesend, true))).all();
   db.delete(kasse).where(and(eq(kasse.terminId, terminId), eq(kasse.kind, 'runde'))).run();
   for (const b of dabei) {
     const anzahl = b.rundenBier + b.rundenSchnaps;
@@ -42,48 +35,18 @@ export function abendKasseAufbauen(terminId: string, wirtshausId: string | null,
       db.insert(kasse)
         .values({
           id: newId('k'), memberId: b.memberId, terminId,
-          grund: `${anzahl > 1 ? `${i + 1}. ` : ''}Runde gschmissen im ${wirtshausName} 🍻 (${dabei.length} × ${hoibePreisEuro()} €)`,
-          betragCents: rundenWert, kind: 'runde', status: 'beglichen', createdAt: nowIso(),
+          grund: `${anzahl > 1 ? `${i + 1}. ` : ''}Runde gschmissen im ${wirtshausName} 🍻`,
+          betragCents: 0, kind: 'runde', status: 'beglichen', createdAt: nowIso(),
         })
         .run();
     }
   }
-
-  // ❌ Zugesagt & nicht erschienen: Runde = Teilnehmer × Hoibe oder der feste Betrag vom Stammtisch
-  const strafe = strafeFehlen(dabei.length);
-  const alteStrafen = db.select().from(kasse).where(and(eq(kasse.terminId, terminId), eq(kasse.kind, 'strafe'))).all();
-  for (const s of alteStrafen) {
-    if (s.status === 'offen' && s.grund.startsWith(STRAFE_GRUND_PREFIX)) db.delete(kasse).where(eq(kasse.id, s.id)).run();
-  }
-  for (const memberId of strafIds) {
-    if (dabei.some((b) => b.memberId === memberId)) continue; // doch no kemma
-    const schonBeglichen = alteStrafen.some((s) => s.memberId === memberId && s.status === 'beglichen' && s.grund.startsWith(STRAFE_GRUND_PREFIX));
-    if (schonBeglichen) continue;
-    db.insert(kasse)
-      .values({
-        id: newId('k'), memberId, terminId,
-        grund: `${STRAFE_GRUND_PREFIX}: ${strafe.text} im ${wirtshausName}`,
-        betragCents: -strafe.cents, kind: 'strafe', status: 'offen', createdAt: nowIso(),
-      })
-      .run();
-  }
-}
-
-/** Wer hat für diesen Abend scho a „zugesagt & ned kemma“-Strafe (offen oder beglichen)? */
-function vermerkteStrafen(terminId: string): string[] {
-  return db
-    .select()
-    .from(kasse)
-    .where(and(eq(kasse.terminId, terminId), eq(kasse.kind, 'strafe')))
-    .all()
-    .filter((s) => s.memberId && s.grund.startsWith(STRAFE_GRUND_PREFIX))
-    .map((s) => s.memberId!);
 }
 
 /**
  * Abend endgültig schließen (3 Uhr früh, oder später beim nächsten Lauf).
  * Hat koaner „Wer war da“ abgehakt, zählt, wer eingecheckt oder am Deckel
- * was eingetragen hat. Strafen gibt's dann nur, wenn's wer vermerkt hat.
+ * was eingetragen hat. Die Strafen bucht der Katalog (lib/strafen.ts).
  */
 export async function abendSchliessen(terminId: string): Promise<boolean> {
   const termin = db.select().from(termine).where(eq(termine.id, terminId)).get();
@@ -101,7 +64,7 @@ export async function abendSchliessen(terminId: string): Promise<boolean> {
     db.insert(besuche).values({ id: newId('b'), terminId, memberId: m.id, anwesend: eingecheckt.has(m.id) }).run();
   }
 
-  abendKasseAufbauen(terminId, termin.wirtshausId, vermerkteStrafen(terminId));
+  abendRundenAufbauen(terminId, termin.wirtshausId);
 
   // Schließen: wer abgehakt hat, steht als Abschließer drin (Schriftführer-Zählung, Archiv)
   const vorher = getVergabeStand(terminId);
@@ -110,29 +73,8 @@ export async function abendSchliessen(terminId: string): Promise<boolean> {
     .where(eq(termine.id, terminId))
     .run();
 
-  // 🥶 Beim 3. unentschuldigten Fehlen in Folge: einmalig a Strafrunde
-  const dabeiIds = new Set(db.select().from(besuche).where(and(eq(besuche.terminId, terminId), eq(besuche.anwesend, true))).all().map((b) => b.memberId));
-  const terminVotes = db.select().from(votes).where(eq(votes.terminId, terminId)).all();
-  const strafe = strafeFehlen(dabeiIds.size);
-  for (const s of getStats()) {
-    if (s.unentschuldigtStreak !== WACKELT_AB_UNENTSCHULDIGT) continue;
-    const heuteUnentschuldigt = !dabeiIds.has(s.member.id) && terminVotes.find((v) => v.memberId === s.member.id)?.wert !== 'ab';
-    if (!heuteUnentschuldigt) continue;
-    const schonVerhaengt = db
-      .select()
-      .from(kasse)
-      .where(and(eq(kasse.terminId, terminId), eq(kasse.kind, 'strafe')))
-      .all()
-      .some((k) => k.memberId === s.member.id && /^Straf(runde|e):/.test(k.grund));
-    if (schonVerhaengt) continue;
-    db.insert(kasse)
-      .values({
-        id: newId('k'), memberId: s.member.id, terminId,
-        grund: `${tenantConfig().strafeFehlenCents != null ? 'Strafe' : 'Strafrunde'}: 3× unentschuldigt gfehlt (${strafe.text})`,
-        betragCents: -strafe.cents, kind: 'strafe', status: 'offen', createdAt: nowIso(),
-      })
-      .run();
-  }
+  // Strafen aus dem Katalog: unentschuldigt, 3× in Folge (einmalig, mit Nachricht)
+  await abendStrafenBuchen(terminId);
 
   // Badge-/Amt-Wechsel melden: an alle „Resi is jetza Heiwong!“, spöttisch an den Neuen, Gratulation an den Alten
   const nachher = getVergabeStand();

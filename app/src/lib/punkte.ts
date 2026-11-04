@@ -172,6 +172,8 @@ export function wirtschaftlnPunkte(s: {
   orgaSumme: number;
   serienBonus: number;
   fehlMalus: number;
+  /** Eigene Strafen aus dem Strafenkatalog (negativ) */
+  strafWp?: number;
   abstimmBonus: number;
   vorschlagPunkte: number;
   bewertungsBonus: number;
@@ -187,6 +189,7 @@ export function wirtschaftlnPunkte(s: {
     s.orgaSumme +
     s.serienBonus +
     s.fehlMalus +
+    (s.strafWp ?? 0) +
     s.abstimmBonus +
     s.vorschlagPunkte +
     s.bewertungsBonus +

@@ -7,7 +7,11 @@ import { Avatar, Icon, ZeilenKarte } from '@/components/ds';
 import { HoamTitel } from '@/components/domain/HoamTitel';
 import { KasseAktionen } from '@/components/domain/KasseAktionen';
 import { goldKnopfStil, bereichHinweisStil } from '@/components/domain/hero-stil';
-import { melden, forderungStatus, einzahlung, spenden, auslage, ausgabe } from './actions';
+import { strafeBuchenAction, forderungStatus, einzahlung, spenden, auslage, ausgabe, regelSpeichern, strafeErlassenAction, strafeZuruecknehmenAction } from './actions';
+import { StrafenKatalog } from './strafen-katalog';
+import { katalog, regelZusammenfassung, folgeWort } from '@/lib/strafen-regeln';
+import { letzteBuchungen, buchungZurKasse, darfErlassen as darfStrafeErlassen } from '@/lib/strafen';
+import { datumKurz } from '@/lib/format';
 
 export const metadata = { title: 'Kasse · Wirtschaftln' };
 
@@ -39,7 +43,13 @@ export default async function KassePage() {
   const kassenwart = mitglieder.find((m) => m.id === kassenwartId) ?? null;
   // Rollen: der Kassenwart wahrt d'Kasse (buchen, eintreiben), der Präsident erlässt Schulden
   const darfKasse = me.role === 'admin' || me.id === kassenwartId;
+  // Präsident und Admin: Strafenkatalog pflegen und erlassen (bei Katalog-Strafen nach dessen Regeln)
   const darfErlassen = me.role === 'admin' || me.id === getPraesidentId();
+  const regeln = katalog();
+  const erlassbarIm = (kasseId: string) => {
+    const b = buchungZurKasse(kasseId);
+    return b ? darfStrafeErlassen(me, b) : darfErlassen;
+  };
   const config = tenantConfig();
   const paypal = config.istGruender ? GRUENDER_PAYPAL_URL : undefined;
   const meineOffenen = offene.filter((o) => o.eintrag.memberId === me.id);
@@ -72,10 +82,6 @@ export default async function KassePage() {
             ) : (
               <span style={{ flex: 1, minWidth: 0, fontSize: 13, fontWeight: 700, color: 'rgba(246,240,226,0.7)' }}>Noch kein Kassenwart gewählt</span>
             )}
-            <span className="wn-tnum" style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 800, color: 'var(--gold-bright)', flex: 'none' }}>
-              <Icon name="beer" size={16} stroke={2.2} />
-              1 Hoibe = {euro(config.hoibePreisCents)}
-            </span>
           </div>
         </div>
       </div>
@@ -90,7 +96,7 @@ export default async function KassePage() {
             <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
               <span style={{ fontSize: 15, fontWeight: 800, color: 'var(--strafe)' }}>Du hast {meineOffenen.length} offene {meineOffenen.length === 1 ? 'Forderung' : 'Forderungen'}</span>
               <span style={{ fontSize: 12, fontWeight: 600, color: '#7A3B33', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {meineOffenen[0].eintrag.grund}{meineOffenen[0].eintrag.gemeldetVon ? ` · gemeldet von ${nameVon(meineOffenen[0].eintrag.gemeldetVon) ?? '?'}` : ' · von der App'}
+                {meineOffenen[0].eintrag.grund}{meineOffenen[0].eintrag.gemeldetVon ? ` · gebucht von ${nameVon(meineOffenen[0].eintrag.gemeldetVon) ?? '?'}` : ' · von der App'}
                 {meineOffenen.length > 1 ? ` · +${meineOffenen.length - 1} weitere` : ''}
               </span>
             </div>
@@ -115,9 +121,27 @@ export default async function KassePage() {
       <KasseAktionen
         mitglieder={mitglieder.map((m) => ({ id: m.id, name: anzeigeName(m), photoUrl: m.photoUrl, verein: m.verein }))}
         meId={me.id}
-        hoibePreisCents={config.hoibePreisCents}
+        regeln={regeln.filter((r) => r.art === 'eigene' && r.aktiv).map((r) => ({ id: r.id, name: r.name, detail: r.detail, folge: folgeWort(r.betragCents, -(r.wpStaffel[0] ?? 0)) }))}
         darfKasse={darfKasse}
-        actions={{ melden, spenden, auslage, einzahlung, ausgabe }}
+        actions={{ strafeBuchen: strafeBuchenAction, spenden, auslage, einzahlung, ausgabe }}
+      />
+
+      <StrafenKatalog
+        regeln={regeln.map((r) => ({
+          id: r.id, art: r.art, name: r.name, detail: r.detail, abzuege: r.wpStaffel.map((w) => -w), betragCents: r.betragCents,
+          fristArt: r.fristArt, fristWert: r.fristWert, nichtEingetragenZusage: r.nichtEingetragenZusage, erlassbar: r.erlassbar, aktiv: r.aktiv,
+          zusammenfassung: regelZusammenfassung(r),
+          geaendert: r.geaendertAm
+            ? `geändert am ${datumKurz(r.geaendertAm.slice(0, 10))}${nameVon(r.geaendertVon) ? ` von ${nameVon(r.geaendertVon)}` : ''}`
+            : r.erstelltVon
+              ? `angelegt am ${datumKurz(r.erstelltAm.slice(0, 10))}${nameVon(r.erstelltVon) ? ` von ${nameVon(r.erstelltVon)}` : ''}`
+              : null,
+        }))}
+        gebucht={letzteBuchungen(me)}
+        darfPflegen={darfErlassen}
+        speichern={regelSpeichern}
+        erlassen={strafeErlassenAction}
+        zuruecknehmen={strafeZuruecknehmenAction}
       />
 
       {/* Kassenbuch: alles aus Sicht der Kasse */}
@@ -145,7 +169,7 @@ export default async function KassePage() {
               datumMitJahr((termin?.datum ?? eintrag.createdAt).slice(0, 10)).replace(/ \d{4}$/, ''),
               wirtshaus?.name ?? null,
               istForderung
-                ? (melder ? `gemeldet von ${vorname(anzeigeName(melder))}` : 'von der App')
+                ? (melder ? `gebucht von ${vorname(anzeigeName(melder))}` : 'von der App')
                 : eintrag.kind === 'ausgabe' && member
                   ? 'Auslage'
                   : melder && melder.id !== eintrag.memberId
@@ -177,7 +201,7 @@ export default async function KassePage() {
                     <div style={{ display: 'flex', gap: 6, marginTop: 6, flexWrap: 'wrap' }}>
                       {darfKasse && eintrag.status === 'offen' && <StatusKnopf id={eintrag.id} status="beglichen" label="✓ beglichen" farbe="var(--erfolg)" />}
                       {darfKasse && eintrag.status === 'beglichen' && <StatusKnopf id={eintrag.id} status="offen" label="wieder offen" farbe="#B7791F" />}
-                      {darfErlassen && eintrag.status === 'offen' && <StatusKnopf id={eintrag.id} status="aufgehoben" label="Erlassen" farbe="var(--gold-700)" />}
+                      {darfErlassen && eintrag.status === 'offen' && erlassbarIm(eintrag.id) && <StatusKnopf id={eintrag.id} status="aufgehoben" label="Erlassen" farbe="var(--gold-700)" />}
                     </div>
                   )}
                 </div>

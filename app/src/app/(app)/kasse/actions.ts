@@ -2,64 +2,54 @@
 
 import { revalidatePath } from 'next/cache';
 import { eq } from 'drizzle-orm';
-import { db, kasse } from '@/lib/db';
+import { db, kasse, strafenRegeln } from '@/lib/db';
 import { getCurrentMember } from '@/lib/session';
-import { getKassenwartId, getPraesidentId, getAktiveMitglieder } from '@/lib/queries';
-import { hoibePreisCents } from '@/lib/preise';
-import { tenantConfig } from '@/lib/tenant-config';
+import { getKassenwartId, getPraesidentId } from '@/lib/queries';
 import { newId, nowIso } from '@/lib/ids';
-import { anzeigeName } from '@/lib/namen';
-import { pushAn } from '@/lib/push';
-import { mailAn } from '@/lib/mail';
-import { mailGemeldet } from '@/lib/mail-vorlagen';
-import { mailRahmen, rufname, willMail } from '@/lib/mail-rahmen';
-
-/** Anzahl Hoibe aus dem Formular (1–99), gezahlt wird beim Wirtschaftln in Hoibe, ned in Euro. */
-function hoibeAnzahl(formData: FormData): number {
-  const n = Math.round(Number(formData.get('hoibe')));
-  return Number.isFinite(n) && n >= 1 && n <= 99 ? n : 0;
-}
+import { katalog } from '@/lib/strafen-regeln';
+import { strafeBuchen, strafeZuruecknehmen, strafeErlassen, buchungZurKasse, buchungStatusAusKasse } from '@/lib/strafen';
 
 function revalidate() {
   revalidatePath('/kasse');
+  revalidatePath('/termin');
+  revalidatePath('/termin/abschluss');
   revalidatePath('/');
 }
 
-/**
- * Wirtschaftler melden: „Na, also des kost a Runde!", Grund frei formuliert,
- * gezahlt wird in Hoibe (n × Bräustüberl-Preis). Eher Gaudi als Bußgeld.
- */
-export async function melden(formData: FormData) {
-  const me = await getCurrentMember();
-  if (!me) return;
-  const memberId = String(formData.get('memberId') ?? '');
-  const grund = String(formData.get('grund') ?? '').trim().slice(0, 200);
-  const hoibe = hoibeAnzahl(formData);
-  if (!memberId || !grund || !hoibe) return;
-  const opfer = getAktiveMitglieder().find((m) => m.id === memberId);
-  if (!opfer) return;
-  db.insert(kasse)
-    .values({
-      id: newId('k'),
-      memberId,
-      grund,
-      betragCents: -(hoibe * hoibePreisCents()),
-      kind: 'strafe',
-      status: 'offen',
-      gemeldetVon: me.id,
-      createdAt: nowIso(),
-    })
-    .run();
+/** Euro-Betrag aus dem Formular in Cent (0 bei Murks), höchstens 10.000 €. */
+function centsAus(formData: FormData, feld: string): number {
+  const n = Math.round(Math.abs(Number(String(formData.get(feld) ?? '').replace(',', '.')) || 0) * 100);
+  return Number.isFinite(n) && n <= 1_000_000 ? n : 0;
+}
 
-  // ⚖️ Der Gmeldte kriagt Bescheid (Push + Mail)
-  const titel = '⚖️ Du wurdst gmeldt!';
-  const text = `${anzeigeName(me)} hat di gmeldt: „${grund}", des kost ${hoibe === 1 ? 'a Hoibe' : `${hoibe} Hoibe`}. Zohl beim Kassenwart${tenantConfig().istGruender ? ' oder per PayPal' : ''}. 🍺`;
-  const mail = mailGemeldet(mailRahmen(), { name: rufname(opfer), von: anzeigeName(me), grund, hoibe, paypal: tenantConfig().istGruender });
-  await Promise.allSettled([
-    pushAn([memberId], titel, text, '/kasse'),
-    willMail(opfer, 'kasse') ? mailAn([opfer.email], mail.betreff, mail.inhalt) : Promise.resolve(),
-  ]);
-  revalidate();
+export type StrafAntwort = { ok: boolean; meldung: string };
+
+/** Strafe aus dem Katalog buchen (Kasse oder Zettel), darf jeder. */
+export async function strafeBuchenAction(formData: FormData): Promise<StrafAntwort> {
+  const me = await getCurrentMember();
+  if (!me) return { ok: false, meldung: 'Nicht angemeldet.' };
+  const memberId = String(formData.get('memberId') ?? '');
+  const regelId = String(formData.get('regelId') ?? '');
+  const terminId = String(formData.get('terminId') ?? '') || null;
+  const r = await strafeBuchen(me, memberId, regelId, terminId);
+  if (r.ok) revalidate();
+  return r;
+}
+
+export async function strafeZuruecknehmenAction(strafeId: string): Promise<boolean> {
+  const me = await getCurrentMember();
+  if (!me) return false;
+  const ok = await strafeZuruecknehmen(me, strafeId);
+  if (ok) revalidate();
+  return ok;
+}
+
+export async function strafeErlassenAction(strafeId: string): Promise<boolean> {
+  const me = await getCurrentMember();
+  if (!me) return false;
+  const ok = await strafeErlassen(me, strafeId);
+  if (ok) revalidate();
+  return ok;
 }
 
 /**
@@ -80,8 +70,69 @@ export async function forderungStatus(id: string, status: 'offen' | 'beglichen' 
   }
   const eintrag = db.select().from(kasse).where(eq(kasse.id, id)).get();
   if (!eintrag) return;
+  // Strafe aus dem Katalog: Erlassen nach dessen Regeln (erlassbar, ned die eigene)
+  const buchung = buchungZurKasse(id);
+  if (buchung && status === 'aufgehoben') {
+    await strafeErlassen(me, buchung.id);
+    revalidate();
+    return;
+  }
   db.update(kasse).set({ status }).where(eq(kasse.id, id)).run();
+  buchungStatusAusKasse(id, status);
   revalidate();
+}
+
+/** Katalog pflegen dürfen Admin und Präsident. */
+function darfKatalog(me: { id: string; role: string }): boolean {
+  return me.role === 'admin' || me.id === getPraesidentId();
+}
+
+/** WP-Abzüge aus dem Formular („5“ heißt −5 WP), höchstens 99. */
+function abzug(roh: FormDataEntryValue | null): number {
+  const n = Math.round(Math.abs(Number(String(roh ?? '').replace(',', '.')) || 0));
+  return -Math.min(99, n);
+}
+
+/**
+ * Strafe anlegen oder ändern. Bei festen Strafen bleibt die Art, Name und
+ * Staffel/Frist san einstellbar. Eigene Strafen haben einen WP-Wert.
+ */
+export async function regelSpeichern(formData: FormData): Promise<StrafAntwort> {
+  const me = await getCurrentMember();
+  if (!me || !darfKatalog(me)) return { ok: false, meldung: 'Den Katalog pflegen nur Präsident und Admin.' };
+  const id = String(formData.get('id') ?? '');
+  const alt = id ? katalog().find((r) => r.id === id) : undefined;
+  if (id && !alt) return { ok: false, meldung: 'Die Strafe gibt’s nicht.' };
+  const art = alt?.art ?? 'eigene';
+  const name = String(formData.get('name') ?? '').trim().slice(0, 80);
+  if (!name) return { ok: false, meldung: 'Die Strafe braucht einen Namen.' };
+  const detail = String(formData.get('detail') ?? '').trim().slice(0, 500) || null;
+  const betragCents = centsAus(formData, 'betrag');
+  const wpStaffel = art === 'eigene' || art === 'serie' ? [abzug(formData.get('wp'))] : formData.getAll('staffel').map(abzug).slice(0, 6);
+  if (wpStaffel.length === 0) wpStaffel.push(0);
+  const fristArtRoh = String(formData.get('fristArt') ?? 'beginn');
+  const fristArt = fristArtRoh === 'tage' || fristArtRoh === 'stunden' ? fristArtRoh : 'beginn';
+  const fristWert = Math.min(fristArt === 'tage' ? 14 : 72, Math.max(1, Math.round(Number(formData.get('fristWert')) || 1)));
+  const werte = {
+    name,
+    detail,
+    wpStaffel,
+    betragCents,
+    erlassbar: formData.get('erlassbar') === 'on',
+    aktiv: formData.get('aktiv') !== 'aus',
+    ...(art === 'unentschuldigt'
+      ? { fristArt: fristArt as 'beginn' | 'tage' | 'stunden', fristWert: fristArt === 'beginn' ? 0 : fristWert, nichtEingetragenZusage: formData.get('nichtEingetragenZusage') === 'on' }
+      : {}),
+    geaendertAm: nowIso(),
+    geaendertVon: me.id,
+  };
+  if (alt) {
+    db.update(strafenRegeln).set(werte).where(eq(strafenRegeln.id, alt.id)).run();
+  } else {
+    db.insert(strafenRegeln).values({ id: newId('sr'), art: 'eigene', sort: 100, erstelltAm: nowIso(), erstelltVon: me.id, ...werte, geaendertAm: null, geaendertVon: null }).run();
+  }
+  revalidate();
+  return { ok: true, meldung: alt ? 'Gespeichert, gilt ab jetzt.' : `„${name}“ steht im Katalog.` };
 }
 
 /** Einzahlung oder geschmissene Runde (positiv, sofort wirksam). */
@@ -110,20 +161,19 @@ export async function einzahlung(formData: FormData) {
   revalidate();
 }
 
-/** 🍺 Hoibe eini schmeißen: freiwillige Spende in Hoibe, darf jeder, zählt für einen selbst. */
+/** Freiwillige Spende in €, darf jeder, zählt für einen selbst. */
 export async function spenden(formData: FormData) {
   const me = await getCurrentMember();
   if (!me) return;
-  const hoibe = hoibeAnzahl(formData);
+  const cents = centsAus(formData, 'betrag');
   const anlass = String(formData.get('grund') ?? '').trim().slice(0, 200);
-  if (!hoibe) return;
-  const hoibeText = hoibe === 1 ? '1 Hoibe' : `${hoibe} Hoibe`;
+  if (!cents) return;
   db.insert(kasse)
     .values({
       id: newId('k'),
       memberId: me.id,
-      grund: anlass ? `${hoibeText} gespendet, ${anlass}` : `${hoibeText} gespendet`,
-      betragCents: hoibe * hoibePreisCents(),
+      grund: anlass ? `Spende, ${anlass}` : 'Spende',
+      betragCents: cents,
       kind: 'einzahlung',
       status: 'beglichen',
       gemeldetVon: me.id,

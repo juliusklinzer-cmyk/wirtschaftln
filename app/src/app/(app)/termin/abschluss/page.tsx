@@ -2,12 +2,16 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { getCurrentMember, erzwingeProfil } from '@/lib/session';
 import { anzeigeName } from '@/lib/namen';
-import { getAktuellerTermin, getNaechsterTermin, getKasseFuerTermin, getTerminMitWirtshaus, getVotesFuerTermin, getAktiveMitglieder, getBesucheFuerTermin } from '@/lib/queries';
+import { getAktuellerTermin, getNaechsterTermin, getTerminMitWirtshaus, getVotesFuerTermin, getAktiveMitglieder, getBesucheFuerTermin, getStats } from '@/lib/queries';
 import { abschlussOffen } from '@/lib/punkte';
 import { nowIso } from '@/lib/ids';
 import { datumKurz } from '@/lib/format';
 import { Icon } from '@/components/ds';
-import { STRAFE_GRUND_PREFIX } from '@/lib/abend';
+import { db, strafen } from '@/lib/db';
+import { eq } from 'drizzle-orm';
+import { katalog, festeRegel, fehltUnentschuldigt, staffelWert, folgeWort } from '@/lib/strafen-regeln';
+import { darfZuruecknehmen } from '@/lib/strafen';
+import { strafeBuchenAction, strafeZuruecknehmenAction } from '../../kasse/actions';
 import { AbschlussZettel } from '../abschluss-zettel';
 import { abschliessenUndZurueck } from '../actions';
 
@@ -28,14 +32,23 @@ export default async function AbschlussPage() {
   const mitglieder = getAktiveMitglieder();
   const alleVotes = getVotesFuerTermin(termin.id);
   const besucheLive = getBesucheFuerTermin(termin.id);
-  // Scho abgehakt? Dann den gespeicherten Stand (da / z’spät / weg + Strafe) wieder laden
-  const strafen = new Set(getKasseFuerTermin(termin.id).filter((k) => k.kind === 'strafe' && k.grund.startsWith(STRAFE_GRUND_PREFIX) && k.memberId).map((k) => k.memberId));
+  // Scho abgehakt? Dann den gespeicherten Stand (da / z’spät / weg) wieder laden
   const standVon = (id: string) => {
     if (!termin.erfasstVon) return undefined;
     const b = besucheLive.find((x) => x.memberId === id);
-    return { status: b?.anwesend ? (b.zuSpaet ? 'spaet' : 'da') : 'weg', strafe: strafen.has(id) } as const;
+    return { status: b?.anwesend ? (b.zuSpaet ? 'spaet' : 'da') : 'weg' } as const;
   };
-  const voteVon = (id: string) => alleVotes.find((x) => x.vote.memberId === id)?.vote.wert;
+  const voteVon = (id: string) => alleVotes.find((x) => x.vote.memberId === id)?.vote;
+  // Strafenkatalog: was kostet's, wenn wer fehlt (Staffel nach seiner Serie), und was is heut scho gebucht
+  const regeln = katalog();
+  const regelU = festeRegel('unentschuldigt', regeln);
+  const serie = new Map(getStats().map((s) => [s.member.id, s.unentschuldigtStreak]));
+  const wennWeg = (id: string) => {
+    if (!regelU || !fehltUnentschuldigt(voteVon(id), termin, regelU)) return null;
+    return folgeWort(regelU.betragCents, -staffelWert(regelU.wpStaffel, (serie.get(id) ?? 0) + 1));
+  };
+  const nameVon = new Map(mitglieder.map((m) => [m.id, anzeigeName(m)]));
+  const gebucht = db.select().from(strafen).where(eq(strafen.terminId, termin.id)).all().filter((b) => b.art === 'eigene' && b.status === 'offen');
 
   return (
     <div className="wn-eintritt" style={{ padding: '20px 16px 32px', display: 'flex', flexDirection: 'column', gap: 28 }}>
@@ -56,7 +69,8 @@ export default async function AbschlussPage() {
           name: anzeigeName(m),
           photoUrl: m.photoUrl,
           verein: m.verein,
-          zugesagt: voteVon(m.id) === 'zu',
+          zugesagt: voteVon(m.id)?.wert === 'zu',
+          wennWeg: wennWeg(m.id),
           live: !!besucheLive.find((b) => b.memberId === m.id)?.anwesend,
           stand: standVon(m.id),
         }))}
@@ -64,6 +78,13 @@ export default async function AbschlussPage() {
         ersterErfasser={!termin.erfasstVon}
         mindestDatum={termin.datum}
         action={abschliessenUndZurueck.bind(null, termin.id)}
+        strafen={{
+          regeln: regeln.filter((r) => r.art === 'eigene' && r.aktiv).map((r) => ({ id: r.id, name: r.name, detail: r.detail, folge: folgeWort(r.betragCents, -(r.wpStaffel[0] ?? 0)) })),
+          gebucht: gebucht.map((b) => ({ id: b.id, text: `${nameVon.get(b.memberId) ?? '?'}: ${b.name}`, folge: folgeWort(b.betragCents, b.wp != null ? -b.wp : 0), darfWeg: darfZuruecknehmen(me, b) })),
+          terminId: termin.id,
+          buchen: strafeBuchenAction,
+          zuruecknehmen: strafeZuruecknehmenAction,
+        }}
       />
     </div>
   );

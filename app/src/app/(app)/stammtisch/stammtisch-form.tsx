@@ -16,9 +16,7 @@ export type StammtischWerte = {
   stadt: string;
   gruendungsjahr: string;
   gruendungscode: string;
-  hoibePreis: string;
   /** Strafe fürs Fehlen in Euro, leer = a Runde */
-  strafeFehlen: string;
   /** Aktuelles Logo als Data-URL (null = Wirtschaftln-Wappen) */
   logo: string | null;
   bierName: string;
@@ -55,24 +53,6 @@ export function StammtischForm({ werte, speichern = stammtischSpeichern }: { wer
       />
       <BierWahl label="Euer Bier" biere={HELLE_WAHL} value={bier} onChange={setBier} leerLabel="Koa bestimmtes" />
       <input type="hidden" name="bierName" value={bier} />
-      <Input
-        label="Preis für a Hoibe (€)"
-        name="hoibePreis"
-        defaultValue={werte.hoibePreis}
-        placeholder="z. B. 4,20"
-        inputMode="decimal"
-        hint="Damit rechnen Runden, Spenden und gemeldete Strafen, alles in Hoibe."
-        required
-      />
-      <Input
-        label="Strafe fürs Fehlen (€)"
-        name="strafeFehlen"
-        defaultValue={werte.strafeFehlen}
-        placeholder="leer = a Runde für alle"
-        inputMode="decimal"
-        hint="Wer zusagt und ned kommt (oder 3× unentschuldigt fehlt), zahlt des. Leer lassen: a Runde, also Teilnehmer × Hoibe-Preis."
-      />
-
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', background: 'var(--pergament)', border: '1px solid var(--pergament-edge)', borderRadius: 'var(--r-md)' }}>
         <span style={{ fontSize: 26, flex: 'none', filter: schnaps ? 'none' : 'grayscale(1) opacity(0.5)' }}>🥃</span>
         <div style={{ flex: 1 }}>

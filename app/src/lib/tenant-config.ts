@@ -31,6 +31,7 @@ export type TenantConfig = PublicTenantConfig & {
 type ConfigJson = Partial<{
   stammhausWirtshausId: string | null;
   bierName: string;
+  /** Bis 04.11.2026: Hoibe-Preis und Fehl-Strafe, jetzt im Strafenkatalog (nur noch für die Übernahme gelesen) */
   hoibePreisCents: number;
   strafeFehlenCents: number | null;
   saisonEpocheJahr: number;
@@ -56,9 +57,7 @@ export function parseTenantConfig(gruppe: Gruppe): TenantConfig {
   const features: TenantFeatures = { ...basisFeatures, ...(c.features ?? {}) };
   if (gruppe.typ === 'stammhaus' && c.features?.nieZweimal === undefined) features.nieZweimal = false;
   const logo = typeof c.logo === 'string' && c.logo.startsWith('data:image/') ? c.logo : null;
-  const hoibe = Number(c.hoibePreisCents);
   const epoche = Number(c.saisonEpocheJahr);
-  const strafe = Number(c.strafeFehlenCents);
   return {
     id: gruppe.id,
     name: gruppe.name,
@@ -68,8 +67,6 @@ export function parseTenantConfig(gruppe: Gruppe): TenantConfig {
     typ: gruppe.typ,
     stammhausWirtshausId: c.stammhausWirtshausId ?? null,
     bierName: c.bierName?.trim() || 'Augustiner Hell',
-    hoibePreisCents: Number.isInteger(hoibe) && hoibe > 0 ? hoibe : 370,
-    strafeFehlenCents: c.strafeFehlenCents != null && Number.isInteger(strafe) && strafe > 0 ? strafe : null,
     saisonEpocheJahr: Number.isInteger(epoche) ? epoche : gruender ? 2022 : new Date(gruppe.createdAt).getFullYear(),
     geo: c.geo === undefined ? (gruender ? MUENCHEN_GEO : null) : c.geo,
     features,
@@ -86,6 +83,12 @@ export function auszeichnungAn(key: string): boolean {
 }
 
 /** Config des Mandanten im laufenden Request (wirft ohne gebundenen Mandanten). */
+/** Alte Einstellung „Strafe fürs Fehlen“ (bis 04.11.2026), nur noch für die einmalige Übernahme in den Strafenkatalog. */
+export function alteFehlStrafeCents(): number | null {
+  const n = Number(lesen(currentTenant().gruppe.config).strafeFehlenCents);
+  return Number.isInteger(n) && n > 0 ? n : null;
+}
+
 export function tenantConfig(): TenantConfig {
   return parseTenantConfig(currentTenant().gruppe);
 }

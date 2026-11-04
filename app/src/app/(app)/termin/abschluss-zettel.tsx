@@ -1,10 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useTransition } from 'react';
 import { Avatar, ZeilenKarte } from '@/components/ds';
 import { PTS } from '@/lib/punkte';
-import { useTenantConfig } from '@/components/shell/TenantProvider';
-import { strafeFehlenWort } from '@/lib/tenant-config-public';
+import { StrafeBuchen, type StrafWahl, type StrafAntwort } from '@/components/domain/StrafeBuchen';
 import { goldKnopfStil, feldStil, feldLabelStil } from '@/components/domain/hero-stil';
 
 export type ZettelMitglied = {
@@ -12,12 +11,14 @@ export type ZettelMitglied = {
   name: string;
   photoUrl: string | null;
   verein: string | null;
-  /** hat beim Termin zugesagt (→ ned kemma = Strafrunde) */
+  /** hat beim Termin zugesagt */
   zugesagt: boolean;
+  /** Was es kostet, wenn er fehlt (unentschuldigt laut Strafenkatalog), null = nix */
+  wennWeg: string | null;
   /** hat am Abend scho gstrichelt / eingecheckt → steht als „da“ */
   live: boolean;
   /** Scho amal abgehakt: der gespeicherte Stand (zum Ändern) */
-  stand?: { status: 'da' | 'spaet' | 'weg'; strafe: boolean };
+  stand?: { status: 'da' | 'spaet' | 'weg' };
 };
 
 type Status = 'da' | 'spaet' | 'weg';
@@ -39,7 +40,7 @@ function SchrittKopf({ nummer, titel, hint }: { nummer: number; titel: string; h
  * Wer war da + nächster Termin, Schritt für Schritt (Redesign 1c): 1 Wer war
  * da? 2 Nächster Stammtisch. Bewertet wird getrennt, jeder wann er mag. Hoibe und Marken trägt
  * jeder selber am Deckel ein, hier wird nur bestätigt, wer da war, wer z’spät
- * kemma is und wer gfehlt hat (zugsagt & ned kemma → Strafrunde). Der Abend
+ * kemma is und wer gfehlt hat, dazu Strafen aus dem Katalog. Der Abend
  * bleibt danach offen, er schließt sich um 3 Uhr früh von allein.
  */
 export function AbschlussZettel({
@@ -49,6 +50,7 @@ export function AbschlussZettel({
   ersterErfasser = true,
   mindestDatum,
   action,
+  strafen,
 }: {
   mitglieder: ZettelMitglied[];
   meId: string;
@@ -58,18 +60,23 @@ export function AbschlussZettel({
   /** Der nächste Termin muss nach diesem Abend liegen */
   mindestDatum?: string;
   action: (formData: FormData) => Promise<void>;
+  /** Strafe hinzufügen (eigene aus dem Katalog) und was an dem Abend schon gebucht ist */
+  strafen?: {
+    regeln: StrafWahl[];
+    gebucht: Array<{ id: string; text: string; folge: string; darfWeg: boolean }>;
+    terminId: string;
+    buchen: (fd: FormData) => Promise<StrafAntwort>;
+    zuruecknehmen: (id: string) => Promise<boolean>;
+  };
 }) {
   const [status, setStatus] = useState<Record<string, Status>>(() => {
     const s: Record<string, Status> = {};
     for (const m of mitglieder) s[m.id] = m.stand?.status ?? (m.live || m.zugesagt || m.id === meId ? 'da' : 'weg');
     return s;
   });
-  const { strafeFehlenCents } = useTenantConfig();
-  const [strafe, setStrafe] = useState<Record<string, boolean>>(() => {
-    const s: Record<string, boolean> = {};
-    for (const m of mitglieder) s[m.id] = m.stand ? m.stand.strafe : m.zugesagt;
-    return s;
-  });
+  const [strafeOffen, setStrafeOffen] = useState(false);
+  const [strafMeldung, setStrafMeldung] = useState<string | null>(null);
+  const [nimmtZurueck, startZuruecknehmen] = useTransition();
 
   const dabei = mitglieder.filter((m) => status[m.id] !== 'weg');
   // Da/z’spät zuerst, dann die Fehlenden
@@ -88,7 +95,6 @@ export function AbschlussZettel({
           <span key={m.id}>
             <input type="hidden" name="memberId" value={m.id} />
             <input type="hidden" name={`status_${m.id}`} value={status[m.id]} />
-            {status[m.id] === 'weg' && m.zugesagt && strafe[m.id] && <input type="hidden" name={`strafe_${m.id}`} value="on" />}
           </span>
         ))}
       </div>
@@ -108,17 +114,48 @@ export function AbschlussZettel({
                   </span>
                   <Wahl aktiv={s} onChange={(v) => setStatus((r) => ({ ...r, [m.id]: v }))} />
                 </div>
-                {weg && m.zugesagt && (
-                  <label style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 10, background: 'var(--strafe-bg)', fontSize: 12, fontWeight: 700, color: 'var(--strafe)', cursor: 'pointer' }}>
-                    <input type="checkbox" checked={strafe[m.id]} onChange={(e) => setStrafe((r) => ({ ...r, [m.id]: e.target.checked }))} style={{ width: 18, height: 18, accentColor: 'var(--strafe)', margin: 0 }} />
-                    Zugesagt, nicht gekommen: zahlt {strafeFehlenWort(strafeFehlenCents)}
-                  </label>
+                {weg && m.wennWeg && (
+                  <span style={{ paddingLeft: 44, marginTop: -4, fontSize: 12, fontWeight: 700, lineHeight: 1.4, color: 'var(--strafe)' }}>
+                    Unentschuldigt: {m.wennWeg}
+                  </span>
                 )}
               </div>
             );
           })}
         </ZeilenKarte>
       </section>
+
+      {strafen && (
+        <section style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <SchrittKopf nummer={++schritt} titel="Strafen" hint="optional" />
+          <div style={karte}>
+            {strafen.gebucht.length === 0 && !strafeOffen && !strafMeldung && <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink-500)' }}>Heute noch nichts gebucht. Wer unentschuldigt fehlt, bucht die App von allein.</span>}
+            {strafen.gebucht.map((g) => (
+              <div key={g.id} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <span style={{ flex: 1, minWidth: 0, fontSize: 14, fontWeight: 700, color: 'var(--ink-900)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{g.text}</span>
+                <span className="wn-tnum" style={{ fontSize: 13, fontWeight: 800, color: 'var(--strafe)', flex: 'none' }}>{g.folge}</span>
+                {g.darfWeg && (
+                  <button type="button" disabled={nimmtZurueck} aria-label="Zurücknehmen" onClick={() => startZuruecknehmen(async () => { await strafen.zuruecknehmen(g.id); })} style={{ width: 28, height: 28, flex: 'none', borderRadius: '50%', border: 'none', background: 'var(--ink-50)', color: 'var(--ink-500)', cursor: 'pointer', fontSize: 14, fontWeight: 800, padding: 0 }}>✕</button>
+                )}
+              </div>
+            ))}
+            {strafMeldung && <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--erfolg)' }}>Gebucht: {strafMeldung}</span>}
+            {strafeOffen ? (
+              <StrafeBuchen
+                mitglieder={mitglieder.map((m) => ({ id: m.id, name: m.name, photoUrl: m.photoUrl, verein: m.verein }))}
+                regeln={strafen.regeln}
+                terminId={strafen.terminId}
+                buchen={strafen.buchen}
+                onGebucht={(meldung) => { setStrafMeldung(meldung); setStrafeOffen(false); }}
+              />
+            ) : (
+              <button type="button" onClick={() => { setStrafMeldung(null); setStrafeOffen(true); }} className="wn-press" style={{ height: 44, borderRadius: 12, border: '1.5px solid var(--ink-200)', background: 'var(--weiss)', color: 'var(--navy)', fontFamily: 'var(--font-ui)', fontSize: 14, fontWeight: 800, cursor: 'pointer' }}>
+                Strafe hinzufügen
+              </button>
+            )}
+          </div>
+        </section>
+      )}
 
       {/* Wer abhakt, macht den nächsten Termin aus: Datum + Uhrzeit reichen,
           zu-/absagen tun danach alle selber (Julius, 11.09.2026) */}

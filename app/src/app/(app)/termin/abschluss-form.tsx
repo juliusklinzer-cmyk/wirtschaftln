@@ -114,7 +114,7 @@ export function AbschlussForm({
           return (
             <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 10px', border: r.abgsagt ? '1px solid var(--strafe)' : '1px solid var(--ink-100)', borderRadius: 'var(--r-md)', background: r.abgsagt ? 'var(--strafe-bg)' : 'var(--weiss)' }}>
               <Avatar src={m.photoUrl} name={m.name} size={34} verein={m.verein} />
-              {/* Name antippen = Abgsagt (zugesagt & nicht erschienen → Runde als Strafe) */}
+              {/* Name antippen = nicht da (Strafen bucht der Strafenkatalog automatisch) */}
               <button type="button" onClick={() => patch(m.id, { abgsagt: !r.abgsagt })} title="Antippen: zugesagt & nicht erschienen"
                 style={{ flex: 1, minWidth: 0, border: 'none', background: 'transparent', padding: 0, cursor: 'pointer', textAlign: 'left', fontFamily: 'var(--font-ui)', fontSize: 14, fontWeight: 700, color: r.abgsagt ? 'var(--strafe)' : 'var(--ink-900)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', textDecoration: r.abgsagt ? 'line-through' : 'none' }}>
                 {m.name.split(' ')[0]}

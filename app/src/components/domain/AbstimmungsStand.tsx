@@ -15,10 +15,13 @@ export function AbstimmungsStand({
   terminId,
   terminDatum,
   meinVote,
+  fristHinweis,
 }: {
   terminId: string;
   terminDatum: string;
   meinVote: 'zu' | 'vielleicht' | 'ab' | null;
+  /** Absage-Frist aus dem Strafenkatalog (lib/strafen-regeln absageHinweis) */
+  fristHinweis?: string | null;
 }) {
   // Legacy-„vielleicht" zählt wie keine Antwort
   const stimme = meinVote === 'zu' || meinVote === 'ab' ? meinVote : null;
@@ -84,6 +87,7 @@ export function AbstimmungsStand({
             {pending && geklickt === 'ab' ? '…' : 'Absagen'}
           </button>
         </div>
+        {fristHinweis && <span style={{ fontSize: 12, fontWeight: 700, lineHeight: 1.4, color: 'var(--gold-bright)' }}>{fristHinweis}</span>}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
           <span style={{ fontSize: 12, fontWeight: 600, color: 'rgba(246,240,226,0.6)' }}>
             {stimme === null && fristOffen
@@ -106,6 +110,7 @@ export function AbstimmungsStand({
 
   const dabei = stimme === 'zu';
   return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
     <div
       style={{
         display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px',
@@ -137,6 +142,8 @@ export function AbstimmungsStand({
       >
         Ändern
       </button>
+    </div>
+    {fristHinweis && <span style={{ fontSize: 12, fontWeight: 700, lineHeight: 1.4, color: 'var(--gold-bright)' }}>{fristHinweis}</span>}
     </div>
   );
 }

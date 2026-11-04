@@ -117,7 +117,7 @@ function baue(r: MailRahmen, b: Baustein): MailInhalt {
 // ───────────────────────── Kalender ─────────────────────────
 
 /** Lokale Berliner Zeit → UTC im ICS-Format (20261105T180000Z), Sommer-/Winterzeit inklusive. */
-function berlinNachUtc(datum: string, zeit: string): Date {
+export function berlinNachUtc(datum: string, zeit: string): Date {
   const [y, mo, d] = datum.split('-').map(Number);
   const [h, mi] = zeit.split(':').map(Number);
   const alsUtc = Date.UTC(y, mo - 1, d, h, mi);
@@ -251,17 +251,15 @@ export function mailReservierungOffen(
 }
 
 /** Gemeldet: nur der Betroffene. */
-export function mailGemeldet(
+export function mailStrafe(
   r: MailRahmen,
-  d: { name: string; von: string; grund: string; hoibe: number; paypal: boolean },
+  d: { name: string; von: string | null; strafe: string; folge: string; zahlen: boolean; paypal: boolean },
 ): { betreff: string; inhalt: MailInhalt } {
-  const menge = d.hoibe === 1 ? 'eine Hoibe' : `${d.hoibe} Hoibe`;
-  const inhalt = baue(r, {
-    anrede: `Servus ${d.name}!`,
-    absaetze: [`${gross(d.von)} hat dich gemeldet: „${d.grund}“. Das kostet ${menge}.`, `Zahlen kannst du beim Kassenwart${d.paypal ? ' oder per PayPal' : ''}.`],
-    knopf: { text: 'Zur Kasse', pfad: '/kasse' },
-  });
-  return { betreff: 'Du bist gemeldet worden', inhalt };
+  const wer = d.von ? `${gross(d.von)} hat dir eine Strafe gebucht` : 'Die App hat dir eine Strafe gebucht';
+  const absaetze = [`${wer}: „${d.strafe}“. Das kostet ${d.folge}.`];
+  if (d.zahlen) absaetze.push(`Zahlen kannst du beim Kassenwart${d.paypal ? ' oder per PayPal' : ''}.`);
+  const inhalt = baue(r, { anrede: `Servus ${d.name}!`, absaetze, knopf: { text: 'Zur Kasse', pfad: '/kasse' } });
+  return { betreff: `Strafe: ${d.strafe}`, inhalt };
 }
 
 /** Feedback aus der App: geht an Julius persönlich. */

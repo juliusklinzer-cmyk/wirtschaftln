@@ -19,7 +19,6 @@ export default async function WillkommenPage() {
     <OnboardingSlides
       stammhaus={c.typ === 'stammhaus'}
       schnaps={c.features.schnaps}
-      hoibePreis={(c.hoibePreisCents / 100).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
       ersterLogin={me.erstanmeldung}
     />
   );

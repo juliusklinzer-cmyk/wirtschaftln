@@ -1,33 +1,17 @@
 'use client';
 
 import { useEffect, useState, useTransition } from 'react';
-import { Avatar, Icon } from '@/components/ds';
+import { Icon } from '@/components/ds';
 import { Gavel } from '@phosphor-icons/react/dist/ssr/Gavel';
 import { HoamTitel } from '@/components/domain/HoamTitel';
 import { goldKnopfStil, bereichHinweisStil, feldStil, feldLabelStil } from '@/components/domain/hero-stil';
+import { StrafeBuchen, type StrafWahl, type StrafAntwort } from '@/components/domain/StrafeBuchen';
 
 export type KasseSpezl = { id: string; name: string; photoUrl: string | null; verein: string | null };
-type Aktion = 'melden' | 'spenden' | 'auslage' | 'einzahlung' | 'ausgabe';
+type Aktion = 'strafe' | 'spenden' | 'auslage' | 'einzahlung' | 'ausgabe';
 type Action = (formData: FormData) => Promise<void>;
 
-const VERGEHEN = ['Weißwurst nach zwölf', 'Ketchup auf den Leberkäs', 'Maß mit Strohhalm', 'Handy am Tisch', 'Spezi zum Schweinsbraten'];
 const euro = (cents: number) => `${(cents / 100).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`;
-const vorname = (name: string) => { const [a, ...r] = name.split(' '); return a.length <= 3 && r.length > 0 ? name : a; };
-
-/** Ganzzahl-Stepper 1–99 für Hoibe, zeigt den Euro-Gegenwert drunter. */
-function HoibeStepper({ wert, onChange, preisCents }: { wert: number; onChange: (n: number) => void; preisCents: number }) {
-  const knopf: React.CSSProperties = { width: 38, height: 38, borderRadius: 12, cursor: 'pointer', fontFamily: 'var(--font-ui)', fontSize: 18, fontWeight: 800, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: 0 };
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-      <button type="button" className="wn-press" aria-label="Weniger" onClick={() => onChange(Math.max(1, wert - 1))} style={{ ...knopf, border: '1.5px solid var(--pergament-edge)', background: 'var(--weiss)', color: 'var(--navy)' }}>−</button>
-      <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: 56 }}>
-        <span className="wn-tnum" style={{ fontSize: 22, fontWeight: 800, color: 'var(--navy)', lineHeight: 1 }}>{wert}</span>
-        <span className="wn-tnum" style={{ fontSize: 11, fontWeight: 700, color: 'var(--gold-700)' }}>{euro(wert * preisCents)}</span>
-      </span>
-      <button type="button" className="wn-press" aria-label="Mehr" onClick={() => onChange(Math.min(99, wert + 1))} style={{ ...knopf, border: 'none', background: 'var(--navy)', color: '#fff' }}>+</button>
-    </div>
-  );
-}
 
 function Feld({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -39,38 +23,33 @@ function Feld({ label, children }: { label: string; children: React.ReactNode })
 }
 
 /**
- * Aktionen der Kasse (Kasse-Redesign 14.10.2026): Kacheln für Melden, Spenden,
+ * Aktionen der Kasse (Kasse-Redesign 14.10.2026): Kacheln für Strafe, Spenden,
  * Auslage (alle) und Einzahlung, Ausgabe (Kassenwart). Jede öffnet ein Sheet
  * von unten, nach dem Speichern kurz die Erfolgsmeldung, dann schließt’s sich.
  */
 export function KasseAktionen({
   mitglieder,
   meId,
-  hoibePreisCents,
+  regeln,
   darfKasse,
   actions,
 }: {
   mitglieder: KasseSpezl[];
   meId: string;
-  hoibePreisCents: number;
+  /** Eigene Strafen aus dem Katalog */
+  regeln: StrafWahl[];
   darfKasse: boolean;
-  actions: { melden: Action; spenden: Action; auslage: Action; einzahlung: Action; ausgabe: Action };
+  actions: { strafeBuchen: (fd: FormData) => Promise<StrafAntwort>; spenden: Action; auslage: Action; einzahlung: Action; ausgabe: Action };
 }) {
   const [offen, setOffen] = useState<Aktion | null>(null);
   const [erfolg, setErfolg] = useState<{ titel: string; text: string } | null>(null);
   const [pending, startTransition] = useTransition();
-  // Melden
-  const [opfer, setOpfer] = useState<string | null>(null);
-  const [grund, setGrund] = useState('');
-  const [hoibe, setHoibe] = useState(1);
   // Spenden
-  const [spende, setSpende] = useState(1);
+  const [spende, setSpende] = useState('');
   const [anlass, setAnlass] = useState('');
   // Einzahlung
   const [vonWem, setVonWem] = useState(meId);
 
-  const andere = mitglieder.filter((m) => m.id !== meId);
-  const opferName = andere.find((m) => m.id === opfer)?.name ?? null;
 
   useEffect(() => {
     if (!erfolg) return;
@@ -79,7 +58,7 @@ export function KasseAktionen({
   }, [erfolg]);
 
   const zu = () => { setOffen(null); setErfolg(null); };
-  const oeffnen = (a: Aktion) => { setErfolg(null); setOpfer(null); setGrund(''); setHoibe(1); setSpende(1); setAnlass(''); setVonWem(meId); setOffen(a); };
+  const oeffnen = (a: Aktion) => { setErfolg(null); setSpende(''); setAnlass(''); setVonWem(meId); setOffen(a); };
 
   const abschicken = (fd: FormData, aktion: Action, meldung: { titel: string; text: string }) =>
     startTransition(async () => {
@@ -127,78 +106,27 @@ export function KasseAktionen({
         <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink-500)' }}>{erfolg.text}</span>
       </div>
     );
-  } else if (offen === 'melden') {
-    const gueltig = !!opfer && grund.trim().length > 0;
+  } else if (offen === 'strafe') {
     inhalt = (
-      <form
-        action={(fd) => { if (!gueltig) return; abschicken(fd, actions.melden, { titel: 'Gemeldet!', text: `${vorname(opferName!)} zahlt ${hoibe === 1 ? '1 Hoibe' : `${hoibe} Hoibe`} in die Kasse.` }); }}
-        style={{ display: 'flex', flexDirection: 'column', gap: 16 }}
-      >
-        {sheetKopf('Das kostet eine Hoibe!', 'Wird als offene Forderung eingetragen.')}
-        <input type="hidden" name="memberId" value={opfer ?? ''} />
-        <input type="hidden" name="hoibe" value={hoibe} />
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <span style={{ ...feldLabelStil, padding: '0 4px' }}>Wer war’s?</span>
-          <div className="wn-scroll-still" style={{ display: 'flex', gap: 10, overflowX: 'auto', padding: '4px 4px 2px' }}>
-            {andere.map((m) => {
-              const an = m.id === opfer;
-              return (
-                <button key={m.id} type="button" onClick={() => setOpfer(m.id)} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, flex: 'none', border: 'none', background: 'none', padding: 0, cursor: 'pointer', fontFamily: 'var(--font-ui)' }}>
-                  <span style={{ display: 'inline-flex', borderRadius: '50%', boxShadow: an ? '0 0 0 3px var(--strafe)' : 'none', transition: 'box-shadow 120ms' }}>
-                    <Avatar src={m.photoUrl} name={m.name} size={48} verein={m.verein} />
-                  </span>
-                  <span style={{ fontSize: 11, fontWeight: 800, color: an ? 'var(--strafe)' : 'var(--ink-500)', whiteSpace: 'nowrap' }}>{vorname(m.name)}</span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <Feld label="Was hat er angestellt?">
-            <input name="grund" value={grund} onChange={(e) => setGrund(e.target.value)} maxLength={200} required placeholder="frei formulieren oder Vorschlag antippen" style={feldStil} />
-          </Feld>
-          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-            {VERGEHEN.map((v) => {
-              const an = grund === v;
-              return (
-                <button key={v} type="button" onClick={() => setGrund(v)} style={{ fontSize: 12, fontWeight: 700, padding: '6px 10px', borderRadius: 999, whiteSpace: 'nowrap', cursor: 'pointer', fontFamily: 'var(--font-ui)', background: an ? 'var(--navy)' : 'var(--weiss)', border: an ? '1px solid var(--navy)' : '1px solid var(--ink-100)', color: an ? '#fff' : 'var(--ink-700)' }}>
-                  {v}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: '10px 12px', borderRadius: 14, background: 'var(--pergament)' }}>
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
-            <span style={{ fontSize: 14, fontWeight: 800, color: 'var(--navy)' }}>Und das kostet …</span>
-            <span className="wn-tnum" style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink-500)' }}>1 Hoibe = {euro(hoibePreisCents)}</span>
-          </div>
-          <HoibeStepper wert={hoibe} onChange={setHoibe} preisCents={hoibePreisCents} />
-        </div>
-        <button type="submit" disabled={!gueltig || pending} className="wn-press" style={{ height: 52, borderRadius: 14, border: 'none', background: 'var(--strafe)', color: '#fff', fontFamily: 'var(--font-ui)', fontSize: 16, fontWeight: 800, cursor: gueltig ? 'pointer' : 'default', opacity: gueltig && !pending ? 1 : 0.55, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-          <Gavel size={22} weight="fill" />
-          {pending ? 'Wird gemeldet …' : opferName ? `${vorname(opferName)} melden · ${euro(hoibe * hoibePreisCents)}` : 'Spezl auswählen'}
-        </button>
-      </form>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        {sheetKopf('Strafe buchen', 'aus eurem Strafenkatalog')}
+        <StrafeBuchen mitglieder={mitglieder} regeln={regeln} buchen={actions.strafeBuchen} onGebucht={(meldung) => setErfolg({ titel: 'Gebucht!', text: meldung })} />
+      </div>
     );
   } else if (offen === 'spenden') {
+    const cents = Math.round((Number(spende.replace(',', '.')) || 0) * 100);
     inhalt = (
-      <form action={(fd) => abschicken(fd, actions.spenden, { titel: 'Vergelt’s Gott!', text: `${spende === 1 ? '1 Hoibe' : `${spende} Hoibe`} für die Kasse, ${euro(spende * hoibePreisCents)}.` })} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-        {sheetKopf('Hoibe spenden', 'für die Kasse, jede Hoibe hilft')}
-        <input type="hidden" name="hoibe" value={spende} />
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: '10px 12px', borderRadius: 14, background: 'var(--pergament)' }}>
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
-            <span style={{ fontSize: 14, fontWeight: 800, color: 'var(--navy)' }}>Wie viele Hoibe?</span>
-            <span className="wn-tnum" style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink-500)' }}>1 Hoibe = {euro(hoibePreisCents)}</span>
-          </div>
-          <HoibeStepper wert={spende} onChange={setSpende} preisCents={hoibePreisCents} />
-        </div>
+      <form action={(fd) => { if (cents <= 0) return; abschicken(fd, actions.spenden, { titel: 'Vergelt’s Gott!', text: `${euro(cents)} für die Kasse.` }); }} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        {sheetKopf('Spenden', 'für die Kasse, jeder Euro hilft')}
+        <Feld label="Betrag (€)">
+          <input name="betrag" type="number" step="0.50" min="0.50" required inputMode="decimal" value={spende} onChange={(e) => setSpende(e.target.value)} placeholder="0,00" style={feldStil} />
+        </Feld>
         <Feld label="Anlass (optional)">
           <input name="grund" value={anlass} onChange={(e) => setAnlass(e.target.value)} maxLength={200} placeholder="Geburtstag, gute Laune …" style={feldStil} />
         </Feld>
-        <button type="submit" disabled={pending} className="wn-press" style={{ ...goldKnopfStil, minHeight: 52, opacity: pending ? 0.7 : 1 }}>
+        <button type="submit" disabled={pending || cents <= 0} className="wn-press" style={{ ...goldKnopfStil, minHeight: 52, opacity: pending || cents <= 0 ? 0.6 : 1 }}>
           <Icon name="heart" size={20} />
-          {pending ? 'Wird gespendet …' : `${spende} Hoibe spenden · ${euro(spende * hoibePreisCents)}`}
+          {pending ? 'Wird gespendet …' : cents > 0 ? `${euro(cents)} spenden` : 'Spenden'}
         </button>
       </form>
     );
@@ -244,8 +172,8 @@ export function KasseAktionen({
     <section style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
       <HoamTitel action={darfKasse ? <span style={bereichHinweisStil}>Kassenwart</span> : null}>Aktionen</HoamTitel>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
-        {kachel('melden', <Gavel size={22} weight="fill" />, ['var(--strafe-bg)', 'var(--strafe)'], 'Melden', 'Das kostet eine Hoibe')}
-        {kachel('spenden', <Icon name="heart" size={20} stroke={2.2} />, ['var(--pergament)', 'var(--gold-700)'], 'Spenden', 'Hoibe für die Kasse')}
+        {kachel('strafe', <Gavel size={22} weight="fill" />, ['var(--strafe-bg)', 'var(--strafe)'], 'Strafe', 'aus dem Katalog buchen')}
+        {kachel('spenden', <Icon name="heart" size={20} stroke={2.2} />, ['var(--pergament)', 'var(--gold-700)'], 'Spenden', 'Geld für die Kasse')}
         {kachel('auslage', <Icon name="receipt" size={20} stroke={2.2} />, ['var(--info-bg)', 'var(--muc-blau)'], 'Auslage', 'Privat für den Verein bezahlt')}
       </div>
       {darfKasse && (

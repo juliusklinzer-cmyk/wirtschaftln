@@ -8,6 +8,7 @@ import { AppBar } from '@/components/shell/AppBar';
 import { TabBar, TABS_STAMMHAUS, TABS_WANDERND } from '@/components/shell/TabBar';
 import { DaniStreifen } from '@/components/domain/DaniModus';
 import { TenantProvider } from '@/components/shell/TenantProvider';
+import { strafenUebersicht } from '@/lib/strafen-regeln';
 import { publicTenantConfig } from '@/lib/tenant-config';
 import { offeneAnfragen } from '@/lib/db/directory';
 import { ZiehenAktualisieren } from '@/components/shell/ZiehenAktualisieren';
@@ -18,7 +19,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   // Neue sehen zuerst die Erklär-Slides, dann kommt das Profil (Onboarding Slides, 14.10.2026)
   if (me.erstanmeldung && !me.onboardingGesehen) redirect('/willkommen');
   // Tenant-Config einmal fürs Layout + als Props für Client-Komponenten
-  const config = publicTenantConfig();
+  const config = { ...publicTenantConfig(), strafen: strafenUebersicht() };
   // Eigene Saison-WP + Platz für Header-Pill und Profil-Menü
   const saison = aktuelleSaison();
   const rangliste = getStats({ abDatum: saison.start }).sort((a, b) => b.punkte - a.punkte);

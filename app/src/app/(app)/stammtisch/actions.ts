@@ -9,7 +9,7 @@ export type StammtischState = { error?: string; ok?: boolean };
 
 /**
  * Admin-Seite „Stammtisch": Name, Motto, Stadt, Gründungsjahr, Gründungscode
- * und Hoibe-Preis. Die eigentliche Prüfung und das Speichern liegen in
+ * und Einstellungen. Die eigentliche Prüfung und das Speichern liegen in
  * lib/stammdaten.ts (gemeinsam mit dem Verzeichnis).
  */
 export async function stammtischSpeichern(_prev: StammtischState, formData: FormData): Promise<StammtischState> {

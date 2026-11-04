@@ -1,3 +1,4 @@
+import { absageHinweis } from '@/lib/strafen-regeln';
 import Link from 'next/link';
 import { getCurrentMember, erzwingeProfil } from '@/lib/session';
 import { anzeigeName } from '@/lib/namen';
@@ -17,6 +18,7 @@ import {
   getWirtshausById,
   getCheckinsFuerTermin,
   getNaechsterTermin,
+  getStats,
 } from '@/lib/queries';
 import { datumMittel, datumKurz } from '@/lib/format';
 import { PTS, berlinTag, bierdeckelOffen, abschlussOffen, abschlussAb, ABEND_ENDE_UHRZEIT } from '@/lib/punkte';
@@ -260,6 +262,7 @@ async function AktiverTermin({
   const alleVotes = getVotesFuerTermin(termin.id);
   const mitglieder = getAktiveMitglieder();
   const meinVote = alleVotes.find((v) => v.vote.memberId === meId)?.vote.wert ?? null;
+  const fristHinweis = absageHinweis(termin, alleVotes.find((v) => v.vote.memberId === meId)?.vote, getStats().find((s) => s.member.id === meId)?.unentschuldigtStreak ?? 0, nowIso());
   const voteVon = (id: string) => alleVotes.find((x) => x.vote.memberId === id)?.vote.wert;
   const spezl = (m: (typeof mitglieder)[number]): AbstimmSpezl => ({ name: anzeigeName(m), photoUrl: m.photoUrl, verein: m.verein });
   const dabei = mitglieder.filter((m) => voteVon(m.id) === 'zu').map(spezl);
@@ -348,7 +351,7 @@ async function AktiverTermin({
         {/* Anmeldung no offen (Uhrzeit is rum, aber koaner hat gschlossen): Zeile mit Abstimmung drunter */}
         {termin.phase === 'reserviert' && (
           <WerKommtKarte anzahl={dabei.length}>
-            <AbstimmungKarte terminId={termin.id} terminDatum={termin.datum} meinVote={meinVote} dabei={dabei} offen={offen} abgesagt={abgesagt} />
+            <AbstimmungKarte terminId={termin.id} terminDatum={termin.datum} meinVote={meinVote} dabei={dabei} offen={offen} abgesagt={abgesagt} fristHinweis={fristHinweis} />
             {darfVerwalten && heuteTag && (
               <form action={phaseSetzen.bind(null, termin.id, 'heute')}>
                 <button type="submit" className="wn-press" style={{ width: '100%', minHeight: 48, borderRadius: 'var(--r-md)', border: '1.5px solid var(--ink-200)', background: 'var(--weiss)', color: 'var(--navy)', fontFamily: 'var(--font-ui)', fontSize: 15, fontWeight: 800, cursor: 'pointer' }}>
@@ -488,7 +491,7 @@ async function AktiverTermin({
       {!orgaFrei && (
         <section style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <HoamTitel action={<span style={bereichHinweisStil}>{stimmeHint}</span>}>Abstimmung</HoamTitel>
-          <AbstimmungKarte terminId={termin.id} terminDatum={termin.datum} meinVote={meinVote} dabei={dabei} offen={offen} abgesagt={abgesagt} />
+          <AbstimmungKarte terminId={termin.id} terminDatum={termin.datum} meinVote={meinVote} dabei={dabei} offen={offen} abgesagt={abgesagt} fristHinweis={fristHinweis} />
         </section>
       )}
 

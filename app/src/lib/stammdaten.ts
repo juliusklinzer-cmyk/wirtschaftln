@@ -3,14 +3,13 @@ import { logoNormieren } from '@/lib/logo';
 import { eq } from 'drizzle-orm';
 import { db, runWithTenant, wirtshaeuser } from '@/lib/db';
 import { geocode, geoFuerStadt } from '@/lib/geocode';
-import { strafeFehlenLesen } from '@/lib/preise';
 import { ABSCHALTBARE_KEYS } from '@/lib/badges';
 
 export type StammdatenErgebnis = { error?: string; ok?: boolean };
 
 /**
  * Stammdaten eines Stammtischs speichern: Name, Motto, Stadt, Gründungsjahr,
- * Gründungscode (leer = Aufnahme zu), Hoibe-Preis, Strafe fürs Fehlen, Bier,
+ * Gründungscode (leer = Aufnahme zu), Bier,
  * Schnaps, Logo.
  * Gemeinsam für „Stammtisch verwalten“ (eigener Mandant) und das Verzeichnis
  * (Wirtschaftln-Admin bearbeitet an fremden Stammtisch).
@@ -38,13 +37,6 @@ export async function stammdatenSpeichern(gruppe: Gruppe, formData: FormData): P
     const andere = findGruppeByCode(gruendungscode);
     if (andere && andere.id !== gruppe.id) return { error: 'Den Code hat scho a anderer Stammtisch, nimm an eigenen.' };
   }
-  const preisRoh = feld('hoibePreis', 10).replace(',', '.');
-  const hoibePreisCents = Math.round(Number(preisRoh) * 100);
-  if (!Number.isInteger(hoibePreisCents) || hoibePreisCents < 50 || hoibePreisCents > 5000) {
-    return { error: 'Der Hoibe-Preis muss zwischen 0,50 € und 50 € liegen.' };
-  }
-  const strafeFehlenCents = strafeFehlenLesen(feld('strafeFehlen', 12));
-  if (strafeFehlenCents === undefined) return { error: 'Die Strafe fürs Fehlen muss zwischen 1 € und 500 € liegen, oder leer für a Runde.' };
 
   // Config-JSON: bestehende Keys behalten, nur das Gesetzte ändern
   let config: Record<string, unknown> = {};
@@ -54,8 +46,6 @@ export async function stammdatenSpeichern(gruppe: Gruppe, formData: FormData): P
   } catch {
     /* kaputtes JSON → frisch anfangen */
   }
-  config.hoibePreisCents = hoibePreisCents;
-  config.strafeFehlenCents = strafeFehlenCents;
   const bierName = feld('bierName', 60);
   if (bierName) config.bierName = bierName;
   const features = (config.features && typeof config.features === 'object' ? config.features : {}) as Record<string, unknown>;

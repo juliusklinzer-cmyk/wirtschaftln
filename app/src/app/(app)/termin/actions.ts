@@ -7,7 +7,8 @@ import { and, eq } from 'drizzle-orm';
 import { db, termine, votes, besuche, wirtshaeuser, pushSubscriptions, checkins, currentTenant, wirtshausBewertungen } from '@/lib/db';
 import { getCurrentMember } from '@/lib/session';
 import { getAktiveMitglieder, nachtragsfristOffen, getPraesidentId, getBekannteWirtshaeuser, getLetzterAbgeschlossenerTermin, getNaechsterTermin } from '@/lib/queries';
-import { abendKasseAufbauen } from '@/lib/abend';
+import { abendRundenAufbauen } from '@/lib/abend';
+import { abendStrafenBuchen } from '@/lib/strafen';
 import { findeBekanntes } from '@/lib/wirtshaus-abgleich';
 import { berlinTag, bierdeckelOffen, abschlussOffen, checkinOffen, CHECKIN_VORLAUF_STUNDEN } from '@/lib/punkte';
 import { HELLE, ALKOHOLFREIE_HELLE } from '@/lib/biersorten';
@@ -315,11 +316,13 @@ export async function abstimmen(terminId: string, wert: 'zu' | 'ab') {
     .all()
     .find((v) => v.memberId === me.id);
   if (vorhanden) {
-    // erstmalsAm bleibt stehen, für den Abstimm-Bonus zählt die erste Stimme
-    db.update(votes).set({ wert, updatedAt: nowIso() }).where(eq(votes.id, vorhanden.id)).run();
+    // erstmalsAm bleibt stehen, für den Abstimm-Bonus zählt die erste Stimme.
+    // abgesagtAm: es zählt die LETZTE Absage (Absage-Frist im Strafenkatalog, „wer wackelt, zahlt“)
+    const abgesagtAm = wert === 'ab' ? (vorhanden.wert === 'ab' ? vorhanden.abgesagtAm : nowIso()) : null;
+    db.update(votes).set({ wert, updatedAt: nowIso(), abgesagtAm }).where(eq(votes.id, vorhanden.id)).run();
   } else {
     db.insert(votes)
-      .values({ id: newId('v'), terminId, memberId: me.id, wert, updatedAt: nowIso(), erstmalsAm: nowIso() })
+      .values({ id: newId('v'), terminId, memberId: me.id, wert, updatedAt: nowIso(), erstmalsAm: nowIso(), abgesagtAm: wert === 'ab' ? nowIso() : null })
       .run();
   }
   revalidateAll();
@@ -499,9 +502,6 @@ export async function besuchAbschliessen(terminId: string, formData: FormData) {
   const dabeiIds = zettel
     ? gelistet.filter((id) => statusVon(id) === 'da' || statusVon(id) === 'spaet')
     : gelistet.filter((id) => formData.get(`anwesend_${id}`) === 'on');
-  const abgsagtIds = zettel
-    ? gelistet.filter((id) => statusVon(id) === 'weg' && formData.get(`strafe_${id}`) === 'on')
-    : gelistet.filter((id) => formData.get(`abgsagt_${id}`) === 'on');
   const vorhandene = new Map(db.select().from(besuche).where(eq(besuche.terminId, terminId)).all().map((b) => [b.memberId, b]));
 
   // Für ALLE aktiven Mitglieder einen Besuchs-Eintrag schreiben (wichtig für die Serien):
@@ -589,8 +589,9 @@ export async function besuchAbschliessen(terminId: string, formData: FormData) {
     }
   }
 
-  // Runden und „zugesagt & ned kemma“-Strafen in die Kasse (beim Schließen um 3 Uhr no amal frisch)
-  abendKasseAufbauen(terminId, termin.wirtshausId, abgsagtIds);
+  // Runden in die Kasse, Strafen aus dem Katalog (beim Schließen um 3 Uhr no amal frisch)
+  abendRundenAufbauen(terminId, termin.wirtshausId);
+  await abendStrafenBuchen(terminId);
 
   // Nachtrag nach'm Schließen: nur die Werte, sonst nix
   if (termin.phase === 'abgeschlossen') {

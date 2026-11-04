@@ -38,13 +38,13 @@ const SCHWELLE = 48;
  * Die fünf Slides: oben ein Bild aus echten App-Bausteinen, unten drei Sätze.
  * Wischen (Touch) oder „Weiter“, Punkte unten links, „Überspringen“ oben rechts.
  */
-export function OnboardingSlides({ stammhaus, schnaps, hoibePreis, ersterLogin }: { stammhaus: boolean; schnaps: boolean; hoibePreis: string; ersterLogin: boolean }) {
+export function OnboardingSlides({ stammhaus, schnaps, ersterLogin }: { stammhaus: boolean; schnaps: boolean; ersterLogin: boolean }) {
   const [i, setI] = useState(0);
   const [zug, setZug] = useState(0);
   const [wischt, setWischt] = useState(false);
   const start = useRef<{ x: number; y: number; waagrecht: boolean | null } | null>(null);
   const [pending, startTransition] = useTransition();
-  const slides = slidesBauen({ stammhaus, schnaps, hoibePreis });
+  const slides = slidesBauen({ stammhaus, schnaps });
   const letzter = i === slides.length - 1;
 
   const fertig = () => startTransition(() => onboardingFertig());
@@ -150,7 +150,7 @@ export function OnboardingSlides({ stammhaus, schnaps, hoibePreis, ersterLogin }
   );
 }
 
-function slidesBauen({ stammhaus, schnaps, hoibePreis }: { stammhaus: boolean; schnaps: boolean; hoibePreis: string }): Slide[] {
+function slidesBauen({ stammhaus, schnaps }: { stammhaus: boolean; schnaps: boolean }): Slide[] {
   return [
     {
       eyebrow: '1 · Der Termin',
@@ -197,10 +197,10 @@ function slidesBauen({ stammhaus, schnaps, hoibePreis }: { stammhaus: boolean; s
     {
       eyebrow: '5 · Die Kasse',
       titel: 'Eure Stammtischkasse',
-      bild: <BildKasse hoibePreis={hoibePreis} />,
+      bild: <BildKasse />,
       punkte: [
         { Icon: Coins, titel: 'Eine Kasse für alle', text: 'Kassenstand, Einnahmen und Ausgaben sieht jeder.' },
-        { Icon: Gavel, titel: 'Strafen und Spenden', text: 'Landen direkt in der Kasse, gerechnet in Hoibe.' },
+        { Icon: Gavel, titel: 'Strafen und Spenden', text: 'Was was kostet, steht im Strafenkatalog. Alles landet direkt in der Kasse.' },
         { Icon: HandCoins, titel: 'Einfach bezahlen', text: 'Per PayPal oder bar beim Kassenwart.' },
       ],
     },
@@ -314,14 +314,13 @@ function BildRang() {
   );
 }
 
-function BildKasse({ hoibePreis }: { hoibePreis: string }) {
+function BildKasse() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
       <div style={KARTE}>
         <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 4, borderRadius: 18, background: 'radial-gradient(120% 90% at 50% 20%, #1B4C8A, #07193A)', border: '1.5px solid var(--gold)' }}>
           <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--gold)' }}>Kassenstand</span>
           <span className="wn-tnum" style={{ fontSize: 38, fontWeight: 800, lineHeight: 1, letterSpacing: '-0.03em', color: 'var(--gold-bright)' }}>184,50 €</span>
-          <span style={{ fontSize: 12, fontWeight: 700, color: 'rgba(246,240,226,0.8)' }}>1 Hoibe = {hoibePreis} €</span>
         </div>
       </div>
       <div style={KARTE}>
@@ -329,9 +328,9 @@ function BildKasse({ hoibePreis }: { hoibePreis: string }) {
           <span style={{ width: 36, height: 36, borderRadius: 10, background: 'var(--erfolg-bg)', color: 'var(--erfolg)', display: 'grid', placeItems: 'center', flex: 'none' }}><Heart size={18} weight="fill" /></span>
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2 }}>
             <span style={{ fontSize: 14, fontWeight: 800, color: 'var(--ink-900)' }}>Basti</span>
-            <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink-500)' }}>Hat 5 Hoibe gespendet</span>
+            <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink-500)' }}>Hat 20 € gespendet</span>
           </div>
-          <span className="wn-tnum" style={{ fontSize: 15, fontWeight: 800, color: 'var(--erfolg)' }}>+18,50 €</span>
+          <span className="wn-tnum" style={{ fontSize: 15, fontWeight: 800, color: 'var(--erfolg)' }}>+20,00 €</span>
         </div>
       </div>
     </div>

@@ -177,6 +177,8 @@ export const votes = sqliteTable(
     // Wann die ERSTE Stimme kam (wird bei Änderungen nie überschrieben) —
     // entscheidet über den „rechtzeitig abgstimmt"-Bonus (3-Tage-Frist).
     erstmalsAm: text('erstmals_am'),
+    // Wann zuletzt auf „ab“ gewechselt (Strafenkatalog, Absage-Frist). null = vor dem 05.11.2026 oder nie abgesagt.
+    abgesagtAm: text('abgesagt_am'),
   },
   (t) => [uniqueIndex('votes_termin_member').on(t.terminId, t.memberId)],
 );
@@ -235,6 +237,56 @@ export const kasse = sqliteTable('kasse', {
   status: text('status', { enum: ['offen', 'beglichen', 'aufgehoben'] }).notNull().default('offen'),
   // Wer den Eintrag angelegt/gemeldet hat, null = automatisch von der App (z. B. Abschluss-Strafen)
   gemeldetVon: text('gemeldet_von').references(() => members.id),
+  createdAt: text('created_at').notNull(),
+});
+
+/**
+ * Strafenkatalog pro Stammtisch (04.11.2026). Drei feste Regeln (unentschuldigt,
+ * entschuldigt, serie) buchen automatisch beim Abschluss, eigene Regeln bucht
+ * jemand am Tisch oder in der Kasse. Abgeschaltet wird mit aktiv = false, nie gelöscht.
+ */
+export const strafenRegeln = sqliteTable('strafen_regeln', {
+  id: text('id').primaryKey(),
+  art: text('art', { enum: ['unentschuldigt', 'entschuldigt', 'serie', 'eigene'] }).notNull(),
+  name: text('name').notNull(),
+  detail: text('detail'),
+  /** WP je n-tem Mal in Folge (letzter Wert gilt ab da), bei eigenen und serie ein Wert. Negativ = Abzug. */
+  wpStaffel: text('wp_staffel', { mode: 'json' }).$type<number[]>().notNull(),
+  betragCents: integer('betrag_cents').notNull().default(0),
+  /** Absage-Frist (nur unentschuldigt): bis Beginn, x Tage vorher (24 Uhr), x Stunden vor Beginn */
+  fristArt: text('frist_art', { enum: ['beginn', 'tage', 'stunden'] }).notNull().default('beginn'),
+  fristWert: integer('frist_wert').notNull().default(0),
+  nichtEingetragenZusage: integer('nicht_eingetragen_zusage', { mode: 'boolean' }).notNull().default(true),
+  erlassbar: integer('erlassbar', { mode: 'boolean' }).notNull().default(true),
+  aktiv: integer('aktiv', { mode: 'boolean' }).notNull().default(true),
+  sort: integer('sort').notNull().default(0),
+  /** Alte Config `strafeFehlenCents` schon in den Betrag übernommen? */
+  configUebernommen: integer('config_uebernommen', { mode: 'boolean' }).notNull().default(true),
+  erstelltAm: text('erstellt_am').notNull(),
+  erstelltVon: text('erstellt_von').references(() => members.id),
+  geaendertAm: text('geaendert_am'),
+  geaendertVon: text('geaendert_von').references(() => members.id),
+});
+
+/**
+ * Gebuchte Strafen. WP und Betrag san beim Buchen eingefroren. Ein €-Anteil
+ * steht zusätzlich als `kasse`-Zeile (kasseId), damit Kassenbuch und Saldo
+ * wie gehabt laufen. Feste Strafen haben wp = null (ihre WP rechnet getStats
+ * aus der Staffel), die Buchung selbst friert „unentschuldigt ja/nein“ ein.
+ */
+export const strafen = sqliteTable('strafen', {
+  id: text('id').primaryKey(),
+  regelId: text('regel_id').references(() => strafenRegeln.id),
+  art: text('art', { enum: ['unentschuldigt', 'entschuldigt', 'serie', 'eigene'] }).notNull(),
+  name: text('name').notNull(),
+  memberId: text('member_id').notNull().references(() => members.id, { onDelete: 'cascade' }),
+  terminId: text('termin_id').references(() => termine.id, { onDelete: 'cascade' }),
+  wp: integer('wp'),
+  betragCents: integer('betrag_cents').notNull().default(0),
+  kasseId: text('kasse_id').references(() => kasse.id),
+  status: text('status', { enum: ['offen', 'erlassen'] }).notNull().default('offen'),
+  gebuchtVon: text('gebucht_von').references(() => members.id),
+  benachrichtigt: integer('benachrichtigt', { mode: 'boolean' }).notNull().default(false),
   createdAt: text('created_at').notNull(),
 });
 

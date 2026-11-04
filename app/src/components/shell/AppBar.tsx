@@ -114,7 +114,8 @@ export function AppBar({
           alignItems: 'center',
           justifyContent: 'space-between',
           gap: 10,
-          padding: 'calc(10px + env(safe-area-inset-top)) 16px 12px',
+          // Mit Glas-Leiste (body.wn-glas) mehr Luft, damit der iOS-Blur Logo und Name ned erwischt
+          padding: 'calc(var(--wn-kopf-luft, 10px) + env(safe-area-inset-top)) 16px 12px',
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>

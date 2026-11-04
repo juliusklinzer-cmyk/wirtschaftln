@@ -387,12 +387,6 @@ details[open] > summary .wn-klappe-pfeil {
 body.wn-glas .wn-statusleiste {
   display: none;
 }
-/* iOS lässt im durchsichtigen Modus unten an Spalt: GlasHoehe setzt
-   --wn-app-h auf die volle Bildschirmhöhe, der Rahmen streckt sich drauf. */
-body.wn-glas .wn-app-rahmen {
-  bottom: auto !important;
-  height: var(--wn-app-h, 100%);
-}
 
 .wn-scroll-still {
   scrollbar-width: none;

@@ -38,7 +38,6 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   return (
     <TenantProvider config={config}>
     <div
-      className="wn-app-rahmen"
       style={{
         // Fest verankerter App-Rahmen (statt 100dvh): füllt den sichtbaren
         // Bildschirm IMMER exakt — koa Spalt mehr unterm Menü, wenn iOS im

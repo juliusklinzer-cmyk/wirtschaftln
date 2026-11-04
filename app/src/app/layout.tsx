@@ -9,7 +9,6 @@ import '@fontsource/libre-caslon-text/400.css';
 import '@fontsource/libre-caslon-text/400-italic.css';
 import './globals.css';
 import { RegisterSW } from '@/components/shell/RegisterSW';
-import { GlasHoehe } from '@/components/shell/GlasHoehe';
 import { tenantConfigAusCookie } from '@/lib/session';
 import { appUrl } from '@/lib/tenant-config';
 
@@ -53,8 +52,8 @@ export async function generateMetadata(): Promise<Metadata> {
       // den Header (seit Hoam-Redesign 13.10.2026 Navy, davor weiß). black-translucent war ein Irrweg: iOS gibt
       // Web-Apps die unteren ~62px dann nicht her, d'Tab-Leiste kann nie
       // an d'Bildschirmkante (ausprobiert & gemessen, 29.08.2026).
-      // Glas-Leiste (Test bei Wirtschaftln, 04.11.2026): doch black-translucent,
-      // den Spalt unten gleicht GlasHoehe aus, den Blur oben malt iOS 26 selber.
+      // Glas-Leiste (Wirtschaftln, 04.11.2026): doch black-translucent, den Blur
+      // oben malt iOS 26 selber, und der Spalt unten is dort weg (am iPhone getestet).
       statusBarStyle: c?.features.glasLeiste ? 'black-translucent' : 'default',
     },
   };
@@ -84,7 +83,6 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           Attribute an <body>, bevor React lädt, das ist kein App-Fehler. */}
       <body suppressHydrationWarning className={[muenchen && 'wn-muenchen', glas && 'wn-glas'].filter(Boolean).join(' ') || undefined}>
         <RegisterSW />
-        {glas && <GlasHoehe />}
         {children}
         {/* Statusleiste (Uhrzeit, Akku) auf ALLEN Bildschirmen in Navy, auch über
             hellen Seiten und Vollbild-Blättern (Julius, 15.10.2026). Nur so hoch

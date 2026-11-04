@@ -39,15 +39,30 @@ const SCHWELLE = 48;
  * Wischen (Touch) oder „Weiter“, Punkte unten links, „Überspringen“ oben rechts.
  */
 export function OnboardingSlides({ stammhaus, schnaps, ersterLogin }: { stammhaus: boolean; schnaps: boolean; ersterLogin: boolean }) {
+  const [pending, startTransition] = useTransition();
+  return (
+    <SlideStrecke
+      slides={slidesBauen({ stammhaus, schnaps })}
+      fertig={() => startTransition(() => onboardingFertig())}
+      pending={pending}
+      letzterKnopf={ersterLogin ? 'Los geht’s' : 'Passt'}
+    />
+  );
+}
+
+export type { Slide, Punkt };
+export { KARTE as SLIDE_KARTE };
+
+/**
+ * Die Wisch-Strecke selbst (auch für „Was ist neu“): Bild oben auf Navy,
+ * Text unten auf Weiß, Wischen oder „Weiter“, „Überspringen“ oben rechts.
+ */
+export function SlideStrecke({ slides, fertig, pending, letzterKnopf }: { slides: Slide[]; fertig: () => void; pending: boolean; letzterKnopf: string }) {
   const [i, setI] = useState(0);
   const [zug, setZug] = useState(0);
   const [wischt, setWischt] = useState(false);
   const start = useRef<{ x: number; y: number; waagrecht: boolean | null } | null>(null);
-  const [pending, startTransition] = useTransition();
-  const slides = slidesBauen({ stammhaus, schnaps });
   const letzter = i === slides.length - 1;
-
-  const fertig = () => startTransition(() => onboardingFertig());
   const weiter = () => (letzter ? fertig() : setI((n) => Math.min(slides.length - 1, n + 1)));
 
   const touchStart = (e: React.TouchEvent) => {
@@ -100,7 +115,7 @@ export function OnboardingSlides({ stammhaus, schnaps, ersterLogin }: { stammhau
         }}
       >
         {slides.map((s, n) => (
-          <div key={s.eyebrow} aria-hidden={n !== i} style={{ width: `${100 / slides.length}%`, flex: 'none', display: 'flex', flexDirection: 'column' }}>
+          <div key={`${s.eyebrow}-${s.titel}`} aria-hidden={n !== i} style={{ width: `${100 / slides.length}%`, flex: 'none', display: 'flex', flexDirection: 'column' }}>
             <div style={{ height: 'clamp(250px, 40dvh, 380px)', flex: 'none', display: 'grid', placeItems: 'center', padding: 'calc(28px + env(safe-area-inset-top)) 0 10px' }}>
               <div style={{ width: 300, maxWidth: 'calc(100vw - 48px)' }}>{s.bild}</div>
             </div>
@@ -137,7 +152,7 @@ export function OnboardingSlides({ stammhaus, schnaps, ersterLogin }: { stammhau
                     className="wn-press"
                     style={{ height: 52, padding: '0 24px', borderRadius: 14, border: 'none', background: 'var(--grad-gold)', color: 'var(--navy-900)', boxShadow: 'var(--sh-gold)', display: 'flex', alignItems: 'center', gap: 8, fontFamily: 'var(--font-ui)', fontSize: 16, fontWeight: 800, cursor: 'pointer', opacity: pending ? 0.6 : 1 }}
                   >
-                    {n === slides.length - 1 ? (ersterLogin ? 'Los geht’s' : 'Passt') : 'Weiter'}
+                    {n === slides.length - 1 ? letzterKnopf : 'Weiter'}
                     <ArrowRight size={16} weight="bold" />
                   </button>
                 </div>

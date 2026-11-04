@@ -8,6 +8,8 @@ import { AppBar } from '@/components/shell/AppBar';
 import { TabBar, TABS_STAMMHAUS, TABS_WANDERND } from '@/components/shell/TabBar';
 import { DaniStreifen } from '@/components/domain/DaniModus';
 import { TenantProvider } from '@/components/shell/TenantProvider';
+import { neuigkeitenZeigen } from '@/lib/neuigkeiten';
+import { Neuigkeiten } from '@/components/neuigkeiten/neuigkeiten';
 import { strafenUebersicht } from '@/lib/strafen-regeln';
 import { publicTenantConfig } from '@/lib/tenant-config';
 import { offeneAnfragen } from '@/lib/db/directory';
@@ -50,6 +52,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         boxShadow: '0 0 60px rgba(7,25,58,0.45)',
       }}
     >
+      {/* „Was ist neu“ nach einem Update, einmal pro Ausgabe (lib/neuigkeiten.ts) */}
+      {neuigkeitenZeigen(me) && <Neuigkeiten stammtischName={config.name} schnapsnase={config.features.muenchenBadges && config.features.schnaps} />}
       {/* 🤳 Dani-Modus: der weiße Streifen liegt über der ganzen App (nur beim Gründer) */}
       {config.features.daniModus && <DaniStreifen />}
       {/* Header scrollt MIT dem Inhalt weg (bewusst ned sticky, Julius 29.08.),

@@ -32,6 +32,8 @@ export const members = sqliteTable('members', {
   erstanmeldung: integer('erstanmeldung', { mode: 'boolean' }).notNull().default(false),
   /** Erklär-Slides (/willkommen) scho gsehen? Wird beim ersten Login einmal gezeigt. */
   onboardingGesehen: integer('onboarding_gesehen', { mode: 'boolean' }).notNull().default(false),
+  /** Welche „Was ist neu“-Ausgabe der Spezl schon weggewischt hat (lib/neuigkeiten.ts) */
+  neuigkeitenGesehen: text('neuigkeiten_gesehen'),
   // Mail-Einstellungen im Profil (30.10.2026): Termin steht fest, Erinnerungen, Kasse/Strafen.
   // Passwort- und Willkommensmails kommen immer.
   mailTermin: integer('mail_termin', { mode: 'boolean' }).notNull().default(true),

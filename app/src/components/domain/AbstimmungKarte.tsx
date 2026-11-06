@@ -1,18 +1,18 @@
 'use client';
 
 import { useState, useTransition } from 'react';
-import { Avatar, Chip, Zeile } from '@/components/ds';
+import { Avatar } from '@/components/ds';
 import { abstimmen } from '@/app/(app)/termin/actions';
 import { PTS, rechtzeitigAbgestimmt } from '@/lib/punkte';
-import { ZusagenBlatt } from '@/components/domain/ZusagenBlatt';
 
 export type AbstimmSpezl = { name: string; photoUrl: string | null; verein: string | null };
 
+const vorname = (name: string) => { const [a, ...r] = name.split(' '); return a.length <= 3 && r.length > 0 ? name : a; };
+
 /**
  * Abstimmung auf der Termin-Seite (Redesign 1a/2d/2e): oben das Segment
- * Zusagen (grün) / Absagen (rot), drunter drei Zeilen: Dabei, Noch offen,
- * Abgesagt, jeweils mit Avataren, Namen und Zähl-Chip. Ein Tipp auf eine
- * Zeile zeigt die ganze Liste (ZusagenBlatt).
+ * Zusagen (grün) / Absagen (rot), drunter Dabei, Noch offen und Abgesagt
+ * mit allen Gsichtern und Vornamen. (Auf Hoam geht dafür das ZusagenBlatt auf.)
  */
 export function AbstimmungKarte({
   terminId,
@@ -36,7 +36,6 @@ export function AbstimmungKarte({
   const [pending, startTransition] = useTransition();
   const [geklickt, setGeklickt] = useState<'zu' | 'ab' | null>(null);
   const [frischVerdient, setFrischVerdient] = useState(false);
-  const [liste, setListe] = useState(false);
   const fristOffen = rechtzeitigAbgestimmt(new Date().toISOString(), terminDatum);
 
   const klick = (wert: 'zu' | 'ab') => {
@@ -68,26 +67,27 @@ export function AbstimmungKarte({
     );
   };
 
-  // Alle Vornamen, umbrechend statt abgschnitten (Feedback 06.11.2026)
-  const namen = (liste: AbstimmSpezl[]) => (
-    <span style={{ display: 'block', whiteSpace: 'normal', lineHeight: 1.4 }}>{liste.map((s) => s.name.split(' ')[0]).join(', ')}</span>
-  );
-  const stapel = (liste: AbstimmSpezl[]) => (
-    <span style={{ display: 'inline-flex', flex: 'none' }}>
-      {liste.slice(0, 4).map((s, i) => (
-        <span key={s.name} style={{ marginLeft: i === 0 ? 0 : -10, display: 'inline-flex', borderRadius: '50%', border: '2px solid var(--weiss)', zIndex: 4 - i }}>
-          <Avatar src={s.photoUrl} name={s.name} size={32} verein={s.verein} />
-        </span>
-      ))}
-      {liste.length > 4 && (
-        <span className="wn-tnum" style={{ marginLeft: -10, width: 36, height: 36, borderRadius: '50%', border: '2px solid var(--weiss)', background: 'var(--ink-50)', color: 'var(--ink-700)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 800 }}>
-          +{liste.length - 4}
-        </span>
+  // Alle Spezl direkt in der Karte, jeder mit Gsicht und Vorname (Feedback 06.11.2026)
+  const gruppe = (titel: string, liste: AbstimmSpezl[], farbe: string, leer: string, letzte = false) => (
+    <section style={{ display: 'flex', flexDirection: 'column', gap: 10, padding: '12px 0', borderBottom: letzte ? 'none' : '1px solid var(--ink-50)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <span style={{ width: 8, height: 8, borderRadius: '50%', background: farbe, flex: 'none' }} />
+        <span style={{ flex: 1, fontSize: 15, fontWeight: 800, color: 'var(--ink-900)' }}>{titel}</span>
+        <span className="wn-tnum" style={{ fontSize: 15, fontWeight: 800, color: farbe }}>{liste.length}</span>
+      </div>
+      {liste.length === 0 ? (
+        <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink-500)' }}>{leer}</span>
+      ) : (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(58px, 1fr))', gap: '10px 4px' }}>
+          {liste.map((s, i) => (
+            <div key={`${s.name}-${i}`} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, minWidth: 0 }}>
+              <Avatar src={s.photoUrl} name={s.name} size={40} verein={s.verein} />
+              <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink-700)', maxWidth: '100%', textAlign: 'center', overflowWrap: 'anywhere', lineHeight: 1.2 }}>{vorname(s.name)}</span>
+            </div>
+          ))}
+        </div>
       )}
-      {liste.length === 0 && (
-        <span style={{ width: 34, height: 34, borderRadius: '50%', border: '1.5px dashed var(--ink-200)' }} />
-      )}
-    </span>
+    </section>
   );
 
   return (
@@ -113,11 +113,10 @@ export function AbstimmungKarte({
         <div style={{ fontSize: 12, fontWeight: 700, lineHeight: 1.4, color: 'var(--strafe)', padding: '4px 4px 0' }}>{fristHinweis}</div>
       )}
       <div>
-        <Zeile kachel={stapel(dabei)} titel="Dabei" untertitel={dabei.length ? namen(dabei) : 'no koaner'} chip={<Chip ton="erfolg">{dabei.length}</Chip>} onClick={() => setListe(true)} />
-        <Zeile kachel={stapel(offen)} titel="Noch offen" untertitel={offen.length ? namen(offen) : 'alle haben abgstimmt'} chip={<Chip ton="grau">{offen.length}</Chip>} onClick={() => setListe(true)} />
-        <Zeile kachel={stapel(abgesagt)} titel="Abgesagt" untertitel={abgesagt.length ? namen(abgesagt) : 'koaner'} chip={<Chip ton="strafe">{abgesagt.length}</Chip>} onClick={() => setListe(true)} letzte />
+        {gruppe('Dabei', dabei, 'var(--erfolg)', 'No koaner.')}
+        {gruppe('Noch offen', offen, 'var(--ink-500)', 'Alle haben abgstimmt.')}
+        {gruppe('Abgesagt', abgesagt, 'var(--strafe)', 'Koaner.', true)}
       </div>
-      {liste && <ZusagenBlatt listen={{ dabei, abgesagt, offen }} onZu={() => setListe(false)} />}
     </div>
   );
 }

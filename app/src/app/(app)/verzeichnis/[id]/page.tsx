@@ -111,6 +111,7 @@ export default async function VerzeichnisDetailPage({ params }: { params: Promis
                 schnaps: config.features.schnaps,
                 auszeichnungen: auszeichnungsWahl(config.auszeichnungenAus),
                 praesidentModus: config.praesidentModus,
+                praesidentWahlZeit: config.praesidentWahlZeit,
               }}
             />
           </div>

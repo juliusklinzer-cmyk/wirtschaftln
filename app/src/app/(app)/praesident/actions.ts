@@ -42,8 +42,9 @@ export async function praesidentWahlBeenden(): Promise<WahlAntwort> {
   if (!me || me.role !== 'admin') return { ok: false, meldung: 'Das darf nur der Admin.' };
   const wahl = offeneWahl();
   if (!wahl) return { ok: false, meldung: 'Es läuft koa Wahl.' };
-  const gewinner = await wahlAuswerten(wahl.id);
+  const { gewinnerId: gewinner, stichwahl } = await wahlAuswerten(wahl.id);
   neuLaden();
+  if (stichwahl) return { ok: true, meldung: '✓ Ausgezählt: Gleichstand vorn, die Stichwahl läuft jetzt drei Tage.' };
   const m = getAktiveMitglieder().find((x) => x.id === gewinner);
   return { ok: true, meldung: m ? `✓ Ausgezählt: ${anzeigeName(m)} is Präsident.` : '✓ Ausgezählt, aber koaner hat abgstimmt. Der bisherige bleibt.' };
 }

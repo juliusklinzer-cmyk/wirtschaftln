@@ -358,6 +358,9 @@ export const praesidentWahlen = sqliteTable('praesident_wahlen', {
   status: text('status', { enum: ['offen', 'ausgewertet'] }).notNull().default('offen'),
   gewinnerId: text('gewinner_id').references(() => members.id, { onDelete: 'set null' }),
   createdAt: text('created_at').notNull(),
+  /** Stichwahl bei Gleichstand: nur die Gleichplatzierten (JSON-Liste der IDs) */
+  stichwahl: integer('stichwahl', { mode: 'boolean' }).notNull().default(false),
+  kandidaten: text('kandidaten'),
 });
 
 export const praesidentStimmen = sqliteTable(

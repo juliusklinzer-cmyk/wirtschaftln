@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { currentTenant } from '@/lib/db';
 import { getCurrentMember } from '@/lib/session';
 import { stammdatenSpeichern } from '@/lib/stammdaten';
-import { getPraesidentId } from '@/lib/queries';
+import { getAktiveMitglieder, getPraesidentId } from '@/lib/queries';
 import { tenantConfig } from '@/lib/tenant-config';
 import { eingetragenerPraesident } from '@/lib/praesident';
 import { praesidentEintragen } from '@/lib/praesident-wahl';
@@ -20,14 +20,17 @@ export async function stammtischSpeichern(_prev: StammtischState, formData: Form
   const me = await getCurrentMember();
   if (!me || (me.role !== 'admin' && me.id !== getPraesidentId())) return { error: 'Das dürfen nur Präsident und Admin.' };
   // Präsident nach WP oder gewählt stellt nur der Admin um
-  if (me.role !== 'admin') formData.delete('praesidentModus');
+  if (me.role !== 'admin') { formData.delete('praesidentModus'); formData.delete('praesidentWahlZeit'); formData.delete('praesidentAktuell'); }
   const vorher = tenantConfig().praesidentModus;
   const bisherigerPraesident = getPraesidentId();
   const ergebnis = await stammdatenSpeichern(currentTenant().gruppe, formData);
   if (ergebnis.error) return ergebnis;
   // Umgestellt auf „gewählt“: der bisherige Präsident bleibt fest im Amt, bis gewählt wird
-  if (vorher === 'wp' && formData.get('praesidentModus') === 'wahl' && bisherigerPraesident && !eingetragenerPraesident()) {
-    praesidentEintragen(bisherigerPraesident);
+  // Beim Umstellen wählt der Admin aus, wer grad Präsident is (die letzte Wahl war meistens scho)
+  if (vorher === 'wp' && formData.get('praesidentModus') === 'wahl') {
+    const gewaehlt = String(formData.get('praesidentAktuell') ?? '');
+    const aktuell = getAktiveMitglieder().some((m) => m.id === gewaehlt) ? gewaehlt : bisherigerPraesident;
+    if (aktuell && (gewaehlt || !eingetragenerPraesident())) praesidentEintragen(aktuell);
   }
   // bindTenant lädt die gruppen-Zeile bei jedem Request frisch → nächste Seite zeigt die neuen Werte
   revalidatePath('/', 'layout');

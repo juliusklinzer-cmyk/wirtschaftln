@@ -4,6 +4,7 @@ import { eq } from 'drizzle-orm';
 import { db, runWithTenant, wirtshaeuser } from '@/lib/db';
 import { geocode, geoFuerStadt } from '@/lib/geocode';
 import { ABSCHALTBARE_KEYS } from '@/lib/badges';
+import { WAHL_ZEITEN, type PraesidentWahlZeit } from '@/lib/tenant-config';
 
 export type StammdatenErgebnis = { error?: string; ok?: boolean };
 
@@ -58,6 +59,8 @@ export async function stammdatenSpeichern(gruppe: Gruppe, formData: FormData): P
   // Präsident nach WP oder gewählt (nur wenn das Feld mitkommt, darf nur der Admin)
   const modus = formData.get('praesidentModus');
   if (modus === 'wp' || modus === 'wahl') config.praesidentModus = modus;
+  const wahlZeit = formData.get('praesidentWahlZeit');
+  if (modus && WAHL_ZEITEN.includes(wahlZeit as PraesidentWahlZeit)) config.praesidentWahlZeit = wahlZeit;
   // Logo: nur ändern, wenn a neues gewählt wurde (leer = so lassen)
   const logoData = String(formData.get('logoData') ?? '');
   if (logoData && logoData !== config.logo) {

@@ -21,6 +21,7 @@ export function WahlKarte({
   meineStimme,
   abgestimmt,
   gesamt,
+  stichwahl = false,
 }: {
   wahlId: string;
   jahr: number;
@@ -31,6 +32,8 @@ export function WahlKarte({
   /** So viele haben scho gewählt */
   abgestimmt: number;
   gesamt: number;
+  /** Gleichstand vorn: nur no die Gleichplatzierten stehen zur Wahl */
+  stichwahl?: boolean;
 }) {
   const [wahl, setWahl] = useState<string | null>(meineStimme);
   const [aendern, setAendern] = useState(false);
@@ -60,9 +63,11 @@ export function WahlKarte({
           </span>
         )}
       </div>
-      <span style={{ fontFamily: 'var(--font-fraktur)', fontSize: 26, lineHeight: 1.05, color: 'var(--navy)' }}>Wer wird Präsident {jahr}?</span>
+      <span style={{ fontFamily: 'var(--font-fraktur)', fontSize: 26, lineHeight: 1.05, color: 'var(--navy)' }}>{stichwahl ? `Stichwahl um Präsident ${jahr}` : `Wer wird Präsident ${jahr}?`}</span>
       <span style={{ fontSize: 13, fontWeight: 600, lineHeight: 1.45, color: 'var(--ink-500)' }}>
-        Geheime Wahl, jeder hat oa Stimme. Der mit den meisten Stimmen is Präsident fürs ganze Jahr.
+        {stichwahl
+          ? 'Gleichstand vorn! Jetzt geht’s nur no zwischen denen, jeder stimmt nochmal ab. Steht’s wieder gleich, entscheiden die WP im Jahr.'
+          : 'Geheime Wahl, jeder hat oa Stimme. Der mit den meisten Stimmen is Präsident. Bei Gleichstand gibt’s a Stichwahl.'}
       </span>
 
       {zeigeAuswahl ? (

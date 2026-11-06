@@ -164,10 +164,22 @@ function Sterne({ anzahl }: { anzahl: number }) {
   return <>{sterne}</>;
 }
 
-/** Plätze der goldenen Fünfer: von rechts her; reicht der Platz ned, gleich hinter den eigenen. */
-function goldPlaetze(winkel: number[], eigene: number, gold: number): number[] {
+/**
+ * Plätze der Fünfer: die eigenen von links, die goldenen von rechts her. Weil
+ * beide extra zählen, braucht’s bis zu oan Platz mehr als die Reihe hat (z. B.
+ * 26 eigene + 4 goldene): dann rücken alle Plätze a bissl zamm, statt dass
+ * die eigenen über die goldenen drüber gmalt werden (Julius, 06.11.2026).
+ */
+function reihenPlaetze(winkel: number[], eigene: number, gold: number): { eigen: number[]; gold: number[] } {
   const eigeneGruppen = Math.ceil(eigene / 5);
-  return eigeneGruppen + Math.ceil(gold / 5) <= winkel.length ? [...winkel].reverse() : winkel.slice(eigeneGruppen);
+  const goldGruppen = Math.ceil(gold / 5);
+  const n = eigeneGruppen + goldGruppen;
+  if (n <= winkel.length) return { eigen: winkel, gold: [...winkel].reverse() };
+  const erster = winkel[0];
+  const letzter = winkel[winkel.length - 1];
+  const rand = Math.sign(letzter - erster) * 4;
+  const plaetze = Array.from({ length: n }, (_, i) => erster - rand + ((letzter + rand - (erster - rand)) * i) / (n - 1));
+  return { eigen: plaetze.slice(0, eigeneGruppen), gold: plaetze.slice(eigeneGruppen).reverse() };
 }
 
 /** Alles, was mit Tinte am Deckel steht: Hoibe unten, WB + Schnaps oben, Sterne rechts, +/− als Wegweiser. */
@@ -177,13 +189,15 @@ export function Tinte({ hoiben, schnaps, sterne, schnapsAn, hoibenGold = 0, schn
   // so rutschen sie ned weiter, wenn ma selber nachstrichelt (Julius, 06.11.2026)
   const hGold = Math.min(hoibenGold, hoiben);
   const sGold = Math.min(schnapsGold, schnaps);
+  const hPlaetze = reihenPlaetze(HOIBE_WINKEL, hoiben - hGold, hGold);
+  const sPlaetze = reihenPlaetze(SCHNAPS_WINKEL, schnaps - sGold, sGold);
   return (
     <svg viewBox="0 0 264 264" fill="none" aria-hidden style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none', overflow: 'visible' }}>
-      <Strichgruppen anzahl={hoiben - hGold} winkel={HOIBE_WINKEL} salz={0} />
-      <Strichgruppen anzahl={hGold} winkel={goldPlaetze(HOIBE_WINKEL, hoiben - hGold, hGold)} salz={3} farbe={GOLD_TINTE} />
+      <Strichgruppen anzahl={hoiben - hGold} winkel={hPlaetze.eigen} salz={0} />
+      <Strichgruppen anzahl={hGold} winkel={hPlaetze.gold} salz={3} farbe={GOLD_TINTE} />
       {schnapsAn && schnaps > 0 && <KuerzelWB />}
-      {schnapsAn && <Strichgruppen anzahl={schnaps - sGold} winkel={SCHNAPS_WINKEL} salz={7} />}
-      {schnapsAn && <Strichgruppen anzahl={sGold} winkel={goldPlaetze(SCHNAPS_WINKEL, schnaps - sGold, sGold)} salz={9} farbe={GOLD_TINTE} />}
+      {schnapsAn && <Strichgruppen anzahl={schnaps - sGold} winkel={sPlaetze.eigen} salz={7} />}
+      {schnapsAn && <Strichgruppen anzahl={sGold} winkel={sPlaetze.gold} salz={9} farbe={GOLD_TINTE} />}
       <Sterne anzahl={sterne} />
     </svg>
   );

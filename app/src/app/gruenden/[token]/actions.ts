@@ -1,5 +1,6 @@
 'use server';
 
+import { WAHL_ZEITEN } from '@/lib/tenant-config';
 import { redirect } from 'next/navigation';
 import { codeVorschlag, stammtischGruenden, type GruendungsEingabe } from '@/lib/gruendung';
 import { codeFrei } from '@/lib/db/directory';
@@ -30,6 +31,7 @@ export async function gruenden(token: string, _prev: GruendungsState, formData: 
     logoData: feld('logoData'),
     schnaps: formData.get('schnaps') === 'on',
     praesidentModus: formData.get('praesidentModus') === 'wahl' ? 'wahl' : 'wp',
+    praesidentWahlZeit: WAHL_ZEITEN.find((z) => z === formData.get('praesidentWahlZeit')),
   };
   const ergebnis = await stammtischGruenden(token, eingabe);
   if (!ergebnis.ok) return { fehler: ergebnis.fehler, schritt: ergebnis.schritt };

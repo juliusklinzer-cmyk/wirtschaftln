@@ -203,6 +203,9 @@ export default async function StammtischPage() {
               schnaps: config.features.schnaps,
               auszeichnungen: auszeichnungsWahl(config.auszeichnungenAus),
               praesidentModus: me.role === 'admin' ? config.praesidentModus : undefined,
+              praesidentWahlZeit: config.praesidentWahlZeit,
+              praesidentSpezln: me.role === 'admin' ? mitglieder.map((m) => ({ id: m.id, name: anzeigeName(m), photoUrl: m.photoUrl, verein: m.verein })) : undefined,
+              praesidentId,
             }}
           />
         )}
@@ -211,6 +214,7 @@ export default async function StammtischPage() {
             spezln={mitglieder.map((m) => ({ id: m.id, name: anzeigeName(m), photoUrl: m.photoUrl, verein: m.verein }))}
             praesidentId={praesidentId}
             wahlOffen={!!wahl}
+            wahlZeit={config.praesidentWahlZeit}
           />
         )}
       </section>

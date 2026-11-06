@@ -26,7 +26,8 @@ import { nowIso } from '@/lib/ids';
 import { aktuelleSaison } from '@/lib/saison';
 import { vergabeWechsel, wechselTexte, AEMTER_INFO, saisonBadges, feierTexte, praesidentInfo } from '@/lib/badges';
 import { praesidentGewaehlt } from '@/lib/praesident';
-import { offeneWahl, letzteWahl, wahlStand } from '@/lib/praesident-wahl';
+import { offeneWahl, letzteWahl, wahlStand, wahlKandidaten, wahlErgebnis } from '@/lib/praesident-wahl';
+import { WahlErgebnis, type ErgebnisZeile } from '@/components/domain/WahlErgebnis';
 import { WahlKarte } from '@/components/domain/WahlKarte';
 import { SERIEN_ABZEICHEN } from '@/lib/serien';
 import { datumMittel, datumKurz, euro } from '@/lib/format';
@@ -162,6 +163,13 @@ export default async function HomePage() {
   const wahl = praesidentGewaehlt() ? offeneWahl() : null;
   const wahlInfo = wahl ? wahlStand(wahl.id, me.id) : null;
   const gewonnen = praesidentGewaehlt() ? letzteWahl() : null;
+  // Ergebnis der letzten Wahl: zwei Wochen lang auf Hoam für alle
+  const ergebnis = gewonnen && !wahl && Date.now() - Date.parse(gewonnen.ende) < 14 * 24 * 3600 * 1000 ? wahlErgebnis(gewonnen) : null;
+  const ergebnisZeilen = (liste: Array<{ id: string; anzahl: number }>): ErgebnisZeile[] =>
+    liste.flatMap((z) => {
+      const m = mitglieder.find((x) => x.id === z.id);
+      return m ? [{ id: m.id, name: anzeigeName(m), photoUrl: m.photoUrl, verein: m.verein, anzahl: z.anzahl }] : [];
+    });
   const wahlFeier: FeierBadge | null =
     gewonnen && gewonnen.gewinnerId === me.id && Date.now() - Date.parse(gewonnen.ende) < 14 * 24 * 3600 * 1000
       ? (() => {
@@ -357,30 +365,23 @@ export default async function HomePage() {
 
           {/* Ab der Termin-Uhrzeit: Dein Deckel als Kurzinfo, gstrichelt wird im Termin-Tab */}
           {abend && (
-            <>
-              <Link
-                href="/termin?deckel=voll"
-                className="wn-press"
-                aria-label="Deinen Deckel öffnen"
-                style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 14px', borderRadius: 'var(--r-md)', background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.18)', color: 'inherit', textDecoration: 'none' }}
-              >
-                <span style={{ width: 52, height: 52, flex: 'none', borderRadius: '50%', background: 'var(--pergament)', border: '3px double var(--gold)', color: 'var(--navy)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Icon name="beer" size={24} stroke={2.2} />
+            <Link
+              href="/termin"
+              className="wn-press"
+              aria-label="Deinen Deckel öffnen"
+              style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 14px', borderRadius: 'var(--r-md)', background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.18)', color: 'inherit', textDecoration: 'none' }}
+            >
+              <span style={{ width: 52, height: 52, flex: 'none', borderRadius: '50%', background: 'var(--pergament)', border: '3px double var(--gold)', color: 'var(--navy)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Icon name="beer" size={24} stroke={2.2} />
+              </span>
+              <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <span className="wn-tnum" style={{ fontSize: 15, fontWeight: 800, color: 'var(--pergament)' }}>
+                  {meinBesuch?.hoiben ?? 0} Hoibe{config.features.schnaps ? ` · ${meinBesuch?.schnaps ?? 0} Schnaps` : ''}
                 </span>
-                <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
-                  <span className="wn-tnum" style={{ fontSize: 15, fontWeight: 800, color: 'var(--pergament)' }}>
-                    {meinBesuch?.hoiben ?? 0} Hoibe{config.features.schnaps ? ` · ${meinBesuch?.schnaps ?? 0} Schnaps` : ''}
-                  </span>
-                  <span style={{ fontSize: 12, fontWeight: 600, color: 'rgba(246,240,226,0.7)' }}>Dein Deckel heute</span>
-                </div>
-                <Icon name="arrows-out" size={20} style={{ color: 'var(--gold-bright)', flex: 'none' }} />
-              </Link>
-              {(!abschluss || termin.erfasstVon) && (
-                <Link href="/termin?deckel=voll" className="wn-press" style={goldKnopfStil}>
-                  Zum Bierdeckel <Icon name="arrow-right" size={18} />
-                </Link>
-              )}
-            </>
+                <span style={{ fontSize: 12, fontWeight: 600, color: 'rgba(246,240,226,0.7)' }}>Dein Deckel heute</span>
+              </div>
+              <Icon name="chevron" size={20} style={{ color: 'var(--gold-bright)', flex: 'none' }} />
+            </Link>
           )}
 
           {/* Nach’m Essen: wer „Wer war da“ abhakt und den nächsten Termin ausmacht, kriegt die WP.
@@ -446,16 +447,24 @@ export default async function HomePage() {
 
       {wahl && wahlInfo && (
         <section style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <HoamTitel>Präsidentenwahl</HoamTitel>
+          <HoamTitel>{wahl.stichwahl ? 'Stichwahl' : 'Präsidentenwahl'}</HoamTitel>
           <WahlKarte
             wahlId={wahl.id}
             jahr={wahl.jahr}
             bisText={`bis ${new Date(wahl.ende).toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'Europe/Berlin' })}`}
-            kandidaten={mitglieder.map((m) => ({ id: m.id, name: anzeigeName(m), photoUrl: m.photoUrl, verein: m.verein }))}
+            kandidaten={mitglieder.filter((m) => wahlKandidaten(wahl)?.includes(m.id) ?? true).map((m) => ({ id: m.id, name: anzeigeName(m), photoUrl: m.photoUrl, verein: m.verein }))}
+            stichwahl={wahl.stichwahl}
             meineStimme={wahlInfo.meineStimme}
             abgestimmt={wahlInfo.abgestimmt}
             gesamt={mitglieder.length}
           />
+        </section>
+      )}
+
+      {ergebnis && gewonnen && (
+        <section style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <HoamTitel>Wahlergebnis</HoamTitel>
+          <WahlErgebnis jahr={gewonnen.jahr} zeilen={ergebnisZeilen(ergebnis.stimmen)} abgegeben={ergebnis.abgegeben} einstimmig={ergebnis.einstimmig} vorrunde={ergebnis.vorrunde ? ergebnisZeilen(ergebnis.vorrunde) : null} />
         </section>
       )}
 

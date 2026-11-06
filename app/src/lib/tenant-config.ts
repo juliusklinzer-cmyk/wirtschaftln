@@ -28,9 +28,13 @@ export type TenantConfig = PublicTenantConfig & {
   auszeichnungenAus: string[];
   /** Präsident: 'wp' = wer die meisten WP der Saison hat (Standard), 'wahl' = jedes Jahr gewählt (06.11.2026) */
   praesidentModus: PraesidentModus;
+  /** Wann gewählt wird: Jahresanfang (Standard), Jahresende fürs neue Jahr oder alle zwei Jahre */
+  praesidentWahlZeit: PraesidentWahlZeit;
 };
 
 export type PraesidentModus = 'wp' | 'wahl';
+export type PraesidentWahlZeit = 'jahresanfang' | 'jahresende' | 'zweiJahre';
+export const WAHL_ZEITEN: PraesidentWahlZeit[] = ['jahresanfang', 'jahresende', 'zweiJahre'];
 
 type ConfigJson = Partial<{
   stammhausWirtshausId: string | null;
@@ -44,6 +48,7 @@ type ConfigJson = Partial<{
   logo: string | null;
   auszeichnungenAus: string[];
   praesidentModus: PraesidentModus;
+  praesidentWahlZeit: PraesidentWahlZeit;
 }>;
 
 function lesen(json: string): ConfigJson {
@@ -80,6 +85,7 @@ export function parseTenantConfig(gruppe: Gruppe): TenantConfig {
     logo,
     auszeichnungenAus: Array.isArray(c.auszeichnungenAus) ? c.auszeichnungenAus.filter((k): k is string => typeof k === 'string') : [],
     praesidentModus: c.praesidentModus === 'wahl' ? 'wahl' : 'wp',
+    praesidentWahlZeit: WAHL_ZEITEN.includes(c.praesidentWahlZeit as PraesidentWahlZeit) ? (c.praesidentWahlZeit as PraesidentWahlZeit) : 'jahresanfang',
   };
 }
 
@@ -101,8 +107,9 @@ export function tenantConfig(): TenantConfig {
 
 /** Der Teil, der als Props an Client-Komponenten darf (siehe TenantProvider). */
 export function publicTenantConfig(): PublicTenantConfig {
-  const { saisonEpocheJahr: _epoche, logo: _logo, auszeichnungenAus: _aus, praesidentModus: _modus, ...rest } = tenantConfig();
+  const { saisonEpocheJahr: _epoche, logo: _logo, auszeichnungenAus: _aus, praesidentModus: _modus, praesidentWahlZeit: _zeit, ...rest } = tenantConfig();
   void _modus;
+  void _zeit;
   void _epoche;
   void _logo;
   void _aus;

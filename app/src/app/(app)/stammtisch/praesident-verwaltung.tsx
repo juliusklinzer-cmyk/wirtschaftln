@@ -13,7 +13,13 @@ const vorname = (name: string) => { const [a, ...r] = name.split(' '); return a.
  * Admin bei „Präsident gewählt“ (06.11.2026): das Amt im laufenden Jahr selber
  * eintragen, a Wahl starten oder die laufende vorzeitig auszählen.
  */
-export function PraesidentVerwaltung({ spezln, praesidentId, wahlOffen }: { spezln: Spezl[]; praesidentId: string | null; wahlOffen: boolean }) {
+const WANN = {
+  jahresanfang: 'beim Schließen des ersten Stammtischs im Jahr',
+  jahresende: 'beim Schließen des ersten Stammtischs im Dezember, fürs neue Jahr',
+  zweiJahre: 'alle zwei Jahre beim Schließen des ersten Stammtischs im Jahr',
+} as const;
+
+export function PraesidentVerwaltung({ spezln, praesidentId, wahlOffen, wahlZeit }: { spezln: Spezl[]; praesidentId: string | null; wahlOffen: boolean; wahlZeit: keyof typeof WANN }) {
   const [wer, setWer] = useState<string | null>(null);
   const [antwort, setAntwort] = useState<WahlAntwort | null>(null);
   const [pending, startTransition] = useTransition();
@@ -26,7 +32,7 @@ export function PraesidentVerwaltung({ spezln, praesidentId, wahlOffen }: { spez
       <KlappenKopf icon={<span style={{ fontSize: 18 }}>👑</span>}>Präsident verwalten</KlappenKopf>
       <div style={{ padding: '0 16px 16px', display: 'flex', flexDirection: 'column', gap: 14 }}>
         <span style={{ fontSize: 12, fontWeight: 600, lineHeight: 1.45, color: 'var(--ink-500)' }}>
-          Die Wahl startet von allein beim Schließen des ersten Stammtischs im Jahr. Hier kannst du das Amt selber eintragen oder eine Wahl jetzt starten.
+          Die Wahl startet von allein {WANN[wahlZeit]}. Gleichstand vorn gibt a Stichwahl. Hier kannst du das Amt selber eintragen oder eine Wahl jetzt starten.
         </span>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink-700)' }}>Präsident eintragen</span>

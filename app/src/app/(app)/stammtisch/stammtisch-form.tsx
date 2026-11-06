@@ -8,7 +8,7 @@ import { HELLE_WAHL } from '@/lib/biersorten';
 import { Switch } from '@/components/ds';
 import { BadgeBild } from '@/components/domain/BadgeBild';
 import type { AuszeichnungWahl } from '@/lib/badges';
-import { PraesidentModusWahl, type PraesidentModus } from '@/components/domain/PraesidentModusWahl';
+import { PraesidentModusWahl, type PraesidentModus, type PraesidentWahlZeit } from '@/components/domain/PraesidentModusWahl';
 import { stammtischSpeichern, type StammtischState } from './actions';
 
 export type StammtischWerte = {
@@ -25,6 +25,10 @@ export type StammtischWerte = {
   auszeichnungen: AuszeichnungWahl[];
   /** Präsident nach WP oder gewählt, undefined = Feld ned zeigen (nur der Admin stellt’s um) */
   praesidentModus?: PraesidentModus;
+  praesidentWahlZeit?: PraesidentWahlZeit;
+  /** Beim ersten Umstellen auf „gewählt“: wer is grad Präsident (vorausgewählt der nach WP) */
+  praesidentSpezln?: Array<{ id: string; name: string; photoUrl: string | null; verein: string | null }>;
+  praesidentId?: string | null;
 };
 
 export function StammtischForm({ werte, speichern = stammtischSpeichern, onGespeichert }: { werte: StammtischWerte; /** Server Action, Standard = eigener Stammtisch; das Verzeichnis gibt die gebundene Variante rein */ speichern?: (prev: StammtischState, fd: FormData) => Promise<StammtischState>; /** Nach erfolgreichem Speichern (z. B. Formular zuklappen) */ onGespeichert?: () => void }) {
@@ -68,7 +72,7 @@ export function StammtischForm({ werte, speichern = stammtischSpeichern, onGespe
         <Switch checked={schnaps} onChange={setSchnaps} tone="gold" />
       </div>
 
-      {werte.praesidentModus && <PraesidentModusWahl start={werte.praesidentModus} />}
+      {werte.praesidentModus && <PraesidentModusWahl start={werte.praesidentModus} wahlZeit={werte.praesidentWahlZeit} spezln={werte.praesidentSpezln} praesidentId={werte.praesidentId} />}
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
         <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink-700)' }}>Ämter und Badges</span>

@@ -1,0 +1,33 @@
+# Backlog – Wirtschaftln
+
+## In Arbeit
+
+## Wartet auf Julius
+- [ ] WIR-001 Kichererbsen-Termin vom 12.09.2026 hängt offen auf Prod (Phase heute). Auto-Schluss greift nur für die letzten 3 Tage. Schließen? (Prod-DB-Schreibzugriff, braucht OK) · am:2026-11-06 · quelle:TODO.md#13
+- [ ] WIR-002 Link-Vorschau in WhatsApp echt testen (Beitreten- und Gründen-Link schicken). Schon geteilte Links können noch das alte Bild zeigen. · am:2026-11-06 · quelle:TODO.md#14
+- [ ] WIR-003 Badge-Pflichten: restliche Regeln fehlen, dann nur Texte eintragen (`pflicht` in badges.ts) · am:2026-11-06 · quelle:TODO.md#15
+- [ ] WIR-004 „Kein Wirtshaus zweimal“: Warnung oder Sperre beim Wählen eines schon besuchten Wirtshauses? · am:2026-11-06 · quelle:TODO.md#16
+- [ ] WIR-022 Feedback Tag & Nacht lokal testen (Hirschen-Stammtisch als Kathi): Deckel, Wahl mit Stichwahl, Ergebnis. Danach „deploy“ sagen; vorher noch klären, ob Was-ist-neu-Slides dazu sollen · am:2026-11-06
+
+## Offen
+- [ ] WIR-005 Kassenwart per In-App-Wahl (bisher trägt Admin oder Präsident das Ergebnis ein) · am:2026-11-06 · quelle:TODO.md#19
+- [ ] WIR-006 Zu-/Absage direkt aus der Mail (Ein-Klick-Links mit Token) · am:2026-11-06 · quelle:TODO.md#20
+- [ ] WIR-007 „Termin absagen“-Pfad fehlt · am:2026-11-06 · quelle:TODO.md#21
+- [ ] WIR-008 Strafkatalog aus dem Design: zu spät, falsches Wirtshaus, Kurzfrist-Absage · am:2026-11-06 · quelle:TODO.md#22
+- [ ] WIR-009 Präsident „richtet“: offene Strafen erlassen oder bestehen lassen · am:2026-11-06 · quelle:TODO.md#23
+- [ ] WIR-010 +WP-Animation bei Sofort-Aktionen (einmalig) · am:2026-11-06 · quelle:TODO.md#24
+- [ ] WIR-011 Zahlungsaufforderung zusätzlich per Mail · am:2026-11-06 · quelle:TODO.md#25
+- [ ] WIR-012 Vorschaubild-Foto je Stammtisch hinterlegbar (Design sieht's vor, jetzt immer Panorama) · am:2026-11-06 · quelle:TODO.md#26
+- [ ] WIR-013 Echter Aufnahme-Flow mit Bürge und Kodex (statt nur Code) · am:2026-11-06 · quelle:TODO.md#27
+- [ ] WIR-014 Optional: Punkte-Ereignis-Journal · am:2026-11-06 · quelle:TODO.md#28
+- [ ] WIR-015 Aufgehobene Absage-Strafen leben bei Nachtrag wieder auf · unter:Technik · am:2026-11-06 · quelle:TODO.md#31
+- [ ] WIR-016 ICS-Escaping · unter:Technik · am:2026-11-06 · quelle:TODO.md#32
+- [ ] WIR-017 Saison-Zeitzone (UTC-Container, betrifft 1 bis 2 h am 1.1./1.7.) · unter:Technik · am:2026-11-06 · quelle:TODO.md#33
+- [ ] WIR-018 Legacy-„Vielleicht“-Stimmen noch sichtbar gelabelt · unter:Technik · am:2026-11-06 · quelle:TODO.md#34
+- [ ] WIR-019 Service-Worker-Cache wächst unbegrenzt · unter:Technik · am:2026-11-06 · quelle:TODO.md#35
+- [ ] WIR-020 Registrierungs-Rate-Limit ist prozess-global · unter:Technik · am:2026-11-06 · quelle:TODO.md#36
+
+## Ideen
+
+## Erledigt
+- [x] WIR-021 Feedback Tag & Nacht Runde 3: Präsident einrichten mit aktuellem Präsidenten und Wahltermin (3 Optionen), Stichwahl bei Gleichstand, Wahlergebnis auf Hoam, Deckel-Zeile auf Hoam ohne Goldknopf, alle Namen in der Termin-Abstimmung, goldene Striche ab 26 Halbe nicht mehr übermalt · am:2026-11-06 · fertig:2026-11-06

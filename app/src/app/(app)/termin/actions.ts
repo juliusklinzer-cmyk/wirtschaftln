@@ -419,7 +419,7 @@ function deckelBedienbar(termin: { datum: string; zeit: string; phase: string; a
   return bierdeckelOffen(termin, nowIso()) || (termin.phase === 'abgeschlossen' && nachtragsfristOffen(termin.abgeschlossenAm));
 }
 
-/** Nie mehr ausgegebene Striche als Striche: wer wegstreicht, nimmt zerst die eigenen weg, dann die goldenen. */
+/** Nie mehr ausgegebene Striche als Striche (der volle Nachtrag-Zettel setzt Hoibe direkt). */
 function ausgegebenKappen(terminId: string) {
   currentTenant().sqlite
     .prepare('UPDATE besuche SET hoiben_ausgegeben = MIN(hoiben_ausgegeben, hoiben), schnaps_ausgegeben = MIN(schnaps_ausgegeben, schnaps) WHERE termin_id = ?')
@@ -434,7 +434,9 @@ export async function hoibenStricheln(terminId: string, hoiben: number, weissbie
   if (!deckelBedienbar(termin)) {
     return { ok: false, meldung: `Da Bierdeckel is zua, gstrichelt wird am Stammtisch-Abend ab ${termin.zeit || '19:00'} Uhr und bis a Woch’ nach’m Abschluss.` };
   }
-  const wert = Math.max(0, Math.min(30, Math.round(Number(hoiben) || 0)));
+  // Die goldenen (ausgegebenen) Striche nimmt nur der Spender zurück, wegstreichen geht bis dorthin
+  const alt = db.select().from(besuche).where(and(eq(besuche.terminId, terminId), eq(besuche.memberId, me.id))).get();
+  const wert = Math.max(alt?.hoibenAusgegeben ?? 0, Math.min(30, Math.round(Number(hoiben) || 0)));
   // Weißbier-Anteil (in hoiben enthalten), nie mehr als Hoibe insgesamt
   const weisse = weissbier == null ? null : Math.max(0, Math.min(wert, Math.round(Number(weissbier) || 0)));
   const werte = { anwesend: true, hoiben: wert, ...(weisse == null ? {} : { weissbier: weisse }) };
@@ -442,7 +444,6 @@ export async function hoibenStricheln(terminId: string, hoiben: number, weissbie
     .values({ id: newId('b'), terminId, memberId: me.id, ...werte })
     .onConflictDoUpdate({ target: [besuche.terminId, besuche.memberId], set: werte })
     .run();
-  ausgegebenKappen(terminId);
   revalidatePath('/termin');
   revalidatePath('/');
   return { ok: true, hoiben: wert };
@@ -458,13 +459,13 @@ export async function schnapsStricheln(terminId: string, schnaps: number): Promi
   if (!deckelBedienbar(termin)) {
     return { ok: false, meldung: `Da Bierdeckel is zua, gstrichelt wird am Stammtisch-Abend ab ${termin.zeit || '19:00'} Uhr und bis a Woch’ nach’m Abschluss.` };
   }
-  const wert = Math.max(0, Math.min(30, Math.round(Number(schnaps) || 0)));
+  const alt = db.select().from(besuche).where(and(eq(besuche.terminId, terminId), eq(besuche.memberId, me.id))).get();
+  const wert = Math.max(alt?.schnapsAusgegeben ?? 0, Math.min(30, Math.round(Number(schnaps) || 0)));
   const werte = { anwesend: true, schnaps: wert };
   db.insert(besuche)
     .values({ id: newId('b'), terminId, memberId: me.id, ...werte })
     .onConflictDoUpdate({ target: [besuche.terminId, besuche.memberId], set: werte })
     .run();
-  ausgegebenKappen(terminId);
   revalidatePath('/termin');
   revalidatePath('/');
   return { ok: true, schnaps: wert };
@@ -504,13 +505,23 @@ export async function rundeSchmeissen(terminId: string, art: 'bier' | 'schnaps')
     .values({ id: newId('b'), terminId, memberId: me.id, anwesend: true })
     .onConflictDoUpdate({ target: [besuche.terminId, besuche.memberId], set: { anwesend: true } })
     .run();
-  const tx = currentTenant().sqlite.transaction(() => {
+  const sqlite = currentTenant().sqlite;
+  const tx = sqlite.transaction(() => {
     const spalte = art === 'bier' ? 'hoiben' : 'schnaps';
-    // Der Strich is ausgegeben (golden am Deckel), aa beim Spender: der zahlt die ganze Runde
+    // Der Strich is ausgegeben (golden am Deckel), aa beim Spender: der zahlt die ganze Runde.
+    // Wer scho bei 30 is, kriegt nix mehr dazu und steht ned als Empfänger drin.
     const aspalte = art === 'bier' ? 'hoiben_ausgegeben' : 'schnaps_ausgegeben';
-    currentTenant().sqlite.prepare(`UPDATE besuche SET ${spalte} = MIN(30, ${spalte} + 1), ${aspalte} = MIN(30, ${spalte} + 1, ${aspalte} + 1) WHERE termin_id = ? AND anwesend = 1`).run(terminId);
+    const empfaenger = sqlite.prepare(`SELECT member_id FROM besuche WHERE termin_id = ? AND anwesend = 1 AND ${spalte} < 30`).all(terminId) as Array<{ member_id: string }>;
+    const rundeId = newId('r');
+    sqlite.prepare('INSERT INTO runden (id, termin_id, spender_id, art, created_at) VALUES (?, ?, ?, ?, ?)').run(rundeId, terminId, me.id, art, nowIso());
+    const dazu = sqlite.prepare(`UPDATE besuche SET ${spalte} = ${spalte} + 1, ${aspalte} = ${aspalte} + 1 WHERE termin_id = ? AND member_id = ?`);
+    const merken = sqlite.prepare('INSERT INTO runden_empfaenger (runde_id, member_id) VALUES (?, ?)');
+    for (const { member_id } of empfaenger) {
+      dazu.run(terminId, member_id);
+      merken.run(rundeId, member_id);
+    }
     const rspalte = art === 'bier' ? 'runden_bier' : 'runden_schnaps';
-    currentTenant().sqlite.prepare(`UPDATE besuche SET ${rspalte} = ${rspalte} + 1 WHERE termin_id = ? AND member_id = ?`).run(terminId, me.id);
+    sqlite.prepare(`UPDATE besuche SET ${rspalte} = ${rspalte} + 1 WHERE termin_id = ? AND member_id = ?`).run(terminId, me.id);
   });
   tx();
   revalidatePath('/termin');
@@ -518,6 +529,34 @@ export async function rundeSchmeissen(terminId: string, art: 'bier' | 'schnaps')
   return { ok: true };
 }
 
+/**
+ * Eigene Runde zurücknehmen (vertippt): nur der Spender, nur solang der Deckel
+ * offen is. Nimmt die letzte eigene Runde der Art bei allen Empfängern wieder runter.
+ */
+export async function rundeZuruecknehmen(terminId: string, art: 'bier' | 'schnaps'): Promise<{ ok: true } | { ok: false; meldung: string }> {
+  const me = await getCurrentMember();
+  if (!me) return { ok: false, meldung: 'Ned angmeldt, bitte neu einloggen.' };
+  if (art !== 'bier' && art !== 'schnaps') return { ok: false, meldung: 'Bier oder Schnaps?' };
+  const termin = db.select().from(termine).where(eq(termine.id, terminId)).get();
+  if (!termin) return { ok: false, meldung: 'Der Termin is nimmer da.' };
+  if (!bierdeckelOffen(termin, nowIso())) return { ok: false, meldung: 'Da Bierdeckel is zua.' };
+  const sqlite = currentTenant().sqlite;
+  const runde = sqlite.prepare('SELECT id FROM runden WHERE termin_id = ? AND spender_id = ? AND art = ? ORDER BY created_at DESC LIMIT 1').get(terminId, me.id, art) as { id: string } | undefined;
+  if (!runde) return { ok: false, meldung: 'Da is koa Runde vo dir zum Zurücknehmen.' };
+  const spalte = art === 'bier' ? 'hoiben' : 'schnaps';
+  const aspalte = art === 'bier' ? 'hoiben_ausgegeben' : 'schnaps_ausgegeben';
+  const rspalte = art === 'bier' ? 'runden_bier' : 'runden_schnaps';
+  sqlite.transaction(() => {
+    const empfaenger = sqlite.prepare('SELECT member_id FROM runden_empfaenger WHERE runde_id = ?').all(runde.id) as Array<{ member_id: string }>;
+    const weg = sqlite.prepare(`UPDATE besuche SET ${spalte} = MAX(0, ${spalte} - 1), ${aspalte} = MAX(0, ${aspalte} - 1) WHERE termin_id = ? AND member_id = ?`);
+    for (const { member_id } of empfaenger) weg.run(terminId, member_id);
+    sqlite.prepare(`UPDATE besuche SET ${rspalte} = MAX(0, ${rspalte} - 1) WHERE termin_id = ? AND member_id = ?`).run(terminId, me.id);
+    sqlite.prepare('DELETE FROM runden WHERE id = ?').run(runde.id);
+  })();
+  revalidatePath('/termin');
+  revalidatePath('/');
+  return { ok: true };
+}
 
 /**
  * „Wer war da“ abhaken + nächsten Termin ausmachen (Julius, 16.10.2026), NUR

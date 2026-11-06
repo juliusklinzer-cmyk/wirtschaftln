@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Avatar, Icon, Zeile, ZeilenKarte } from '@/components/ds';
 import { HoamTitel } from '@/components/domain/HoamTitel';
 import { PTS } from '@/lib/punkte';
-import { hoibenStricheln, schnapsStricheln, abendFlagsSetzen, rundeSchmeissen } from '@/app/(app)/termin/actions';
+import { hoibenStricheln, schnapsStricheln, abendFlagsSetzen, rundeSchmeissen, rundeZuruecknehmen } from '@/app/(app)/termin/actions';
 import { deckelFuer, deckelKreis } from '@/lib/bierdeckel';
 import { DeckelGrafik } from '@/components/domain/DeckelGrafik';
 
@@ -66,7 +66,7 @@ const amRand = (winkel: number, r = RADIUS) => {
  * Strichgruppen (Fünfer: 4 senkrecht, der 5. quer) im Bogen am Deckelrand
  * entlang. `salz` trennt die Zitter-Muster der beiden Reihen.
  */
-function Strichgruppen({ anzahl, winkel, salz, gold = 0 }: { anzahl: number; winkel: number[]; salz: number; gold?: number }) {
+function Strichgruppen({ anzahl, winkel, salz, farbe = TINTE }: { anzahl: number; winkel: number[]; salz: number; farbe?: string }) {
   const gruppen: React.ReactNode[] = [];
   for (let g = 0; g * 5 < anzahl; g++) {
     const w = winkel[g % winkel.length];
@@ -97,7 +97,7 @@ function Strichgruppen({ anzahl, winkel, salz, gold = 0 }: { anzahl: number; win
         <path
           key={k}
           d={`M ${x1.toFixed(1)} ${y1.toFixed(1)} Q ${cx.toFixed(1)} ${cy.toFixed(1)} ${x2.toFixed(1)} ${y2.toFixed(1)}`}
-          stroke={g * 5 + p >= anzahl - gold ? GOLD_TINTE : TINTE}
+          stroke={farbe}
           strokeWidth={+(3.3 + zitter(k, 17) * 0.5 + wt * 0.4).toFixed(2)}
           strokeLinecap="round"
           fill="none"
@@ -164,14 +164,26 @@ function Sterne({ anzahl }: { anzahl: number }) {
   return <>{sterne}</>;
 }
 
+/** Plätze der goldenen Fünfer: von rechts her; reicht der Platz ned, gleich hinter den eigenen. */
+function goldPlaetze(winkel: number[], eigene: number, gold: number): number[] {
+  const eigeneGruppen = Math.ceil(eigene / 5);
+  return eigeneGruppen + Math.ceil(gold / 5) <= winkel.length ? [...winkel].reverse() : winkel.slice(eigeneGruppen);
+}
+
 /** Alles, was mit Tinte am Deckel steht: Hoibe unten, WB + Schnaps oben, Sterne rechts, +/− als Wegweiser. */
 /** Striche, WB und Sterne als SVG überm Deckel (aa für die Erklär-Slides). */
 export function Tinte({ hoiben, schnaps, sterne, schnapsAn, hoibenGold = 0, schnapsGold = 0 }: { hoiben: number; schnaps: number; sterne: number; schnapsAn: boolean; hoibenGold?: number; schnapsGold?: number }) {
+  // Ausgegebene (goldene) Striche zählen extra, vom rechten Ende der Reihe her:
+  // so rutschen sie ned weiter, wenn ma selber nachstrichelt (Julius, 06.11.2026)
+  const hGold = Math.min(hoibenGold, hoiben);
+  const sGold = Math.min(schnapsGold, schnaps);
   return (
     <svg viewBox="0 0 264 264" fill="none" aria-hidden style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none', overflow: 'visible' }}>
-      <Strichgruppen anzahl={hoiben} winkel={HOIBE_WINKEL} salz={0} gold={Math.min(hoibenGold, hoiben)} />
+      <Strichgruppen anzahl={hoiben - hGold} winkel={HOIBE_WINKEL} salz={0} />
+      <Strichgruppen anzahl={hGold} winkel={goldPlaetze(HOIBE_WINKEL, hoiben - hGold, hGold)} salz={3} farbe={GOLD_TINTE} />
       {schnapsAn && schnaps > 0 && <KuerzelWB />}
-      {schnapsAn && <Strichgruppen anzahl={schnaps} winkel={SCHNAPS_WINKEL} salz={7} gold={Math.min(schnapsGold, schnaps)} />}
+      {schnapsAn && <Strichgruppen anzahl={schnaps - sGold} winkel={SCHNAPS_WINKEL} salz={7} />}
+      {schnapsAn && <Strichgruppen anzahl={sGold} winkel={goldPlaetze(SCHNAPS_WINKEL, schnaps - sGold, sGold)} salz={9} farbe={GOLD_TINTE} />}
       <Sterne anzahl={sterne} />
     </svg>
   );
@@ -179,35 +191,35 @@ export function Tinte({ hoiben, schnaps, sterne, schnapsAn, hoibenGold = 0, schn
 
 /** Mini-Strichliste für d'Spezl-Zeilen, gleiche Tinte, kompakt. */
 function MiniStrichliste({ anzahl, gold = 0 }: { anzahl: number; gold?: number }) {
-  const farbe = (i: number) => (i >= anzahl - gold ? GOLD_TINTE : TINTE);
-  const gruppen: number[] = [];
-  for (let rest = anzahl; rest > 0; rest -= 5) gruppen.push(Math.min(5, rest));
+  // Eigene Fünfer zerst, die goldenen (ausgegeben) als eigene Gruppen dahinter
+  const gruppen: Array<{ n: number; farbe: string }> = [];
+  for (let rest = anzahl - gold; rest > 0; rest -= 5) gruppen.push({ n: Math.min(5, rest), farbe: TINTE });
+  for (let rest = gold; rest > 0; rest -= 5) gruppen.push({ n: Math.min(5, rest), farbe: GOLD_TINTE });
   const ROTATION = [-4, 3, -2, 5];
   return (
     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, justifyContent: 'flex-end', alignItems: 'center' }}>
-      {gruppen.map((n, gi) => (
+      {gruppen.map(({ n, farbe }, gi) => (
         <svg key={gi} width={26} height={24} viewBox="0 0 46 42" fill="none" style={{ overflow: 'visible', flex: 'none' }}>
           {Array.from({ length: Math.min(4, n) }, (_, i) => (
             <line
               key={i}
               x1={8 + i * 10} y1={5} x2={9.5 + i * 10} y2={37}
-              stroke={farbe(gi * 5 + i)} strokeWidth={4} strokeLinecap="round"
+              stroke={farbe} strokeWidth={4} strokeLinecap="round"
               transform={`rotate(${ROTATION[i]} ${8 + i * 10} 21)`}
             />
           ))}
-          {n >= 5 && <line x1={1} y1={33} x2={45} y2={9} stroke={farbe(gi * 5 + 4)} strokeWidth={4} strokeLinecap="round" />}
+          {n >= 5 && <line x1={1} y1={33} x2={45} y2={9} stroke={farbe} strokeWidth={4} strokeLinecap="round" />}
         </svg>
       ))}
     </div>
   );
 }
 
-/** Unter der Zahl: wie viel davon ausgegeben wurde, golden wia die Striche */
-function AusgegebenZeile({ anzahl }: { anzahl: number }) {
+/** Unter der Zahl: wie viel davon ausgegeben wurde und vo wem, golden wia die Striche */
+function AusgegebenZeile({ anzahl, von }: { anzahl: number; von: string[] }) {
   return (
-    <span style={{ marginTop: 4, display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 800, color: 'var(--gold-bright)' }}>
-      <span aria-hidden style={{ width: 3, height: 12, borderRadius: 2, background: GOLD_TINTE, transform: 'rotate(8deg)' }} />
-      davon {anzahl} ausgegeben
+    <span style={{ marginTop: 6, maxWidth: 150, textAlign: 'center', fontSize: 12, fontWeight: 800, lineHeight: 1.35, color: 'var(--gold-bright)' }}>
+      +{anzahl}{von.length > 0 ? ` von ${von.join(', ')}` : ' ausgegeben'}
     </span>
   );
 }
@@ -292,6 +304,7 @@ export function Bierdeckel({
   kopf = null,
   kopfKurz = 'Heute',
   startVoll = false,
+  ausgegebenVon = { bier: [], schnaps: [] },
 }: {
   terminId: string;
   /** Helles vom Wirtshaus → passender Deckel (Augustiner-Scan, Brauerei-Deckel oder neutral) */
@@ -314,6 +327,8 @@ export function Bierdeckel({
   kopfKurz?: string;
   /** Gleich im Vollbild aufmachen (Sprung vom Hoam-Deckel) */
   startVoll?: boolean;
+  /** Wer hat mir was ausgegeben („Anna“, „Basti 2×“), steht golden unter der Zahl */
+  ausgegebenVon?: { bier: string[]; schnaps: string[] };
 }) {
   const router = useRouter();
   const [hoiben, setHoiben] = useState(initialHoiben);
@@ -373,8 +388,18 @@ export function Bierdeckel({
   };
 
   // Kurz sammeln, dann speichern, schnelles Nachstricheln hämmert so nicht den Server.
+  // Die goldenen Striche nimmt nur der Spender zurück (Runde zurücknehmen), wegstreichen geht bis dorthin
+  const [hinweis, setHinweis] = useState<string | null>(null);
+  const hinweisTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const goldWeg = () => {
+    setHinweis('Die goldenen Striche nimmt nur der zurück, der die Runde gschmissen hat.');
+    if (hinweisTimer.current) clearTimeout(hinweisTimer.current);
+    hinweisTimer.current = setTimeout(() => setHinweis(null), 3500);
+  };
   const hoibeAendern = (delta: number, weisse = false) => {
-    const neu = Math.max(0, Math.min(30, hoibenRef.current + delta));
+    const gold = Math.min(flags.hoibenAusgegeben, hoibenRef.current);
+    if (delta < 0 && hoibenRef.current <= gold) return goldWeg();
+    const neu = Math.max(gold, Math.min(30, hoibenRef.current + delta));
     if (neu === hoibenRef.current) return;
     hoibenRef.current = neu;
     if (delta > 0) ploppTon(); // Bügelverschluss auf: a Hoibe dazu
@@ -388,7 +413,9 @@ export function Bierdeckel({
     timer.current = setTimeout(() => startTransition(async () => melden(await hoibenStricheln(terminId, neu, weissbierNeu))), 600);
   };
   const schnapsAendern = (delta: number) => {
-    const neu = Math.max(0, Math.min(30, schnapsRef.current + delta));
+    const gold = Math.min(flags.schnapsAusgegeben, schnapsRef.current);
+    if (delta < 0 && schnapsRef.current <= gold) return goldWeg();
+    const neu = Math.max(gold, Math.min(30, schnapsRef.current + delta));
     if (neu === schnapsRef.current) return;
     schnapsRef.current = neu;
     setSchnaps(neu);
@@ -574,6 +601,12 @@ export function Bierdeckel({
     setStatus('speichert');
     startTransition(async () => melden(await rundeSchmeissen(terminId, art)));
   };
+  // Vertippt? Die eigene letzte Runde zurücknehmen, bei allen am Tisch (Server rechnet, refresh holt’s)
+  const rundeZurueck = (art: 'bier' | 'schnaps') => {
+    setRundeWahl(false);
+    setStatus('speichert');
+    startTransition(async () => melden(await rundeZuruecknehmen(terminId, art)));
+  };
 
   const rundenGesamt = flags.rundenBier + flags.rundenSchnaps;
   const statusText = status === 'speichert' ? 'Speichert …' : status === 'gspeichert' ? '✓ Gespeichert' : '';
@@ -680,20 +713,25 @@ export function Bierdeckel({
 
   /* Zahlen unterm Deckel: Bier in Gold, Schnaps in Pergament */
   const zahlen = (gross: boolean) => (
-    <div style={{ display: 'flex', gap: gross ? 40 : 28, alignItems: 'flex-end', justifyContent: 'center' }}>
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-        <span key={`h${hoiben}`} className="wn-tnum wn-hoiben-pop" style={{ fontSize: gross ? 56 : 40, fontWeight: 800, lineHeight: 1, color: 'var(--gold-bright)', letterSpacing: '-0.02em' }}>{hoiben}</span>
-        <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(246,240,226,0.7)' }}>
-          Bier{weissbier > 0 ? ` · ${weissbier} Weiße` : ''}
-        </span>
-        {hoibenAusgegebenAktuell > 0 && <AusgegebenZeile anzahl={hoibenAusgegebenAktuell} />}
-      </div>
-      {schnapsAnzeigen && (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
+      <div style={{ display: 'flex', gap: gross ? 40 : 28, alignItems: 'flex-start', justifyContent: 'center' }}>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          <span key={`s${schnaps}`} className="wn-tnum wn-hoiben-pop" style={{ fontSize: gross ? 56 : 40, fontWeight: 800, lineHeight: 1, color: 'var(--pergament)', letterSpacing: '-0.02em' }}>{schnaps}</span>
-          <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(246,240,226,0.7)' }}>Schnaps</span>
-          {schnapsAusgegebenAktuell > 0 && <AusgegebenZeile anzahl={schnapsAusgegebenAktuell} />}
+          <span key={`h${hoiben}`} className="wn-tnum wn-hoiben-pop" style={{ fontSize: gross ? 56 : 40, fontWeight: 800, lineHeight: 1, color: 'var(--gold-bright)', letterSpacing: '-0.02em' }}>{hoiben}</span>
+          <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(246,240,226,0.7)' }}>
+            Bier{weissbier > 0 ? ` · ${weissbier} Weiße` : ''}
+          </span>
+          {hoibenAusgegebenAktuell > 0 && <AusgegebenZeile anzahl={hoibenAusgegebenAktuell} von={ausgegebenVon.bier} />}
         </div>
+        {schnapsAnzeigen && (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+            <span key={`s${schnaps}`} className="wn-tnum wn-hoiben-pop" style={{ fontSize: gross ? 56 : 40, fontWeight: 800, lineHeight: 1, color: 'var(--pergament)', letterSpacing: '-0.02em' }}>{schnaps}</span>
+            <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(246,240,226,0.7)' }}>Schnaps</span>
+            {schnapsAusgegebenAktuell > 0 && <AusgegebenZeile anzahl={schnapsAusgegebenAktuell} von={ausgegebenVon.schnaps} />}
+          </div>
+        )}
+      </div>
+      {hinweis && (
+        <span role="status" style={{ maxWidth: 300, padding: '6px 12px', borderRadius: 999, background: 'rgba(246,240,226,0.12)', border: '1px solid rgba(230,198,132,0.5)', fontSize: 12, fontWeight: 700, lineHeight: 1.35, color: 'var(--gold-bright)', textAlign: 'center' }}>{hinweis}</span>
       )}
     </div>
   );
@@ -859,7 +897,7 @@ export function Bierdeckel({
             <span style={{ alignSelf: 'center', width: 40, height: 5, borderRadius: 999, background: 'var(--ink-200)' }} />
             <span style={{ fontFamily: 'var(--font-fraktur)', fontSize: 28, lineHeight: 1, color: 'var(--navy)', padding: '0 4px' }}>Runde schmeißen</span>
             <span style={{ fontSize: 13, fontWeight: 600, lineHeight: 1.5, color: 'var(--ink-500)', padding: '0 4px' }}>
-              Bei allen am Tisch kommt ein Strich dazu, bei dir ein Stern. Rausnehmen geht nur beim Abschluss.
+              Bei allen am Tisch kommt ein goldener Strich dazu, bei dir ein Stern. Zurücknehmen kannst nur du selber.
             </span>
             <ZeilenKarte>
               <Zeile
@@ -879,6 +917,20 @@ export function Bierdeckel({
                 />
               )}
             </ZeilenKarte>
+            {(flags.rundenBier > 0 || flags.rundenSchnaps > 0) && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {flags.rundenBier > 0 && (
+                  <button type="button" className="wn-press" onClick={() => rundeZurueck('bier')} style={{ minHeight: 44, borderRadius: 'var(--r-md)', border: '1.5px dashed var(--strafe)', background: 'var(--weiss)', color: 'var(--strafe)', fontFamily: 'var(--font-ui)', fontSize: 14, fontWeight: 800, cursor: 'pointer' }}>
+                    Letzte Bier-Runde zurücknehmen
+                  </button>
+                )}
+                {schnapsAn && flags.rundenSchnaps > 0 && (
+                  <button type="button" className="wn-press" onClick={() => rundeZurueck('schnaps')} style={{ minHeight: 44, borderRadius: 'var(--r-md)', border: '1.5px dashed var(--strafe)', background: 'var(--weiss)', color: 'var(--strafe)', fontFamily: 'var(--font-ui)', fontSize: 14, fontWeight: 800, cursor: 'pointer' }}>
+                    Letzte Schnaps-Runde zurücknehmen
+                  </button>
+                )}
+              </div>
+            )}
             <button type="button" className="wn-press" onClick={() => setRundeWahl(false)} style={{ height: 48, borderRadius: 'var(--r-md)', border: '1.5px solid var(--ink-200)', background: 'var(--weiss)', color: 'var(--navy)', fontFamily: 'var(--font-ui)', fontSize: 15, fontWeight: 800, cursor: 'pointer' }}>
               Doch nicht
             </button>

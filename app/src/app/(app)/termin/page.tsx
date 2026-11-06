@@ -1,4 +1,5 @@
 import { absageHinweis } from '@/lib/strafen-regeln';
+import { ausgegebenVon } from '@/lib/runden';
 import Link from 'next/link';
 import { getCurrentMember, erzwingeProfil } from '@/lib/session';
 import { anzeigeName } from '@/lib/namen';
@@ -199,6 +200,7 @@ export default async function TerminPage({ searchParams }: { searchParams: Promi
                     initialFlags={{ taxi: meinLetzter.taxi, brodn: meinLetzter.schweinsbraten > 0, kaisi: meinLetzter.kaiserschmarrn > 0, rundenBier: meinLetzter.rundenBier, rundenSchnaps: meinLetzter.rundenSchnaps, hoibenAusgegeben: meinLetzter.hoibenAusgegeben, schnapsAusgegeben: meinLetzter.schnapsAusgegeben }}
                     schnapsAn={config.features.schnaps}
                     rundenErlaubt={false}
+                    ausgegebenVon={ausgegebenVon(nachtrag.id, me.id)}
                     spezln={[]}
                     kopfKurz={`Deckel vom ${datumKurz(nachtrag.datum)}`}
                     kopf={
@@ -331,6 +333,7 @@ async function AktiverTermin({
             schnapsAusgegeben: meinBesuch?.schnapsAusgegeben ?? 0,
           }}
           schnapsAn={config.features.schnaps}
+          ausgegebenVon={ausgegebenVon(termin.id, meId)}
           spezln={deckelSpezln}
           kopfKurz={`Heute · ${wirtshaus?.bezirk ?? wirtshaus?.name ?? 'Stammtisch'}`}
           kopf={

@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer, real, uniqueIndex } from 'drizzle-orm/sqlite-core';
+import { sqliteTable, text, integer, real, uniqueIndex, primaryKey } from 'drizzle-orm/sqlite-core';
 
 // Beträge immer in Cent (Integer), Datumswerte als ISO-Strings (UTC).
 
@@ -326,6 +326,25 @@ export const umfrageStimmen = sqliteTable(
     updatedAt: text('updated_at').notNull(),
   },
   (t) => [uniqueIndex('umfrage_stimmen_umfrage_member').on(t.umfrageId, t.memberId)],
+);
+
+// Gschmissene Runden einzeln (06.11.2026): wer hat wem was ausgegeben. Die Summen
+// stehen weiter in besuche (hoiben/hoiben_ausgegeben), zurücknehmen darf nur der Spender.
+export const runden = sqliteTable('runden', {
+  id: text('id').primaryKey(),
+  terminId: text('termin_id').notNull().references(() => termine.id, { onDelete: 'cascade' }),
+  spenderId: text('spender_id').notNull().references(() => members.id, { onDelete: 'cascade' }),
+  art: text('art', { enum: ['bier', 'schnaps'] }).notNull(),
+  createdAt: text('created_at').notNull(),
+});
+
+export const rundenEmpfaenger = sqliteTable(
+  'runden_empfaenger',
+  {
+    rundeId: text('runde_id').notNull().references(() => runden.id, { onDelete: 'cascade' }),
+    memberId: text('member_id').notNull().references(() => members.id, { onDelete: 'cascade' }),
+  },
+  (t) => [primaryKey({ columns: [t.rundeId, t.memberId] })],
 );
 
 // Präsidentenwahl (Modus „gewählt“, 06.11.2026): startet beim Schließen des ersten

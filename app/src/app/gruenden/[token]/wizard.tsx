@@ -21,6 +21,7 @@ import { Switch } from '@/components/ds';
 import { AuthFehlerBox, AuthFeld, AuthKnopf, GRUEN_HAKEN, PasswortFeld, type FeldMeldung } from '@/components/domain/AuthFeld';
 import { EigenesBild } from '@/components/domain/LogoWahl';
 import { WirtshausSuche } from '@/components/domain/WirtshausSuche';
+import { PraesidentModusWahl } from '@/components/domain/PraesidentModusWahl';
 import { HELLE_WAHL, STANDARD_BIERSORTE, type Bier } from '@/lib/biersorten';
 import { gruenden, codeVorschlagFuer, codeIstFrei, type GruendungsState } from './actions';
 
@@ -251,7 +252,7 @@ export function GruendungsWizard({ token, von, fuer = null }: { token: string; /
 
           {/* 4 · Bräuche */}
           <div data-schritt="4" style={sichtbar(4)}>
-            <Titel text="Wie ihr’s haltet" unter="Wirtshaus, Bier und was eine Hoibe kostet." />
+            <Titel text="Wie ihr’s haltet" unter="Wirtshaus, Bier, Schnaps und euer Präsident." />
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink-700)' }}>Wie seid ihr unterwegs?</span>
               <input type="hidden" name="typ" value={typ} />
@@ -290,6 +291,7 @@ export function GruendungsWizard({ token, von, fuer = null }: { token: string; /
               <input type="hidden" name="schnaps" value={schnaps ? 'on' : ''} />
               <Switch checked={schnaps} onChange={setSchnaps} tone="gold" />
             </div>
+            <PraesidentModusWahl />
           </div>
 
           {/* 5 · Code + Anlegen */}

@@ -15,6 +15,8 @@ export type BierdeckelSpezl = {
   verein: string | null;
   hoiben: number;
   schnaps?: number;
+  /** davon per Runde ausgegeben (golden) */
+  hoibenAusgegeben?: number;
 };
 
 export type AbendFlags = {
@@ -23,10 +25,15 @@ export type AbendFlags = {
   kaisi: boolean;
   rundenBier: number;
   rundenSchnaps: number;
+  /** Per Runde ausgegeben (in Hoibe/Schnaps enthalten), am Deckel golden */
+  hoibenAusgegeben: number;
+  schnapsAusgegeben: number;
 };
 
 /** Stift-Schwarz wie auf'm echten Deckel, bewusst KEIN Design-Token, des is Tinte, ned UI. */
 const TINTE = '#202226';
+/** Goldene Tinte für ausgegebene Striche (a Runde vo wem anders, des zahlst ned du) */
+const GOLD_TINTE = '#B8892F';
 const MITTE = 132;
 const RADIUS = 103;
 /** Plätze der Fünfer-Gruppen: Hoibe unten (links → rechts), Schnaps oben (links → rechts). */
@@ -59,7 +66,7 @@ const amRand = (winkel: number, r = RADIUS) => {
  * Strichgruppen (Fünfer: 4 senkrecht, der 5. quer) im Bogen am Deckelrand
  * entlang. `salz` trennt die Zitter-Muster der beiden Reihen.
  */
-function Strichgruppen({ anzahl, winkel, salz }: { anzahl: number; winkel: number[]; salz: number }) {
+function Strichgruppen({ anzahl, winkel, salz, gold = 0 }: { anzahl: number; winkel: number[]; salz: number; gold?: number }) {
   const gruppen: React.ReactNode[] = [];
   for (let g = 0; g * 5 < anzahl; g++) {
     const w = winkel[g % winkel.length];
@@ -90,7 +97,7 @@ function Strichgruppen({ anzahl, winkel, salz }: { anzahl: number; winkel: numbe
         <path
           key={k}
           d={`M ${x1.toFixed(1)} ${y1.toFixed(1)} Q ${cx.toFixed(1)} ${cy.toFixed(1)} ${x2.toFixed(1)} ${y2.toFixed(1)}`}
-          stroke={TINTE}
+          stroke={g * 5 + p >= anzahl - gold ? GOLD_TINTE : TINTE}
           strokeWidth={+(3.3 + zitter(k, 17) * 0.5 + wt * 0.4).toFixed(2)}
           strokeLinecap="round"
           fill="none"
@@ -159,19 +166,20 @@ function Sterne({ anzahl }: { anzahl: number }) {
 
 /** Alles, was mit Tinte am Deckel steht: Hoibe unten, WB + Schnaps oben, Sterne rechts, +/− als Wegweiser. */
 /** Striche, WB und Sterne als SVG überm Deckel (aa für die Erklär-Slides). */
-export function Tinte({ hoiben, schnaps, sterne, schnapsAn }: { hoiben: number; schnaps: number; sterne: number; schnapsAn: boolean }) {
+export function Tinte({ hoiben, schnaps, sterne, schnapsAn, hoibenGold = 0, schnapsGold = 0 }: { hoiben: number; schnaps: number; sterne: number; schnapsAn: boolean; hoibenGold?: number; schnapsGold?: number }) {
   return (
     <svg viewBox="0 0 264 264" fill="none" aria-hidden style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none', overflow: 'visible' }}>
-      <Strichgruppen anzahl={hoiben} winkel={HOIBE_WINKEL} salz={0} />
+      <Strichgruppen anzahl={hoiben} winkel={HOIBE_WINKEL} salz={0} gold={Math.min(hoibenGold, hoiben)} />
       {schnapsAn && schnaps > 0 && <KuerzelWB />}
-      {schnapsAn && <Strichgruppen anzahl={schnaps} winkel={SCHNAPS_WINKEL} salz={7} />}
+      {schnapsAn && <Strichgruppen anzahl={schnaps} winkel={SCHNAPS_WINKEL} salz={7} gold={Math.min(schnapsGold, schnaps)} />}
       <Sterne anzahl={sterne} />
     </svg>
   );
 }
 
 /** Mini-Strichliste für d'Spezl-Zeilen, gleiche Tinte, kompakt. */
-function MiniStrichliste({ anzahl }: { anzahl: number }) {
+function MiniStrichliste({ anzahl, gold = 0 }: { anzahl: number; gold?: number }) {
+  const farbe = (i: number) => (i >= anzahl - gold ? GOLD_TINTE : TINTE);
   const gruppen: number[] = [];
   for (let rest = anzahl; rest > 0; rest -= 5) gruppen.push(Math.min(5, rest));
   const ROTATION = [-4, 3, -2, 5];
@@ -183,14 +191,24 @@ function MiniStrichliste({ anzahl }: { anzahl: number }) {
             <line
               key={i}
               x1={8 + i * 10} y1={5} x2={9.5 + i * 10} y2={37}
-              stroke={TINTE} strokeWidth={4} strokeLinecap="round"
+              stroke={farbe(gi * 5 + i)} strokeWidth={4} strokeLinecap="round"
               transform={`rotate(${ROTATION[i]} ${8 + i * 10} 21)`}
             />
           ))}
-          {n >= 5 && <line x1={1} y1={33} x2={45} y2={9} stroke={TINTE} strokeWidth={4} strokeLinecap="round" />}
+          {n >= 5 && <line x1={1} y1={33} x2={45} y2={9} stroke={farbe(gi * 5 + 4)} strokeWidth={4} strokeLinecap="round" />}
         </svg>
       ))}
     </div>
+  );
+}
+
+/** Unter der Zahl: wie viel davon ausgegeben wurde, golden wia die Striche */
+function AusgegebenZeile({ anzahl }: { anzahl: number }) {
+  return (
+    <span style={{ marginTop: 4, display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 800, color: 'var(--gold-bright)' }}>
+      <span aria-hidden style={{ width: 3, height: 12, borderRadius: 2, background: GOLD_TINTE, transform: 'rotate(8deg)' }} />
+      davon {anzahl} ausgegeben
+    </span>
   );
 }
 
@@ -304,7 +322,7 @@ export function Bierdeckel({
   // Halte-und-Zieh-Geste: Deckel gedrückt halten → Ziele erscheinen, Richtung ziehen, am Rand raus = Strich
   const [halten, setHalten] = useState(false);
   const [ziel, setZiel] = useState<Ziel | null>(null);
-  const [flags, setFlags] = useState<AbendFlags>(initialFlags ?? { taxi: false, brodn: false, kaisi: false, rundenBier: 0, rundenSchnaps: 0 });
+  const [flags, setFlags] = useState<AbendFlags>(initialFlags ?? { taxi: false, brodn: false, kaisi: false, rundenBier: 0, rundenSchnaps: 0, hoibenAusgegeben: 0, schnapsAusgegeben: 0 });
   const [rundeWahl, setRundeWahl] = useState(false);
   const [status, setStatus] = useState<'still' | 'speichert' | 'gspeichert'>('still');
   const [fehler, setFehler] = useState<string | null>(null);
@@ -530,6 +548,10 @@ export function Bierdeckel({
 
   const bewegungReduziert = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
+  // Ausgegeben nie mehr als Striche: wegstreichen nimmt zerst die eigenen, dann die goldenen
+  const hoibenAusgegebenAktuell = Math.min(flags.hoibenAusgegeben, hoiben);
+  const schnapsAusgegebenAktuell = Math.min(flags.schnapsAusgegeben, schnaps);
+
   const flagUmschalten = (key: 'taxi' | 'brodn' | 'kaisi') => {
     const neu = { ...flags, [key]: !flags[key] };
     setFlags(neu);
@@ -538,7 +560,14 @@ export function Bierdeckel({
   };
   const runde = (art: 'bier' | 'schnaps') => {
     setRundeWahl(false);
-    setFlags((f) => ({ ...f, rundenBier: f.rundenBier + (art === 'bier' ? 1 : 0), rundenSchnaps: f.rundenSchnaps + (art === 'schnaps' ? 1 : 0) }));
+    // Die eigene Runde is aa für di ausgegeben: der Strich kimmt golden dazu
+    setFlags((f) => ({
+      ...f,
+      rundenBier: f.rundenBier + (art === 'bier' ? 1 : 0),
+      rundenSchnaps: f.rundenSchnaps + (art === 'schnaps' ? 1 : 0),
+      hoibenAusgegeben: Math.min(hoibenAusgegebenAktuell + (art === 'bier' ? 1 : 0), 30),
+      schnapsAusgegeben: Math.min(schnapsAusgegebenAktuell + (art === 'schnaps' ? 1 : 0), 30),
+    }));
     // Die eigene Reihe wächst gleich mit, der Rest vom Tisch kommt per refresh
     if (art === 'bier') { hoibenRef.current = Math.min(30, hoibenRef.current + 1); setHoiben(hoibenRef.current); }
     else { schnapsRef.current = Math.min(30, schnapsRef.current + 1); setSchnaps(schnapsRef.current); }
@@ -586,7 +615,7 @@ export function Bierdeckel({
           transition: 'filter 180ms cubic-bezier(0.23, 1, 0.32, 1), transform 180ms cubic-bezier(0.23, 1, 0.32, 1)',
         }}>
           <DeckelGrafik deckel={deckel} />
-          <Tinte hoiben={hoiben} schnaps={schnaps} sterne={rundenGesamt} schnapsAn={schnapsAn} />
+          <Tinte hoiben={hoiben} schnaps={schnaps} sterne={rundenGesamt} schnapsAn={schnapsAn} hoibenGold={hoibenAusgegebenAktuell} schnapsGold={schnapsAusgegebenAktuell} />
         </div>
         {zieleFuer(schnapsAn).map((z, i) => {
           const rad = (z.winkel * Math.PI) / 180;
@@ -657,11 +686,13 @@ export function Bierdeckel({
         <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(246,240,226,0.7)' }}>
           Bier{weissbier > 0 ? ` · ${weissbier} Weiße` : ''}
         </span>
+        {hoibenAusgegebenAktuell > 0 && <AusgegebenZeile anzahl={hoibenAusgegebenAktuell} />}
       </div>
       {schnapsAnzeigen && (
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
           <span key={`s${schnaps}`} className="wn-tnum wn-hoiben-pop" style={{ fontSize: gross ? 56 : 40, fontWeight: 800, lineHeight: 1, color: 'var(--pergament)', letterSpacing: '-0.02em' }}>{schnaps}</span>
           <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(246,240,226,0.7)' }}>Schnaps</span>
+          {schnapsAusgegebenAktuell > 0 && <AusgegebenZeile anzahl={schnapsAusgegebenAktuell} />}
         </div>
       )}
     </div>
@@ -803,7 +834,7 @@ export function Bierdeckel({
                 untertitel={schnapsAnzeigen ? `${s.schnaps ?? 0} Schnaps` : null}
                 chip={
                   <span style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 'none' }}>
-                    <MiniStrichliste anzahl={s.hoiben} />
+                    <MiniStrichliste anzahl={s.hoiben} gold={Math.min(s.hoibenAusgegeben ?? 0, s.hoiben)} />
                     <span className="wn-tnum" style={{ width: 24, textAlign: 'right', fontSize: 16, fontWeight: 800, color: 'var(--navy)' }}>{s.hoiben}</span>
                   </span>
                 }

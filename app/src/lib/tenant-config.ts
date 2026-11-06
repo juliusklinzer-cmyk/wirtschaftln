@@ -26,7 +26,11 @@ export type TenantConfig = PublicTenantConfig & {
   logo: string | null;
   /** Vom Admin abgeschaltete Ämter/Badges (Keys wie 'taxler', 'amt:kassenwart') */
   auszeichnungenAus: string[];
+  /** Präsident: 'wp' = wer die meisten WP der Saison hat (Standard), 'wahl' = jedes Jahr gewählt (06.11.2026) */
+  praesidentModus: PraesidentModus;
 };
+
+export type PraesidentModus = 'wp' | 'wahl';
 
 type ConfigJson = Partial<{
   stammhausWirtshausId: string | null;
@@ -39,6 +43,7 @@ type ConfigJson = Partial<{
   features: Partial<TenantFeatures>;
   logo: string | null;
   auszeichnungenAus: string[];
+  praesidentModus: PraesidentModus;
 }>;
 
 function lesen(json: string): ConfigJson {
@@ -74,6 +79,7 @@ export function parseTenantConfig(gruppe: Gruppe): TenantConfig {
     logoUrl: logoUrlFuer(gruppe.id, logo),
     logo,
     auszeichnungenAus: Array.isArray(c.auszeichnungenAus) ? c.auszeichnungenAus.filter((k): k is string => typeof k === 'string') : [],
+    praesidentModus: c.praesidentModus === 'wahl' ? 'wahl' : 'wp',
   };
 }
 
@@ -95,7 +101,8 @@ export function tenantConfig(): TenantConfig {
 
 /** Der Teil, der als Props an Client-Komponenten darf (siehe TenantProvider). */
 export function publicTenantConfig(): PublicTenantConfig {
-  const { saisonEpocheJahr: _epoche, logo: _logo, auszeichnungenAus: _aus, ...rest } = tenantConfig();
+  const { saisonEpocheJahr: _epoche, logo: _logo, auszeichnungenAus: _aus, praesidentModus: _modus, ...rest } = tenantConfig();
+  void _modus;
   void _epoche;
   void _logo;
   void _aus;

@@ -5,6 +5,7 @@ import { getAktiveMitglieder, getVergabeStand } from '@/lib/queries';
 import { vergabeWechsel, wechselTexte } from '@/lib/badges';
 import { abendVorbei } from '@/lib/punkte';
 import { abendStrafenBuchen, autoStrafenPruefen } from '@/lib/strafen';
+import { wahlNachAbendPruefen } from '@/lib/praesident-wahl';
 import { pushAn } from '@/lib/push';
 import { anzeigeName } from '@/lib/namen';
 import { newId, nowIso } from '@/lib/ids';
@@ -75,6 +76,9 @@ export async function abendSchliessen(terminId: string): Promise<boolean> {
 
   // Strafen aus dem Katalog: unentschuldigt, 3× in Folge (einmalig, mit Nachricht)
   await abendStrafenBuchen(terminId);
+
+  // Präsident gewählt: der erste Stammtisch im Jahr macht die Wahl auf (a Woch’ offen)
+  await wahlNachAbendPruefen(terminId);
 
   // Badge-/Amt-Wechsel melden: an alle „Resi is jetza Heiwong!“, spöttisch an den Neuen, Gratulation an den Alten
   const nachher = getVergabeStand();

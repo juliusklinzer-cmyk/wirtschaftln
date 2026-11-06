@@ -16,6 +16,13 @@ async function abendTakt() {
   } catch (e) {
     console.error('[abend] Takt fehlgeschlagen:', e);
   }
+  // Präsidentenwahlen nach a Woch’ auszählen (lib/praesident-wahl.ts)
+  try {
+    const { wahlenAllerStammtischeAuswerten } = await import('./lib/praesident-wahl');
+    await wahlenAllerStammtischeAuswerten();
+  } catch (e) {
+    console.error('[wahl] Takt fehlgeschlagen:', e);
+  }
   // Erinnerungs-Mails (lib/erinnerungen.ts), verschickt wird nur zwischen 18 und 22 Uhr
   try {
     const { erinnerungenAllerStammtische } = await import('./lib/erinnerungen');

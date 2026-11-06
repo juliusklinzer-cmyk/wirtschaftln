@@ -4,13 +4,15 @@ import { useState, useTransition } from 'react';
 import { Avatar, Chip, Zeile } from '@/components/ds';
 import { abstimmen } from '@/app/(app)/termin/actions';
 import { PTS, rechtzeitigAbgestimmt } from '@/lib/punkte';
+import { ZusagenBlatt } from '@/components/domain/ZusagenBlatt';
 
 export type AbstimmSpezl = { name: string; photoUrl: string | null; verein: string | null };
 
 /**
  * Abstimmung auf der Termin-Seite (Redesign 1a/2d/2e): oben das Segment
  * Zusagen (grün) / Absagen (rot), drunter drei Zeilen: Dabei, Noch offen,
- * Abgesagt, jeweils mit Avataren, Namen und Zähl-Chip.
+ * Abgesagt, jeweils mit Avataren, Namen und Zähl-Chip. Ein Tipp auf eine
+ * Zeile zeigt die ganze Liste (ZusagenBlatt).
  */
 export function AbstimmungKarte({
   terminId,
@@ -34,6 +36,7 @@ export function AbstimmungKarte({
   const [pending, startTransition] = useTransition();
   const [geklickt, setGeklickt] = useState<'zu' | 'ab' | null>(null);
   const [frischVerdient, setFrischVerdient] = useState(false);
+  const [liste, setListe] = useState(false);
   const fristOffen = rechtzeitigAbgestimmt(new Date().toISOString(), terminDatum);
 
   const klick = (wert: 'zu' | 'ab') => {
@@ -65,11 +68,10 @@ export function AbstimmungKarte({
     );
   };
 
-  const namen = (liste: AbstimmSpezl[]) => {
-    const kurz = liste.map((s) => s.name.split(' ')[0]);
-    if (kurz.length <= 5) return kurz.join(', ');
-    return `${kurz.slice(0, 4).join(', ')} und ${kurz.length - 4} weitere`;
-  };
+  // Alle Vornamen, umbrechend statt abgschnitten (Feedback 06.11.2026)
+  const namen = (liste: AbstimmSpezl[]) => (
+    <span style={{ display: 'block', whiteSpace: 'normal', lineHeight: 1.4 }}>{liste.map((s) => s.name.split(' ')[0]).join(', ')}</span>
+  );
   const stapel = (liste: AbstimmSpezl[]) => (
     <span style={{ display: 'inline-flex', flex: 'none' }}>
       {liste.slice(0, 4).map((s, i) => (
@@ -77,6 +79,11 @@ export function AbstimmungKarte({
           <Avatar src={s.photoUrl} name={s.name} size={32} verein={s.verein} />
         </span>
       ))}
+      {liste.length > 4 && (
+        <span className="wn-tnum" style={{ marginLeft: -10, width: 36, height: 36, borderRadius: '50%', border: '2px solid var(--weiss)', background: 'var(--ink-50)', color: 'var(--ink-700)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 800 }}>
+          +{liste.length - 4}
+        </span>
+      )}
       {liste.length === 0 && (
         <span style={{ width: 34, height: 34, borderRadius: '50%', border: '1.5px dashed var(--ink-200)' }} />
       )}
@@ -106,10 +113,11 @@ export function AbstimmungKarte({
         <div style={{ fontSize: 12, fontWeight: 700, lineHeight: 1.4, color: 'var(--strafe)', padding: '4px 4px 0' }}>{fristHinweis}</div>
       )}
       <div>
-        <Zeile kachel={stapel(dabei)} titel="Dabei" untertitel={dabei.length ? namen(dabei) : 'no koaner'} chip={<Chip ton="erfolg">{dabei.length}</Chip>} pfeil={false} />
-        <Zeile kachel={stapel(offen)} titel="Noch offen" untertitel={offen.length ? namen(offen) : 'alle haben abgstimmt'} chip={<Chip ton="grau">{offen.length}</Chip>} pfeil={false} />
-        <Zeile kachel={stapel(abgesagt)} titel="Abgesagt" untertitel={abgesagt.length ? namen(abgesagt) : 'koaner'} chip={<Chip ton="strafe">{abgesagt.length}</Chip>} pfeil={false} letzte />
+        <Zeile kachel={stapel(dabei)} titel="Dabei" untertitel={dabei.length ? namen(dabei) : 'no koaner'} chip={<Chip ton="erfolg">{dabei.length}</Chip>} onClick={() => setListe(true)} />
+        <Zeile kachel={stapel(offen)} titel="Noch offen" untertitel={offen.length ? namen(offen) : 'alle haben abgstimmt'} chip={<Chip ton="grau">{offen.length}</Chip>} onClick={() => setListe(true)} />
+        <Zeile kachel={stapel(abgesagt)} titel="Abgesagt" untertitel={abgesagt.length ? namen(abgesagt) : 'koaner'} chip={<Chip ton="strafe">{abgesagt.length}</Chip>} onClick={() => setListe(true)} letzte />
       </div>
+      {liste && <ZusagenBlatt listen={{ dabei, abgesagt, offen }} onZu={() => setListe(false)} />}
     </div>
   );
 }

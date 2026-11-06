@@ -200,6 +200,9 @@ export const besuche = sqliteTable(
     // Live am Abend gschmissene Runden (Bier/Schnaps), belegen den Abschluss-Zettel vor
     rundenBier: integer('runden_bier').notNull().default(0),
     rundenSchnaps: integer('runden_schnaps').notNull().default(0),
+    // Davon per Runde ausgegeben (in hoiben/schnaps enthalten), am Deckel golden: des zahlt wer anders
+    hoibenAusgegeben: integer('hoiben_ausgegeben').notNull().default(0),
+    schnapsAusgegeben: integer('schnaps_ausgegeben').notNull().default(0),
     kaiserschmarrn: integer('kaiserschmarrn').notNull().default(0),
     schweinsbraten: integer('schweinsbraten').notNull().default(0),
     taxi: integer('taxi', { mode: 'boolean' }).notNull().default(false), // hat gfahrn & Spezln mitgnommen
@@ -323,6 +326,31 @@ export const umfrageStimmen = sqliteTable(
     updatedAt: text('updated_at').notNull(),
   },
   (t) => [uniqueIndex('umfrage_stimmen_umfrage_member').on(t.umfrageId, t.memberId)],
+);
+
+// Präsidentenwahl (Modus „gewählt“, 06.11.2026): startet beim Schließen des ersten
+// Stammtischs im Jahr, a Woch’ offen; der Gewinner landet als Amt „Präsident“ in aemter.
+export const praesidentWahlen = sqliteTable('praesident_wahlen', {
+  id: text('id').primaryKey(),
+  jahr: integer('jahr').notNull(),
+  ende: text('ende').notNull(),
+  terminId: text('termin_id').references(() => termine.id, { onDelete: 'set null' }),
+  gestartetVon: text('gestartet_von').references(() => members.id, { onDelete: 'set null' }),
+  status: text('status', { enum: ['offen', 'ausgewertet'] }).notNull().default('offen'),
+  gewinnerId: text('gewinner_id').references(() => members.id, { onDelete: 'set null' }),
+  createdAt: text('created_at').notNull(),
+});
+
+export const praesidentStimmen = sqliteTable(
+  'praesident_stimmen',
+  {
+    id: text('id').primaryKey(),
+    wahlId: text('wahl_id').notNull().references(() => praesidentWahlen.id, { onDelete: 'cascade' }),
+    memberId: text('member_id').notNull().references(() => members.id, { onDelete: 'cascade' }),
+    kandidatId: text('kandidat_id').notNull().references(() => members.id, { onDelete: 'cascade' }),
+    updatedAt: text('updated_at').notNull(),
+  },
+  (t) => [uniqueIndex('praesident_stimmen_wahl_member').on(t.wahlId, t.memberId)],
 );
 
 export const aemter = sqliteTable('aemter', {

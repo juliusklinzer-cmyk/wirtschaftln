@@ -11,7 +11,8 @@ import {
 import { anzeigeName, urkundenName } from '@/lib/namen';
 import { aktuelleSaison } from '@/lib/saison';
 import { datumKurz } from '@/lib/format';
-import { saisonBadgesVergeben, serienAbzeichen, amtInfo, AEMTER_INFO, saisonBadges } from '@/lib/badges';
+import { saisonBadgesVergeben, serienAbzeichen, amtInfo, AEMTER_INFO, saisonBadges, praesidentInfo } from '@/lib/badges';
+import { praesidentAus } from '@/lib/praesident';
 import type { BadgeInfoDaten, HallOfFameEintrag, ZaehlerBlock } from '@/components/domain/BadgeInfo';
 import type { SpezlEintrag, AmtEintrag, GalerieBadge, StatsBlock } from './rangliste';
 import type { AmtKurz } from '@/components/domain/Auszeichnungen';
@@ -55,12 +56,12 @@ export function aemterJeMitglied(statsSaison: MitgliedStats[], saisonJahr: numbe
     if (!liste.some((a) => a.titel === titel)) liste.push({ titel, icon, slug: info.slug ?? null, patron: info.patron ?? null });
     map.set(memberId, liste);
   };
-  const praesident = [...statsSaison].sort((a, b) => b.punkte - a.punkte)[0];
-  if (praesident && praesident.punkte > 0) dazu(praesident.member.id, 'Präsident', AEMTER_INFO['Präsident'].icon);
+  const praesident = praesidentAus(statsSaison);
+  if (praesident) dazu(praesident, 'Präsident', AEMTER_INFO['Präsident'].icon);
   const fleissigster = [...statsSaison].sort((a, b) => b.abschluesse - a.abschluesse)[0];
   if (fleissigster && fleissigster.abschluesse > 0 && auszeichnungAn('amt:schriftfuehrer')) dazu(fleissigster.member.id, 'Schriftführer', AEMTER_INFO['Schriftführer'].icon);
   for (const { amt } of getAemter(String(saisonJahr))) {
-    if (amt.titel === 'Schriftführer' || !amt.memberId) continue; // Schriftführer wird automatisch vergeben
+    if (amt.titel === 'Schriftführer' || amt.titel === 'Präsident' || !amt.memberId) continue; // automatisch bzw. oben (praesidentAus)
     if (amt.titel.startsWith('Kassenwart') && !auszeichnungAn('amt:kassenwart')) continue;
     dazu(amt.memberId, amt.titel, amt.icon);
   }
@@ -96,9 +97,9 @@ export function ladeRanglisteDaten(meId: string): {
 
   // Automatische Ämter: Präsident = Saison-Rang 1, Schriftführer = meiste Abschlüsse.
   // Der Rest (Kassenwart, …) kommt als Wahl-Ergebnis aus der DB.
-  // Wie getPraesidentId: bei 0 Punkten (Saisonstart) gibt's no koan Präsidenten
-  const praesidentKandidat = [...statsSaison].sort((a, b) => b.punkte - a.punkte)[0];
-  const praesident = praesidentKandidat && praesidentKandidat.punkte > 0 ? praesidentKandidat.member : null;
+  // Wie getPraesidentId: nach WP oder gewählt (lib/praesident.ts)
+  const praesidentId = praesidentAus(statsSaison);
+  const praesident = statsSaison.find((s) => s.member.id === praesidentId)?.member ?? null;
   const fleissigster = [...statsSaison].sort((a, b) => b.abschluesse - a.abschluesse)[0];
   const schriftfuehrer = fleissigster && fleissigster.abschluesse > 0 ? fleissigster.member : null;
   const aemterVon = aemterJeMitglied(statsSaison, saison.jahr);
@@ -145,7 +146,7 @@ export function ladeRanglisteDaten(meId: string): {
   };
 
   const aemterListe: AmtEintrag[] = [
-    { titel: 'Präsident', ...AEMTER_INFO['Präsident'], holder: holderVon(praesident?.id) },
+    { titel: 'Präsident', ...praesidentInfo(), holder: holderVon(praesident?.id) },
     { titel: 'Schriftführer', ...AEMTER_INFO['Schriftführer'], holder: holderVon(schriftfuehrer?.id) },
     ...aemterDb
       .filter(({ amt }) => amt.titel !== 'Präsident' && amt.titel !== 'Schriftführer')
@@ -249,7 +250,7 @@ export function ladeRanglisteDaten(meId: string): {
     ['amt:praesident', 'Präsident'],
     ['amt:schriftfuehrer', 'Schriftführer'],
   ] as const) {
-    const info = AEMTER_INFO[titel];
+    const info = titel === 'Präsident' ? praesidentInfo() : AEMTER_INFO[titel];
     badgeInfos[key] = {
       key,
       art: 'amt',

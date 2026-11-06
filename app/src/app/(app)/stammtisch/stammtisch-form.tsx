@@ -8,6 +8,7 @@ import { HELLE_WAHL } from '@/lib/biersorten';
 import { Switch } from '@/components/ds';
 import { BadgeBild } from '@/components/domain/BadgeBild';
 import type { AuszeichnungWahl } from '@/lib/badges';
+import { PraesidentModusWahl, type PraesidentModus } from '@/components/domain/PraesidentModusWahl';
 import { stammtischSpeichern, type StammtischState } from './actions';
 
 export type StammtischWerte = {
@@ -22,6 +23,8 @@ export type StammtischWerte = {
   schnaps: boolean;
   /** Ämter & Badges zum An- und Abschalten */
   auszeichnungen: AuszeichnungWahl[];
+  /** Präsident nach WP oder gewählt, undefined = Feld ned zeigen (nur der Admin stellt’s um) */
+  praesidentModus?: PraesidentModus;
 };
 
 export function StammtischForm({ werte, speichern = stammtischSpeichern, onGespeichert }: { werte: StammtischWerte; /** Server Action, Standard = eigener Stammtisch; das Verzeichnis gibt die gebundene Variante rein */ speichern?: (prev: StammtischState, fd: FormData) => Promise<StammtischState>; /** Nach erfolgreichem Speichern (z. B. Formular zuklappen) */ onGespeichert?: () => void }) {
@@ -64,6 +67,8 @@ export function StammtischForm({ werte, speichern = stammtischSpeichern, onGespe
         <input type="hidden" name="schnaps" value={schnaps ? 'on' : 'off'} />
         <Switch checked={schnaps} onChange={setSchnaps} tone="gold" />
       </div>
+
+      {werte.praesidentModus && <PraesidentModusWahl start={werte.praesidentModus} />}
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
         <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink-700)' }}>Ämter und Badges</span>

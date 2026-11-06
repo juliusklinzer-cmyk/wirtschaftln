@@ -419,6 +419,13 @@ function deckelBedienbar(termin: { datum: string; zeit: string; phase: string; a
   return bierdeckelOffen(termin, nowIso()) || (termin.phase === 'abgeschlossen' && nachtragsfristOffen(termin.abgeschlossenAm));
 }
 
+/** Nie mehr ausgegebene Striche als Striche: wer wegstreicht, nimmt zerst die eigenen weg, dann die goldenen. */
+function ausgegebenKappen(terminId: string) {
+  currentTenant().sqlite
+    .prepare('UPDATE besuche SET hoiben_ausgegeben = MIN(hoiben_ausgegeben, hoiben), schnaps_ausgegeben = MIN(schnaps_ausgegeben, schnaps) WHERE termin_id = ?')
+    .run(terminId);
+}
+
 export async function hoibenStricheln(terminId: string, hoiben: number, weissbier?: number): Promise<BierdeckelErgebnis> {
   const me = await getCurrentMember();
   if (!me) return { ok: false, meldung: 'Ned angmeldt, bitte neu einloggen.' };
@@ -435,6 +442,7 @@ export async function hoibenStricheln(terminId: string, hoiben: number, weissbie
     .values({ id: newId('b'), terminId, memberId: me.id, ...werte })
     .onConflictDoUpdate({ target: [besuche.terminId, besuche.memberId], set: werte })
     .run();
+  ausgegebenKappen(terminId);
   revalidatePath('/termin');
   revalidatePath('/');
   return { ok: true, hoiben: wert };
@@ -456,6 +464,7 @@ export async function schnapsStricheln(terminId: string, schnaps: number): Promi
     .values({ id: newId('b'), terminId, memberId: me.id, ...werte })
     .onConflictDoUpdate({ target: [besuche.terminId, besuche.memberId], set: werte })
     .run();
+  ausgegebenKappen(terminId);
   revalidatePath('/termin');
   revalidatePath('/');
   return { ok: true, schnaps: wert };
@@ -497,7 +506,9 @@ export async function rundeSchmeissen(terminId: string, art: 'bier' | 'schnaps')
     .run();
   const tx = currentTenant().sqlite.transaction(() => {
     const spalte = art === 'bier' ? 'hoiben' : 'schnaps';
-    currentTenant().sqlite.prepare(`UPDATE besuche SET ${spalte} = MIN(30, ${spalte} + 1) WHERE termin_id = ? AND anwesend = 1`).run(terminId);
+    // Der Strich is ausgegeben (golden am Deckel), aa beim Spender: der zahlt die ganze Runde
+    const aspalte = art === 'bier' ? 'hoiben_ausgegeben' : 'schnaps_ausgegeben';
+    currentTenant().sqlite.prepare(`UPDATE besuche SET ${spalte} = MIN(30, ${spalte} + 1), ${aspalte} = MIN(30, ${spalte} + 1, ${aspalte} + 1) WHERE termin_id = ? AND anwesend = 1`).run(terminId);
     const rspalte = art === 'bier' ? 'runden_bier' : 'runden_schnaps';
     currentTenant().sqlite.prepare(`UPDATE besuche SET ${rspalte} = ${rspalte} + 1 WHERE termin_id = ? AND member_id = ?`).run(terminId, me.id);
   });
@@ -586,6 +597,7 @@ export async function besuchAbschliessen(terminId: string, formData: FormData) {
       .onConflictDoUpdate({ target: [besuche.terminId, besuche.memberId], set: werte })
       .run();
   }
+  ausgegebenKappen(terminId);
 
   // Wer abschließt, bewertet im selben Zug mit (Julius, 14.09.2026): koa extra
   // „Mei Bewertung" mehr für den Abschließer, anpassen geht danach wia bei allen.

@@ -29,6 +29,7 @@ export async function gruenden(token: string, _prev: GruendungsState, formData: 
     code: feld('code'),
     logoData: feld('logoData'),
     schnaps: formData.get('schnaps') === 'on',
+    praesidentModus: formData.get('praesidentModus') === 'wahl' ? 'wahl' : 'wp',
   };
   const ergebnis = await stammtischGruenden(token, eingabe);
   if (!ergebnis.ok) return { fehler: ergebnis.fehler, schritt: ergebnis.schritt };

@@ -55,6 +55,9 @@ export async function stammdatenSpeichern(gruppe: Gruppe, formData: FormData): P
     config.auszeichnungenAus = formData.getAll('aus').map(String).filter((k) => ABSCHALTBARE_KEYS.includes(k));
   }
   config.features = features;
+  // Präsident nach WP oder gewählt (nur wenn das Feld mitkommt, darf nur der Admin)
+  const modus = formData.get('praesidentModus');
+  if (modus === 'wp' || modus === 'wahl') config.praesidentModus = modus;
   // Logo: nur ändern, wenn a neues gewählt wurde (leer = so lassen)
   const logoData = String(formData.get('logoData') ?? '');
   if (logoData && logoData !== config.logo) {

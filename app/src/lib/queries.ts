@@ -13,6 +13,7 @@ import {
 import { nowIso } from '@/lib/ids';
 import { vergabeStand } from '@/lib/badges';
 import { aktuelleSaison } from '@/lib/saison';
+import { eingetragenerPraesident, praesidentGewaehlt, praesidentNachWp } from '@/lib/praesident';
 import { auszeichnungAn, tenantConfig } from '@/lib/tenant-config';
 import type { BekanntesWirtshaus } from '@/lib/wirtshaus-abgleich';
 import { katalog, festeRegel, staffelWert, STRAFEN_KATALOG_AB } from '@/lib/strafen-regeln';
@@ -162,14 +163,16 @@ export function getKassenwartId(): string | null {
 }
 
 /**
- * Aktueller Präsident = Saison-Rang 1 nach WP, EINE Quelle für Rangliste, Ämter und Rechte.
- * Bei 0 Punkten (Saisonstart/Launch) gibt's KOAN Präsidenten, sonst kriegt der
- * alphabetisch Erste still die Rechte (Strafen erlassen, Wirtshaus festlegen).
+ * Aktueller Präsident, EINE Quelle für Rangliste, Ämter und Rechte (lib/praesident.ts):
+ * nach WP = Saison-Rang 1, gewählt = der Eingetragene. Bei 0 Punkten (Saisonstart/Launch)
+ * gibt's nach WP KOAN Präsidenten, sonst kriegt der alphabetisch Erste still die Rechte.
  */
 export function getPraesidentId(): string | null {
-  const stats = getStats({ abDatum: aktuelleSaison().start });
-  const erster = [...stats].sort((a, b) => b.punkte - a.punkte)[0];
-  return erster && erster.punkte > 0 ? erster.member.id : null;
+  if (praesidentGewaehlt()) {
+    const eingetragen = eingetragenerPraesident();
+    if (eingetragen) return eingetragen.memberId;
+  }
+  return praesidentNachWp(getStats({ abDatum: aktuelleSaison().start }));
 }
 
 /** Alle Umfragen (neueste zuerst) samt Stimmen und Ersteller. */

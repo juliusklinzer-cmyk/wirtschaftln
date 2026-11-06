@@ -196,7 +196,7 @@ export default async function TerminPage({ searchParams }: { searchParams: Promi
                     initialHoiben={meinLetzter.hoiben}
                     initialWeissbier={meinLetzter.weissbier}
                     initialSchnaps={meinLetzter.schnaps}
-                    initialFlags={{ taxi: meinLetzter.taxi, brodn: meinLetzter.schweinsbraten > 0, kaisi: meinLetzter.kaiserschmarrn > 0, rundenBier: meinLetzter.rundenBier, rundenSchnaps: meinLetzter.rundenSchnaps }}
+                    initialFlags={{ taxi: meinLetzter.taxi, brodn: meinLetzter.schweinsbraten > 0, kaisi: meinLetzter.kaiserschmarrn > 0, rundenBier: meinLetzter.rundenBier, rundenSchnaps: meinLetzter.rundenSchnaps, hoibenAusgegeben: meinLetzter.hoibenAusgegeben, schnapsAusgegeben: meinLetzter.schnapsAusgegeben }}
                     schnapsAn={config.features.schnaps}
                     rundenErlaubt={false}
                     spezln={[]}
@@ -303,7 +303,7 @@ async function AktiverTermin({
       .filter((b) => b.anwesend && (b.hoiben > 0 || b.schnaps > 0) && b.memberId !== meId)
       .flatMap((b) => {
         const m = mitglieder.find((x) => x.id === b.memberId);
-        return m ? [{ name: anzeigeName(m), photoUrl: m.photoUrl, verein: m.verein, hoiben: b.hoiben, schnaps: b.schnaps }] : [];
+        return m ? [{ name: anzeigeName(m), photoUrl: m.photoUrl, verein: m.verein, hoiben: b.hoiben, schnaps: b.schnaps, hoibenAusgegeben: b.hoibenAusgegeben }] : [];
       });
     const erster = getCheckinsFuerTermin(termin.id)[0] ?? null;
     const daten = bewertungsDaten(besucheLive, meId);
@@ -327,6 +327,8 @@ async function AktiverTermin({
             kaisi: (meinBesuch?.kaiserschmarrn ?? 0) > 0,
             rundenBier: meinBesuch?.rundenBier ?? 0,
             rundenSchnaps: meinBesuch?.rundenSchnaps ?? 0,
+            hoibenAusgegeben: meinBesuch?.hoibenAusgegeben ?? 0,
+            schnapsAusgegeben: meinBesuch?.schnapsAusgegeben ?? 0,
           }}
           schnapsAn={config.features.schnaps}
           spezln={deckelSpezln}

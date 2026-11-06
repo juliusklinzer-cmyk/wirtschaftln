@@ -24,6 +24,9 @@ import { BadgeBild } from '@/components/domain/BadgeBild';
 import { bereichHinweisStil } from '@/components/domain/hero-stil';
 import { StammdatenKlappe } from './stammdaten-klappe';
 import { StrafenKatalog } from './strafen-katalog';
+import { PraesidentVerwaltung } from './praesident-verwaltung';
+import { praesidentGewaehlt, eingetragenerPraesident } from '@/lib/praesident';
+import { offeneWahl } from '@/lib/praesident-wahl';
 import { regelSpeichern } from '../kasse/actions';
 
 export const metadata = { title: 'Unser Stammtisch' };
@@ -90,6 +93,15 @@ export default async function StammtischPage() {
     ...saisonBadges().map((b) => ({ key: b.key, name: b.name, icon: b.icon, slug: b.slug, traeger: nameVon(vergabe.get(b.key)) })),
   ];
   const rekorde = stammtischRekorde();
+  // Präsident nach WP oder gewählt (06.11.2026)
+  const gewaehlt = praesidentGewaehlt();
+  const eingetragen = gewaehlt ? eingetragenerPraesident() : null;
+  const wahl = gewaehlt ? offeneWahl() : null;
+  const praesidentZusatz = !gewaehlt
+    ? 'die meisten WP der Saison'
+    : eingetragen && eingetragen.memberId === praesidentId
+      ? `gewählt für ${eingetragen.saison}${wahl ? ', Wahl läuft' : ''}`
+      : `nach WP, bis gewählt wird${wahl ? ' (Wahl läuft)' : ''}`;
 
   const regeln = katalog().map((r) => ({
     id: r.id, art: r.art, name: r.name, detail: r.detail, abzuege: r.wpStaffel.map((w) => -w), betragCents: r.betragCents,
@@ -157,7 +169,7 @@ export default async function StammtischPage() {
         <HoamTitel>Wer den Laden schmeißt</HoamTitel>
         <div style={{ ...karteStil, padding: '2px 16px' }}>
           <Zeile icon={<span style={{ width: 22, textAlign: 'center', fontSize: 18 }}>{AEMTER_INFO['Präsident'].icon}</span>} label="Präsident" letzte={!kassenwart && !gruender && !einladung}>
-            {praesident ? <Person m={praesident} zusatz="die meisten WP der Saison" /> : <span>Noch keiner</span>}
+            {praesident ? <Person m={praesident} zusatz={praesidentZusatz} /> : <span>Noch keiner</span>}
           </Zeile>
           {kassenwart && (
             <Zeile icon={<span style={{ width: 22, textAlign: 'center', fontSize: 18 }}>{AEMTER_INFO['Kassenwart'].icon}</span>} label="Kassenwart" letzte={!gruender && !einladung}>
@@ -190,7 +202,15 @@ export default async function StammtischPage() {
               bierName: config.bierName,
               schnaps: config.features.schnaps,
               auszeichnungen: auszeichnungsWahl(config.auszeichnungenAus),
+              praesidentModus: me.role === 'admin' ? config.praesidentModus : undefined,
             }}
+          />
+        )}
+        {me.role === 'admin' && gewaehlt && (
+          <PraesidentVerwaltung
+            spezln={mitglieder.map((m) => ({ id: m.id, name: anzeigeName(m), photoUrl: m.photoUrl, verein: m.verein }))}
+            praesidentId={praesidentId}
+            wahlOffen={!!wahl}
           />
         )}
       </section>

@@ -1,5 +1,6 @@
 import type { MitgliedStats } from '@/lib/queries';
 import { auszeichnungAn, tenantConfig } from '@/lib/tenant-config';
+import { praesidentAus, praesidentGewaehlt } from '@/lib/praesident';
 
 /**
  * Saison-Badges aus dem Design-Prototyp (RanglisteScreen.jsx): werden automatisch
@@ -135,14 +136,25 @@ export const AEMTER_INFO: Record<string, { icon: string; slug: string; patron: s
   },
 };
 
+/** Präsident je nach Art: nach WP (automatisch) oder jedes Jahr gewählt. */
+export function praesidentInfo(): (typeof AEMTER_INFO)[string] {
+  const info = AEMTER_INFO['Präsident'];
+  if (!praesidentGewaehlt()) return info;
+  return {
+    ...info,
+    mode: 'Gewählt',
+    duties: 'Jedes Jahr beim ersten Stammtisch gewählt, die Wahl is a Woch’ offen · entscheidet final über Aufnahmen neuer Mitglieder · zahlt am Tisch immer als Letzter, was offen bleibt, is sei Sach’',
+  };
+}
+
 /* ── Badge-/Amt-Wechsel: wer hat wem was abgluchst? ────────────────────── */
 
 /** Aktueller Vergabe-Stand: Badge-Key bzw. Amt → Halter-Id. */
 export function vergabeStand(stats: MitgliedStats[], meisterEderId: string | null): Map<string, string> {
   const stand = new Map<string, string>();
   for (const b of saisonBadgesVergeben(stats, meisterEderId)) stand.set(b.key, b.holderId);
-  const nachPunkten = [...stats].sort((a, b) => b.punkte - a.punkte);
-  if (nachPunkten[0] && nachPunkten[0].punkte > 0) stand.set('amt:praesident', nachPunkten[0].member.id);
+  const praesident = praesidentAus(stats);
+  if (praesident) stand.set('amt:praesident', praesident);
   const fleissigster = [...stats].sort((a, b) => b.abschluesse - a.abschluesse)[0];
   if (fleissigster && fleissigster.abschluesse > 0 && auszeichnungAn('amt:schriftfuehrer')) stand.set('amt:schriftfuehrer', fleissigster.member.id);
   return stand;
@@ -180,6 +192,9 @@ export function wechselTexte(w: Wechsel, neuName: string): { anNeuen: string; an
     'amt:praesident': { neu: 'Du bist jetza da Präsident 👑, WP-Rang 1! Zahlt immer zuletzt, entscheidet final.', alt: `${neuName} hat di als Präsident abglöst, hol dir’n Rang zruck!` },
     'amt:schriftfuehrer': { neu: 'Du bist jetza da Schriftführer ✒️, du schließt am meisten ab!', alt: `${neuName} is jetza Schriftführer, schließ wieder öfter ab.` },
   };
+  if (w.key === 'amt:praesident' && praesidentGewaehlt()) {
+    texte['amt:praesident'] = { neu: 'Du bist jetza da Präsident 👑, vom Stammtisch gewählt! Zahlt immer zuletzt, entscheidet final.', alt: `${neuName} is jetza da Präsident, des Amt is weiter.` };
+  }
   // Die Münchner Sprüche passen nur zum Münchner Set — sonst der neutrale Satz mit dem Badge-Namen
   const muenchen = tenantConfig().features.muenchenBadges || w.key.startsWith('amt:');
   const t = (muenchen ? texte[w.key] : undefined) ?? { neu: `Du bist jetza ${w.label}!`, alt: `${neuName} is jetza ${w.label}.` };
@@ -218,6 +233,9 @@ export function feierTexte(key: string, label: string, tag?: string): { spruch: 
     'amt:schriftfuehrer': { spruch: 'Die meisten Abende zusammengefasst. Was ned aufgschrieben is, is nie passiert.', urkundeGrund: 'Für die meisten abgeschlossenen Abende der Saison.' },
     'amt:kassenwart': { spruch: 'Vom Stammtisch gewählt. Die Kasse is jetzt dei Sach’.', urkundeGrund: 'Für das Vertrauen des Stammtischs.' },
   };
+  if (praesidentGewaehlt()) {
+    muenchen['amt:praesident'] = { spruch: 'Vom Stammtisch gewählt. Führung, Zusammenhalt und Tradition liegen jetzt bei dir.', urkundeGrund: 'Für die Wahl zum Präsidenten durch den Stammtisch.' };
+  }
   const passt = tenantConfig().features.muenchenBadges || key.startsWith('amt:');
   const t = passt ? muenchen[key] : undefined;
   if (t) return t;

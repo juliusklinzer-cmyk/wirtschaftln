@@ -110,6 +110,7 @@ export default async function VerzeichnisDetailPage({ params }: { params: Promis
                 bierName: config.bierName,
                 schnaps: config.features.schnaps,
                 auszeichnungen: auszeichnungsWahl(config.auszeichnungenAus),
+                praesidentModus: config.praesidentModus,
               }}
             />
           </div>

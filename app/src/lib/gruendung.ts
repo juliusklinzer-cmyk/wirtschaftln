@@ -321,6 +321,8 @@ export type GruendungsEingabe = {
   logoData: string;
   /** Schnapselt ihr? → Feature schnaps */
   schnaps: boolean;
+  /** Präsident nach WP (Standard) oder jedes Jahr gewählt */
+  praesidentModus?: 'wp' | 'wahl';
 };
 
 export type GruendungsErgebnis = { ok: true; gruppeId: string } | { ok: false; fehler: string; schritt: 1 | 2 | 3 };
@@ -384,6 +386,7 @@ export async function stammtischGruenden(tokenRoh: string, e: GruendungsEingabe)
     ...(stammhausId ? { stammhausWirtshausId: stammhausId } : {}),
     ...(logo ? { logo } : {}),
     ...(e.schnaps ? { features: { schnaps: true } } : {}),
+    ...(e.praesidentModus === 'wahl' ? { praesidentModus: 'wahl' } : {}),
   };
 
   const angelegt = gruppeGruendenMitToken(

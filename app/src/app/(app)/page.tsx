@@ -24,10 +24,14 @@ import {
 import { PTS, WACKELT_AB_UNENTSCHULDIGT, checkinOffen, bierdeckelOffen, abschlussOffen, berlinTag } from '@/lib/punkte';
 import { nowIso } from '@/lib/ids';
 import { aktuelleSaison } from '@/lib/saison';
-import { vergabeWechsel, wechselTexte, AEMTER_INFO, saisonBadges, feierTexte } from '@/lib/badges';
+import { vergabeWechsel, wechselTexte, AEMTER_INFO, saisonBadges, feierTexte, praesidentInfo } from '@/lib/badges';
+import { praesidentGewaehlt } from '@/lib/praesident';
+import { offeneWahl, letzteWahl, wahlStand } from '@/lib/praesident-wahl';
+import { WahlKarte } from '@/components/domain/WahlKarte';
 import { SERIEN_ABZEICHEN } from '@/lib/serien';
 import { datumMittel, datumKurz, euro } from '@/lib/format';
 import { Card, Avatar, Icon, KlappenKopf } from '@/components/ds';
+import { ZusagenAuf } from '@/components/domain/ZusagenBlatt';
 import { AbstimmungsStand } from '@/components/domain/AbstimmungsStand';
 import { StreakChip } from '@/components/domain/StreakChip';
 import { PushAktivieren } from '@/components/domain/PushAktivieren';
@@ -111,7 +115,7 @@ export default async function HomePage() {
     };
     for (const w of vergabeWechsel(standVor, standNach)) {
       if (w.neuId !== me.id) continue;
-      const amt = AMT_TITEL[w.key] ? AEMTER_INFO[AMT_TITEL[w.key]] : null;
+      const amt = AMT_TITEL[w.key] ? (w.key === 'amt:praesident' ? praesidentInfo() : AEMTER_INFO[AMT_TITEL[w.key]]) : null;
       const badge = saisonBadges().find((b) => b.key === w.key);
       const slug = amt ? amt.slug : (badge?.slug ?? null);
       const texte = feierTexte(w.key, w.label, badge?.tag);
@@ -154,6 +158,43 @@ export default async function HomePage() {
     }
   }
 
+  // Präsidentenwahl (Modus „gewählt“): offen → Wahl-Karte, frisch gewonnen → eigene Feier mit Urkunde
+  const wahl = praesidentGewaehlt() ? offeneWahl() : null;
+  const wahlInfo = wahl ? wahlStand(wahl.id, me.id) : null;
+  const gewonnen = praesidentGewaehlt() ? letzteWahl() : null;
+  const wahlFeier: FeierBadge | null =
+    gewonnen && gewonnen.gewinnerId === me.id && Date.now() - Date.parse(gewonnen.ende) < 14 * 24 * 3600 * 1000
+      ? (() => {
+          const info = praesidentInfo();
+          const texte = feierTexte('amt:praesident', 'Präsident');
+          const datum = new Date(gewonnen.ende);
+          return {
+            key: 'amt:praesident',
+            art: 'amt',
+            slug: info.slug,
+            icon: info.icon,
+            name: 'Präsident',
+            eyebrow: `Gewählt für ${gewonnen.jahr}`,
+            titel1: 'Du bist jetzt',
+            titel2: 'der neue Präsident!',
+            spruch: texte.spruch,
+            infos: [{ icon: 'patron', text: `Patron: ${info.patron}` }, ...info.duties.split(' · ').map((t, i) => ({ icon: i === 0 ? ('modus' as const) : ('pflicht' as const), text: t.trim() }))],
+            urkunde: {
+              stammtisch: /stammtisch/i.test(config.name) ? config.name : `Stammtisch ${config.name}`,
+              name: urkundenName(me) ?? anzeigeName(me),
+              badgeName: 'Präsident',
+              slug: info.slug,
+              icon: info.icon,
+              saison: `Amtsjahr ${gewonnen.jahr}`,
+              grund: texte.urkundeGrund,
+              praesident: anzeigeName(me),
+              datum: datum.toLocaleDateString('de-DE', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Europe/Berlin' }),
+              ort: config.stadt,
+            },
+          };
+        })()
+      : null;
+
   /* ---------- Termin-Karte: a Karte, alle Phasen (Zustände 2a–2h) ---------- */
   let heroInhalt: React.ReactNode;
   if (!termin) {
@@ -176,6 +217,14 @@ export default async function HomePage() {
       .map((v) => ({ name: anzeigeName(v.member), photoUrl: v.member.photoUrl, verein: v.member.verein }));
     const ab = alleVotes.filter((v) => v.vote.wert === 'ab').length;
     const offen = Math.max(0, mitglieder.length - zugesagte.length - ab);
+    // Ganze Liste fürs Wer-kommt-Blatt (Tipp auf die Zeile), wia auf der Termin-Seite
+    const voteVon = (id: string) => alleVotes.find((v) => v.vote.memberId === id)?.vote.wert;
+    const alsSpezl = (m: (typeof mitglieder)[number]) => ({ name: anzeigeName(m), photoUrl: m.photoUrl, verein: m.verein });
+    const zusagenListen = {
+      dabei: mitglieder.filter((m) => voteVon(m.id) === 'zu').map(alsSpezl),
+      abgesagt: mitglieder.filter((m) => voteVon(m.id) === 'ab').map(alsSpezl),
+      offen: mitglieder.filter((m) => { const v = voteVon(m.id); return v !== 'zu' && v !== 'ab'; }).map(alsSpezl),
+    };
     const heuteTag = termin.datum === heute;
     const vorbei = termin.datum < heute;
 
@@ -351,8 +400,8 @@ export default async function HomePage() {
             </span>
           )}
 
-          {/* Wer kommt: Avatare der Zugesagten + Zählerstand */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, paddingTop: 12, borderTop: '1px solid rgba(208,173,102,0.3)' }}>
+          {/* Wer kommt: Avatare der Zugesagten + Zählerstand, Tipp zeigt alle Zu- und Absagen */}
+          <ZusagenAuf listen={zusagenListen} style={{ display: 'flex', alignItems: 'center', gap: 10, paddingTop: 12, borderTop: '1px solid rgba(208,173,102,0.3)' }}>
             {zugesagte.length > 0 && (
               <span style={{ display: 'inline-flex', flex: 'none' }}>
                 {zugesagte.slice(0, 6).map((s, i) => (
@@ -370,7 +419,8 @@ export default async function HomePage() {
             <span className="wn-tnum" style={{ flex: 1, fontSize: 13, fontWeight: 600, color: 'rgba(246,240,226,0.85)' }}>
               {zugesagte.length} dabei · {ab} abgesagt{!stammtischTag ? ` · ${offen} offen` : ''}
             </span>
-          </div>
+            <Icon name="chevron" size={16} color="rgba(246,240,226,0.6)" style={{ flex: 'none' }} />
+          </ZusagenAuf>
         </>
       );
     }
@@ -386,12 +436,28 @@ export default async function HomePage() {
   return (
     <div className="wn-eintritt" style={{ padding: '20px 16px 28px', display: 'flex', flexDirection: 'column', gap: 24 }}>
       {letzter && feiern.length > 0 && <BadgeFeier terminId={letzter.id} feiern={feiern} />}
+      {wahlFeier && gewonnen && <BadgeFeier terminId={`wahl-${gewonnen.id}`} feiern={[wahlFeier]} />}
 
       {/* Nur im Browser: App aufs Handy (am iPhone gehen Benachrichtigungen erst nach der Installation) */}
       <AppInstallieren variante="hoam" />
       <PushAktivieren />
 
       {hero}
+
+      {wahl && wahlInfo && (
+        <section style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <HoamTitel>Präsidentenwahl</HoamTitel>
+          <WahlKarte
+            wahlId={wahl.id}
+            jahr={wahl.jahr}
+            bisText={`bis ${new Date(wahl.ende).toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'Europe/Berlin' })}`}
+            kandidaten={mitglieder.map((m) => ({ id: m.id, name: anzeigeName(m), photoUrl: m.photoUrl, verein: m.verein }))}
+            meineStimme={wahlInfo.meineStimme}
+            abgestimmt={wahlInfo.abgestimmt}
+            gesamt={mitglieder.length}
+          />
+        </section>
+      )}
 
       {/* 3c: ab 3× unentschuldigt in Folge (Strafe laut Katalog) */}
       {wackelt && (

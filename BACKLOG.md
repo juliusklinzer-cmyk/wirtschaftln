@@ -7,7 +7,6 @@
 - [ ] WIR-002 Link-Vorschau in WhatsApp echt testen (Beitreten- und Gründen-Link schicken). Schon geteilte Links können noch das alte Bild zeigen. · am:2026-11-06 · quelle:TODO.md#14
 - [ ] WIR-003 Badge-Pflichten: restliche Regeln fehlen, dann nur Texte eintragen (`pflicht` in badges.ts) · am:2026-11-06 · quelle:TODO.md#15
 - [ ] WIR-004 „Kein Wirtshaus zweimal“: Warnung oder Sperre beim Wählen eines schon besuchten Wirtshauses? · am:2026-11-06 · quelle:TODO.md#16
-- [ ] WIR-022 Feedback Tag & Nacht lokal testen (Hirschen-Stammtisch als Kathi): Deckel, Wahl mit Stichwahl, Ergebnis. Danach „deploy“ sagen; vorher noch klären, ob Was-ist-neu-Slides dazu sollen · am:2026-11-06
 
 ## Offen
 - [ ] WIR-005 Kassenwart per In-App-Wahl (bisher trägt Admin oder Präsident das Ergebnis ein) · am:2026-11-06 · quelle:TODO.md#19
@@ -30,4 +29,5 @@
 ## Ideen
 
 ## Erledigt
+- [x] WIR-022 Feedback Tag & Nacht (Deckel-Runden, Präsident WP/gewählt mit Stichwahl, Zusagen) getestet und deployt, ohne Was-ist-neu-Slides · am:2026-11-06 · fertig:2026-11-06
 - [x] WIR-021 Feedback Tag & Nacht Runde 3: Präsident einrichten mit aktuellem Präsidenten und Wahltermin (3 Optionen), Stichwahl bei Gleichstand, Wahlergebnis auf Hoam, Deckel-Zeile auf Hoam ohne Goldknopf, alle Namen in der Termin-Abstimmung, goldene Striche ab 26 Halbe nicht mehr übermalt · am:2026-11-06 · fertig:2026-11-06

@@ -3,6 +3,7 @@
 ## In Arbeit
 
 ## Wartet auf Julius
+- [ ] WIR-027 iOS-Blur oben: nach dem Deploy die Wirtschaftln-App vom iPhone-Home-Bildschirm löschen, in Safari wirtschaftln.de neu „Zum Home-Bildschirm“, prüfen ob oben kein Blur mehr ist und der Kopf passt · am:2026-11-09
 - [ ] WIR-026 Responsive Redesign live anschauen: wirtschaftln.de am PC breit und schmal, am iPad, und Rückmeldung geben · am:2026-11-08
 - [ ] WIR-002 Link-Vorschau in WhatsApp echt testen (Beitreten- und Gründen-Link schicken). Schon geteilte Links können noch das alte Bild zeigen. · am:2026-11-06 · quelle:TODO.md#14
 - [ ] WIR-003 Badge-Pflichten: restliche Regeln fehlen, dann nur Texte eintragen (`pflicht` in badges.ts) · am:2026-11-06 · quelle:TODO.md#15
@@ -29,6 +30,7 @@
 ## Ideen
 
 ## Erledigt
+- [x] WIR-028 iOS-Blur oben wie in der Dart-App: kein Statusleisten-Tag bei Wirtschaftln, deckender 11-px-Streifen in Navy, Abstand oben 12 statt Safe-Area + 30 px · am:2026-11-09 · fertig:2026-11-09
 - [x] WIR-025 Responsive Redesign: Tabs oben ab 768 px, Dahoam mit Hero-Band, Rang links und Kasse rechts, Termin/Kasse/Lexikon zweispaltig, Fenster zentriert, Zahnrad-Einstellungen; Hoam heißt jetzt Dahoam; deployt 08.11. · am:2026-11-08 · fertig:2026-11-08
 - [x] WIR-024 Weihnachts-Token 2026 für München Tag & Nacht eingeschaltet (direkt in der Prod-Datenbank, läuft am 24.12. von allein) · am:2026-11-08 · fertig:2026-11-08
 - [x] WIR-023 Jahresabschluss: Jahressieger an Silvester auf den Badges, Weihnachts-Token mit Packerl-Popup, nach Weihnachten & Silvester Redesign · am:2026-11-08 · fertig:2026-11-08

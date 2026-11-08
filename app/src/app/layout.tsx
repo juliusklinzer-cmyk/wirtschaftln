@@ -54,8 +54,13 @@ export async function generateMetadata(): Promise<Metadata> {
       // an d'Bildschirmkante (ausprobiert & gemessen, 29.08.2026).
       // Glas-Leiste (Wirtschaftln, 04.11.2026): doch black-translucent, den Blur
       // oben malt iOS 26 selber, und der Spalt unten is dort weg (am iPhone getestet).
-      statusBarStyle: c?.features.glasLeiste ? 'black-translucent' : 'default',
+      statusBarStyle: 'default',
     },
+    // Glas-Leiste (Wirtschaftln, 09.11.2026): iOS 26.1+ legt bei jedem gesetzten
+    // Statusleisten-Stil a Glas-Band über den oberen Rand. Next.js schreibt den
+    // immer (notfalls „default“), drum kommen die Apple-Tags dort aus RootLayout
+    // ohne Statusleisten-Tag, dazu der Streifen .wn-ios-oben (globals.css).
+    ...(c?.features.glasLeiste ? { appleWebApp: undefined } : {}),
   };
 }
 
@@ -78,10 +83,18 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         {/* Manifest MIT Cookie holen, sonst kennt der Server den Stammtisch ned
             und Chrome tauscht's App-Icon gegen die Rauten (siehe manifest.webmanifest/route.ts) */}
         <link rel="manifest" href="/manifest.webmanifest" crossOrigin="use-credentials" />
+        {glas && (
+          <>
+            <meta name="mobile-web-app-capable" content="yes" />
+            <meta name="apple-mobile-web-app-title" content={c?.name ?? 'Wirtschaftln'} />
+          </>
+        )}
       </head>
       {/* suppressHydrationWarning: Browser-Extensions (z. B. ColorZilla) hängen
           Attribute an <body>, bevor React lädt, das ist kein App-Fehler. */}
       <body suppressHydrationWarning className={[muenchen && 'wn-muenchen', glas && 'wn-glas'].filter(Boolean).join(' ') || undefined}>
+        {/* Gemalter Streifen ganz oben gegen den iOS-Blur (nur installiert am iPhone, globals.css) */}
+        {glas && <div className="wn-ios-oben" aria-hidden />}
         <RegisterSW />
         {children}
         {/* Statusleiste (Uhrzeit, Akku) auf ALLEN Bildschirmen in Navy, auch über

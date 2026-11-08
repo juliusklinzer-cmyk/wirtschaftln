@@ -385,28 +385,37 @@ details[open] > summary .wn-klappe-pfeil {
   pointer-events: none;
 }
 
-/* Glas-Leiste (Wirtschaftln, 04.11.2026): Statusleiste durchsichtig
-   (black-translucent), den Glas-Blur drüber malt seit iOS 26 das System
-   selber (so in da Dart-App gesehen). Alles hier gilt NUR für die iPhone-App
-   vom Home-Bildschirm: -webkit-touch-callout kennt nur iOS-Safari,
-   display-mode: standalone heißt installiert. Android, Desktop und der
-   Browser-Tab bleiben wia gehabt. */
+/* iOS-Blur am oberen Rand (Wirtschaftln, 09.11.2026, Rezept aus der
+   Dart-App bzw. tips.ojapp.app): seit iOS 26.1 legt das System bei JEDEM
+   gesetzten apple-mobile-web-app-status-bar-style ein Glas-Band über den
+   oberen Rand. Drum schreibt das Root-Layout beim Mandanten mit Glas-Leiste
+   koa Statusleisten-Tag (die Leiste nimmt dann die theme-color Navy und
+   bleibt deckend), und ganz oben liegt a fixierter, deckender Streifen in
+   Kopffarbe. Der zählt fürs System als gemalte Fläche, und der Blur bleibt
+   weg. Alles hier gilt NUR für die iPhone-App vom Home-Bildschirm:
+   -webkit-touch-callout kennt nur iOS-Safari, display-mode: standalone
+   heißt installiert. Android, Desktop und der Browser-Tab bleiben wia gehabt. */
+.wn-ios-oben {
+  display: none;
+}
 @supports (-webkit-touch-callout: none) {
   @media (display-mode: standalone) {
-    /* Unser Navy-Streifen würd den iOS-Blur nur verdecken */
-    body.wn-glas .wn-statusleiste {
-      display: none;
+    body.wn-glas .wn-ios-oben {
+      display: block;
+      position: fixed;
+      inset: 0 0 auto;
+      height: 11px;
+      background: var(--navy-900);
+      z-index: 10001;
+      pointer-events: none;
     }
-    /* Der iOS-Blur reicht gut 40 px unter die Uhrzeit (am iPhone war die
-       rote Messzeile bis ~110 pt verschwommen): alles, was oben an der
-       Uhrzeit beginnt (var(--wn-oben)), rutscht 30 px weiter runter. */
+    /* Ohne Statusleisten-Tag meldet iOS oben koan Inset (0): der Kopf fängt
+       knapp unterm Streifen an statt 30 px tiefer wia beim Glas-Band */
     body.wn-glas {
-      --wn-oben: calc(env(safe-area-inset-top, 0px) + 30px);
+      --wn-oben: max(env(safe-area-inset-top, 0px), 12px);
     }
-    /* iOS 26 gibt im durchsichtigen Modus nur Bildschirm minus Statusleiste
-       her (WebKit-Bug 301108), ein fester Rahmen endet 62 px über der Kante.
-       Mit 100vh auf html/body und einem mitlaufenden statt festen Rahmen
-       reicht d'App bis ganz unten. */
+    /* Der Rahmen läuft mit 100vh mit statt fest verankert (seit 04.11.
+       so am iPhone getestet, reicht bis ganz unten) */
     html:has(body.wn-glas),
     body.wn-glas {
       height: 100vh;
@@ -416,11 +425,6 @@ details[open] > summary .wn-klappe-pfeil {
       position: relative !important;
       inset: auto !important;
       height: 100vh;
-    }
-    /* Rang: obere Reihe (Wertung, Saison/Allzeit) scrollt mit weg statt
-       unterm Blur kleben zu bleiben */
-    body.wn-glas .wn-rang-kopf {
-      position: relative !important;
     }
   }
 }

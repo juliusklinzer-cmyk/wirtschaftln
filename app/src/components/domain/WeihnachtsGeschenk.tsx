@@ -225,7 +225,7 @@ export function WeihnachtsGeschenk({
   );
 
   return createPortal(
-    <div role="dialog" aria-modal="true" aria-label="Frohe Weihnachten" style={{ position: 'fixed', inset: 0, zIndex: 90, maxWidth: 'var(--container-app)', margin: '0 auto', overflow: 'hidden', background: 'radial-gradient(circle at 50% 30%,#14432F 0%,#0B2A1F 60%,#06181A 100%)', fontFamily: 'var(--font-ui)' }}>
+    <div role="dialog" aria-modal="true" aria-label="Frohe Weihnachten" className="wn-fenster wn-buehne" style={{ position: 'fixed', inset: 0, zIndex: 90, maxWidth: 'var(--container-app)', margin: '0 auto', overflow: 'hidden', background: 'radial-gradient(circle at 50% 30%,#14432F 0%,#0B2A1F 60%,#06181A 100%)', fontFamily: 'var(--font-ui)' }}>
       <div aria-hidden style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>{schnee}</div>
       {lichter}
       {ausgepackt && <div aria-hidden style={{ position: 'absolute', left: '50%', top: '22%', width: 320, height: 320, marginLeft: -160, borderRadius: 999, background: 'radial-gradient(circle,rgba(230,198,132,0.5),transparent 65%)', opacity: op, pointerEvents: 'none' }} />}

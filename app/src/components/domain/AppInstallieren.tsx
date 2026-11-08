@@ -187,7 +187,7 @@ function AnleitungBlatt({ geraet, prompt, zu }: { geraet: Geraet; prompt: Instal
     </div>
   );
   return (
-    <div role="dialog" aria-modal="true" onClick={zu} style={{ position: 'fixed', inset: 0, zIndex: 80, background: 'rgba(7,25,58,0.45)', display: 'flex', alignItems: 'flex-end', maxWidth: 'var(--container-app)', margin: '0 auto' }}>
+    <div role="dialog" aria-modal="true" onClick={zu} className="wn-blatt-huelle" style={{ position: 'fixed', inset: 0, zIndex: 80, background: 'rgba(7,25,58,0.45)', display: 'flex', alignItems: 'flex-end', maxWidth: 'var(--container-app)', margin: '0 auto' }}>
       <div onClick={(e) => e.stopPropagation()} style={{ width: '100%', maxHeight: '88dvh', overflowY: 'auto', background: 'var(--ink-50)', borderRadius: '28px 28px 0 0', padding: '10px 20px calc(22px + env(safe-area-inset-bottom))', display: 'flex', flexDirection: 'column', gap: 18, boxShadow: '0 -14px 36px rgba(7,25,58,0.3)', fontFamily: 'var(--font-ui)' }}>
         <span style={{ alignSelf: 'center', width: 40, height: 5, borderRadius: 99, background: 'var(--ink-200)', flex: 'none' }} />
         {geraet === 'ios-safari' && (

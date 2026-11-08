@@ -68,7 +68,7 @@ export function BadgeInfo({ info, onClose }: { info: BadgeInfoDaten; onClose: ()
   const [urkunde, setUrkunde] = useState<UrkundeDaten | null>(null);
 
   return (
-    <div className="wn-scroll-still" style={{ position: 'fixed', inset: 0, zIndex: 70, maxWidth: 'var(--container-app)', margin: '0 auto', background: 'var(--ink-50)', overflowY: 'auto', overscrollBehavior: 'contain', animation: 'wnBuehneAuf 260ms cubic-bezier(0.32, 0.72, 0, 1) both' }}>
+    <div className="wn-scroll-still wn-fenster" style={{ position: 'fixed', inset: 0, zIndex: 70, maxWidth: 'var(--container-app)', margin: '0 auto', background: 'var(--ink-50)', overflowY: 'auto', overscrollBehavior: 'contain', animation: 'wnBuehneAuf 260ms cubic-bezier(0.32, 0.72, 0, 1) both' }}>
       <style>{`
         @keyframes wnBuehneAuf { from { transform: translateY(24px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
         @keyframes wnScheinDreht { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }

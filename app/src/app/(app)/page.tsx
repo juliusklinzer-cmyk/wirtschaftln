@@ -56,6 +56,10 @@ import { HoamTitel } from '@/components/domain/HoamTitel';
 import { OrgaKnopf } from '@/components/domain/OrgaKnopf';
 import { VorschlagenKnopf } from '@/components/domain/VorschlagenKnopf';
 import { eyebrowStil, titelStil, zeileStil, hinweisStil, goldKnopfStil, rundKnopfStil, blockStil } from '@/components/domain/hero-stil';
+import { HeroBand } from '@/components/domain/HeroBand';
+import { KassenKarte } from '@/components/domain/KassenKarte';
+import { RangSpalte } from './spezln/rang-spalte';
+import { ladeRanglisteDaten } from './spezln/daten';
 
 // Der PayPal-Pool gehört dem Gründer-Stammtisch (Env, ned pro Mandant):
 // andere Stammtische zahlen bar beim Kassenwart, sonst landet ihr Geld bei uns.
@@ -246,6 +250,8 @@ export default async function HomePage() {
 
   /* ---------- Termin-Karte: a Karte, alle Phasen (Zustände 2a–2h) ---------- */
   let heroInhalt: React.ReactNode;
+  // Foto fürs Hero-Band ab Tablet: das Wirtshaus vom nächsten Termin
+  let heroBild: string | null = null;
   if (!termin) {
     heroInhalt = (
       <>
@@ -258,6 +264,7 @@ export default async function HomePage() {
     );
   } else {
     const { wirtshaus, planer } = getTerminMitWirtshaus(termin);
+    heroBild = wirtshaus?.photoUrl ?? null;
     const alleVotes = getVotesFuerTermin(termin.id);
     const meinVote = alleVotes.find((v) => v.vote.memberId === me.id)?.vote.wert ?? null;
     const fristHinweis = absageHinweis(termin, alleVotes.find((v) => v.vote.memberId === me.id)?.vote, unentschuldigt, jetzt);
@@ -468,15 +475,13 @@ export default async function HomePage() {
     }
   }
 
-  const hero = (
-    <Card tone="dark" framed pad={0} style={{ overflow: 'hidden', boxShadow: 'var(--sh-lg)' }}>
-      <div className="wn-raute wn-raute--sm" style={{ height: 8 }} />
-      <div style={{ padding: '14px 20px 22px', display: 'flex', flexDirection: 'column', gap: 14 }}>{heroInhalt}</div>
-    </Card>
-  );
+  const hero = <HeroBand bild={heroBild}>{heroInhalt}</HeroBand>;
+
+  // Ab Tablet steht der Rang links auf Dahoam (Responsive Redesign 1a/1b)
+  const rang = ladeRanglisteDaten(me.id);
 
   return (
-    <div className="wn-eintritt" style={{ padding: '20px 16px 28px', display: 'flex', flexDirection: 'column', gap: 24 }}>
+    <div className="wn-eintritt wn-dahoam wn-breit" style={{ padding: '20px 16px 28px', display: 'flex', flexDirection: 'column', gap: 24 }}>
       {letzter && feiern.length > 0 && <BadgeFeier terminId={letzter.id} feiern={feiern} />}
       {(() => {
         const jahresFeier = jahresFeiern.length > 0 && vergabe ? <JahresFeier jahr={vergabe.jahr} vorname={me.vorname || me.spitzname || me.name.split(' ')[0]} feiern={jahresFeiern} /> : null;
@@ -487,11 +492,18 @@ export default async function HomePage() {
       {wahlFeier && gewonnen && <BadgeFeier terminId={`wahl-${gewonnen.id}`} feiern={[wahlFeier]} />}
 
       {/* Nur im Browser: App aufs Handy (am iPhone gehen Benachrichtigungen erst nach der Installation) */}
-      <AppInstallieren variante="hoam" />
-      <PushAktivieren />
+      <div className="wn-hinweise" style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+        <AppInstallieren variante="hoam" />
+        <PushAktivieren />
+      </div>
 
       {hero}
 
+      <aside className="wn-nur-breit wn-dahoam-rang">
+        <RangSpalte eintraege={rang.eintraege} aemter={rang.aemterListe} galerie={rang.galerie} badgeInfos={rang.badgeInfos} saisonLabel={rang.saison.label} />
+      </aside>
+
+      <div className="wn-spalte wn-dahoam-mitte">
       {wahl && wahlInfo && (
         <section style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <HoamTitel>{wahl.stichwahl ? 'Stichwahl' : 'Präsidentenwahl'}</HoamTitel>
@@ -575,14 +587,17 @@ export default async function HomePage() {
 
       {letzter && <LetzterStammtisch letzter={letzter} meId={me.id} stats={stats} saisonStart={saison.start} />}
 
-      <SaisonKarte
-        me={meineStats}
-        allzeit={meineAllzeit}
-        rang={meinRang}
-        rangliste={rangliste}
-        schnapsAn={config.features.schnaps}
-        wackelt={wackelt}
-      />
+      {/* Am Tablet und Desktop steht das in der Rang-Spalte */}
+      <div className="wn-nur-handy">
+        <SaisonKarte
+          me={meineStats}
+          allzeit={meineAllzeit}
+          rang={meinRang}
+          rangliste={rangliste}
+          schnapsAn={config.features.schnaps}
+          wackelt={wackelt}
+        />
+      </div>
 
       {/* Wirtshaus entdeckt, darf jeder: landet als Pin auf der Karte, wer scho dort war, bewertet gleich mit. */}
       <details
@@ -611,6 +626,11 @@ export default async function HomePage() {
           <UmfrageKarte key={u.umfrage.id} daten={u} meId={me.id} meRole={me.role} />
         ))}
       </UmfragenBereich>
+      </div>
+
+      <aside className="wn-nur-breit wn-dahoam-kasse">
+        <KassenKarte meId={me.id} />
+      </aside>
     </div>
   );
 }

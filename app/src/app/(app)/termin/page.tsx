@@ -24,7 +24,7 @@ import {
 import { datumMittel, datumKurz } from '@/lib/format';
 import { PTS, berlinTag, bierdeckelOffen, abschlussOffen, abschlussAb, ABEND_ENDE_UHRZEIT } from '@/lib/punkte';
 import { nowIso } from '@/lib/ids';
-import { Card, Icon, Chip, Kachel, Zeile, ZeilenKarte, KlappenKopf } from '@/components/ds';
+import { Icon, Chip, Kachel, Zeile, ZeilenKarte, KlappenKopf } from '@/components/ds';
 import { neuerTermin, wirtshausFestlegen, phaseSetzen, besuchAbschliessen, meineBewertung, orgaSchnappen, terminVerschieben } from './actions';
 import { type AbschlussWerte } from './abschluss-form';
 import { MeiBewertung } from '@/components/domain/MeiBewertung';
@@ -42,6 +42,8 @@ import { WerKommtKarte } from '@/components/domain/WerKommtKarte';
 import { OrgaKnopf } from '@/components/domain/OrgaKnopf';
 import { RichtungsKnopf } from '@/components/domain/RichtungsKnopf';
 import { eyebrowStil, titelStil, zeileStil, goldKnopfStil, rundKnopfStil, bereichHinweisStil, feldStil, feldLabelStil } from '@/components/domain/hero-stil';
+import { HeroBand } from '@/components/domain/HeroBand';
+import { navigationsUrl } from '@/lib/google-maps';
 
 const dez = (n: number) => n.toFixed(1).replace('.', ',');
 
@@ -81,13 +83,63 @@ function Hinweis({ children }: { children: React.ReactNode }) {
 
 const karteStil: React.CSSProperties = { background: 'var(--weiss)', borderRadius: 'var(--r-lg)', border: '1px solid var(--ink-100)', boxShadow: 'var(--sh-sm)', padding: 16, display: 'flex', flexDirection: 'column', gap: 14 };
 
-/** Navy-Gold-Karte: Rautenband oben, Inhalt mit 14er Abstand. */
-function HeroKarte({ children }: { children: React.ReactNode }) {
+/** Navy-Gold-Karte mit Rautenband, ab Tablet das Band mit dem Wirtshaus-Foto. */
+function HeroKarte({ bild = null, children }: { bild?: string | null; children: React.ReactNode }) {
+  return <HeroBand bild={bild} pad="14px 20px 18px">{children}</HeroBand>;
+}
+
+/** Fester Platz in der Handy-Reihenfolge; ab Tablet stehen die Teile in zwei Spalten. */
+function Platz({ n, children }: { n: number; children: React.ReactNode }) {
+  return <div style={{ order: n, display: 'flex', flexDirection: 'column', gap: 12, minWidth: 0 }}>{children}</div>;
+}
+
+const kartenTitel: React.CSSProperties = { margin: 0, fontFamily: 'var(--font-fraktur)', fontWeight: 400, fontSize: 26, lineHeight: 1, color: 'var(--navy)' };
+
+/** Bierdeckel-Vorschau vor dem Abend (Responsive 2a): stricheln geht erst am Tisch. */
+function DeckelVorschau({ wann }: { wann: string }) {
   return (
-    <Card tone="dark" framed pad={0} style={{ overflow: 'hidden', boxShadow: 'var(--sh-lg)' }}>
-      <div className="wn-raute wn-raute--sm" style={{ height: 8 }} />
-      <div style={{ padding: '14px 20px 18px', display: 'flex', flexDirection: 'column', gap: 14 }}>{children}</div>
-    </Card>
+    <section style={karteStil}>
+      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 8 }}>
+        <h2 style={kartenTitel}>Bierdeckel</h2>
+        <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink-500)' }}>{wann}</span>
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/bierdeckel.webp" alt="" width={88} height={88} style={{ width: 88, height: 88, borderRadius: '50%', flex: 'none', boxShadow: 'var(--sh-md)' }} />
+        <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink-500)' }}>Stricheln geht erst am Tisch.</span>
+          <span aria-disabled style={{ minHeight: 42, borderRadius: 12, border: '1.5px solid var(--ink-100)', color: 'var(--ink-300)', fontSize: 14, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+            <Icon name="lock" size={15} />
+            Deckel öffnen
+          </span>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/** Das Wirtshaus vom Termin (Responsive 2a): Adresse, Bier, Route und Anrufen. */
+function WirtshausKarte({ w, ort }: { w: { name: string; adresse: string | null; bezirk: string | null; biersorte: string; weissbier: string | null; telefon: string | null; lat: number | null; lng: number | null }; ort: string | null }) {
+  const knopf: React.CSSProperties = { minHeight: 42, padding: '0 16px', borderRadius: 12, border: '1.5px solid var(--ink-200)', background: 'var(--weiss)', color: 'var(--navy)', fontSize: 14, fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: 8, textDecoration: 'none' };
+  const zeile: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 10, fontSize: 14, fontWeight: 600, color: 'var(--ink-700)' };
+  return (
+    <section style={karteStil}>
+      <h2 style={kartenTitel}>{w.name}</h2>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {(w.adresse || w.bezirk) && <span style={zeile}><Icon name="pin" size={16} color="var(--gold-700)" />{w.adresse ?? w.bezirk}</span>}
+        <span style={zeile}><Icon name="beer" size={16} color="var(--gold-700)" />{[w.biersorte, w.weissbier ? `Weißbier: ${w.weissbier}` : null].filter(Boolean).join(' · ')}</span>
+      </div>
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        <a href={navigationsUrl({ name: w.name, adresse: w.adresse, lat: w.lat, lng: w.lng }, ort)} target="_blank" rel="noopener noreferrer" className="wn-press" style={knopf}>
+          <Icon name="navigation" size={16} />Route
+        </a>
+        {w.telefon && (
+          <a href={`tel:${w.telefon.replace(/[^+\d]/g, '')}`} className="wn-press" style={knopf}>
+            <Icon name="bell" size={16} />Anrufen
+          </a>
+        )}
+      </div>
+    </section>
   );
 }
 
@@ -148,15 +200,87 @@ export default async function TerminPage({ searchParams }: { searchParams: Promi
       }
     : null;
 
+  // Letzter Abend: solang’s Nachtrags-Fenster offen is und i dabei war (am Abend selber ned, da zählt der Deckel)
+  const letzterAbend = nachtrag && meinLetzter?.anwesend && !abend ? (() => {
+    const daten = bewertungsDaten(besucheLetzter, me.id);
+    const stammhausAbend = istStammhaus(nachtragWirtshaus?.id);
+    const bewertet = stammhausAbend ? daten.initial.kaisiProbiert || daten.initial.brodnGessen || !!daten.initial.kommentar : daten.initial.sterne != null;
+    return (
+      <section style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <HoamTitel action={<span style={bereichHinweisStil}>{nachtragWirtshaus?.name ?? 'Stammtisch'} · {datumKurz(nachtrag.datum)}</span>}>Letzter Abend</HoamTitel>
+        <LetzterAbendKarte
+          deckel={{
+            zeile: `${meinLetzter.hoiben} Bier${config.features.schnaps ? ` · ${meinLetzter.schnaps} Schnaps` : ''}`,
+            restTage: nachtragRestTage,
+            inhalt: (
+              <Bierdeckel
+                terminId={nachtrag.id}
+                biersorte={nachtragWirtshaus?.biersorte ?? null}
+                initialHoiben={meinLetzter.hoiben}
+                initialWeissbier={meinLetzter.weissbier}
+                initialSchnaps={meinLetzter.schnaps}
+                initialFlags={{ taxi: meinLetzter.taxi, brodn: meinLetzter.schweinsbraten > 0, kaisi: meinLetzter.kaiserschmarrn > 0, rundenBier: meinLetzter.rundenBier, rundenSchnaps: meinLetzter.rundenSchnaps, hoibenAusgegeben: meinLetzter.hoibenAusgegeben, schnapsAusgegeben: meinLetzter.schnapsAusgegeben }}
+                schnapsAn={config.features.schnaps}
+                rundenErlaubt={false}
+                ausgegebenVon={ausgegebenVon(nachtrag.id, me.id)}
+                spezln={[]}
+                kopfKurz={`Deckel vom ${datumKurz(nachtrag.datum)}`}
+                kopf={
+                  <HeroKopf
+                    eyebrow={`Dein Deckel vom ${datumKurz(nachtrag.datum)}`}
+                    titel={nachtragWirtshaus?.name ?? 'Stammtisch'}
+                    zeile={`Eigene Striche richten, noch ${nachtragRestTage} ${nachtragRestTage === 1 ? 'Tag' : 'Tage'}`}
+                  />
+                }
+              />
+            ),
+          }}
+          wertung={{
+            zeile: bewertet
+              ? stammhausAbend ? 'abgegeben' : `${dez(daten.initial.sterne ?? 0)} ★${daten.team.anzahl > 1 ? ` · Team Ø ${dez(daten.team.schnitt)}` : ''}`
+              : `noch nicht bewertet${stammhausAbend ? '' : ` · +${PTS.bewertung} WP`}`,
+            inhalt: (
+              <MeiBewertung
+                variante="abend"
+                wirtshausName={null}
+                initial={daten.initial}
+                team={daten.team}
+                action={meineBewertung.bind(null, nachtrag.id)}
+                ohneSterne={stammhausAbend}
+              />
+            ),
+          }}
+        />
+      </section>
+    );
+  })() : null;
+
+  const chronikTeil = chronik.length > 0 ? (
+    <section style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <HoamTitel action={<Link href="/karte" style={bereichHinweisStil}>alle im Archiv</Link>}>Chronik</HoamTitel>
+      <ChronikListe eintraege={chronik} />
+    </section>
+  ) : null;
+
+  // Letzter Abend und Chronik stehen ab Tablet links unten
+  const unten = (
+    <>
+      {letzterAbend && <Platz n={50}>{letzterAbend}</Platz>}
+      {chronikTeil && <Platz n={51}>{chronikTeil}</Platz>}
+    </>
+  );
+
   return (
-    <div className="wn-eintritt" style={{ padding: '20px 16px 32px', display: 'flex', flexDirection: 'column', gap: 28 }}>
+    <div className="wn-eintritt wn-zwei wn-breit" style={{ padding: '20px 16px 32px', display: 'flex', flexDirection: 'column', gap: 28 }}>
       {termin ? (
-        <AktiverTermin terminId={termin.id} meId={me.id} isAdmin={me.role === 'admin'} nachtragOrga={nachtragOrga} deckelVoll={deckelParam === 'voll'} />
+        <AktiverTermin terminId={termin.id} meId={me.id} isAdmin={me.role === 'admin'} nachtragOrga={nachtragOrga} deckelVoll={deckelParam === 'voll'} unten={unten} />
       ) : (
         <>
           <HeroKarte>
             <HeroKopf eyebrow="Nächster Stammtisch" titel="Noch nix ausgemacht" zeile="Wer abgeschlossen hat, legt den nächsten Termin fest." />
           </HeroKarte>
+          <div className="wn-spalte wn-spalte--l">
+          <Platz n={1}>
           <section style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             <HoamTitel>Neuer Termin</HoamTitel>
             <form action={neuerTermin} style={karteStil}>
@@ -174,70 +298,15 @@ export default async function TerminPage({ searchParams }: { searchParams: Promi
               <Hinweis>Alle bekommen Bescheid, den Organisator-Posten schnappt sich danach wer mag.</Hinweis>
             </form>
           </section>
-          {nachtragOrga && <OrganisationKarte hint="Präsident · Admin" nachtrag={nachtragOrga} />}
+          </Platz>
+          {unten}
+          </div>
+          {nachtragOrga && (
+            <div className="wn-spalte wn-spalte--r">
+              <Platz n={2}><OrganisationKarte hint="Präsident · Admin" nachtrag={nachtragOrga} /></Platz>
+            </div>
+          )}
         </>
-      )}
-
-      {/* Letzter Abend: solang’s Nachtrags-Fenster offen is und i dabei war (am Abend selber ned, da zählt der Deckel) */}
-      {nachtrag && meinLetzter?.anwesend && !abend && (() => {
-        const daten = bewertungsDaten(besucheLetzter, me.id);
-        const stammhausAbend = istStammhaus(nachtragWirtshaus?.id);
-        const bewertet = stammhausAbend ? daten.initial.kaisiProbiert || daten.initial.brodnGessen || !!daten.initial.kommentar : daten.initial.sterne != null;
-        return (
-          <section style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            <HoamTitel action={<span style={bereichHinweisStil}>{nachtragWirtshaus?.name ?? 'Stammtisch'} · {datumKurz(nachtrag.datum)}</span>}>Letzter Abend</HoamTitel>
-            <LetzterAbendKarte
-              deckel={{
-                zeile: `${meinLetzter.hoiben} Bier${config.features.schnaps ? ` · ${meinLetzter.schnaps} Schnaps` : ''}`,
-                restTage: nachtragRestTage,
-                inhalt: (
-                  <Bierdeckel
-                    terminId={nachtrag.id}
-                    biersorte={nachtragWirtshaus?.biersorte ?? null}
-                    initialHoiben={meinLetzter.hoiben}
-                    initialWeissbier={meinLetzter.weissbier}
-                    initialSchnaps={meinLetzter.schnaps}
-                    initialFlags={{ taxi: meinLetzter.taxi, brodn: meinLetzter.schweinsbraten > 0, kaisi: meinLetzter.kaiserschmarrn > 0, rundenBier: meinLetzter.rundenBier, rundenSchnaps: meinLetzter.rundenSchnaps, hoibenAusgegeben: meinLetzter.hoibenAusgegeben, schnapsAusgegeben: meinLetzter.schnapsAusgegeben }}
-                    schnapsAn={config.features.schnaps}
-                    rundenErlaubt={false}
-                    ausgegebenVon={ausgegebenVon(nachtrag.id, me.id)}
-                    spezln={[]}
-                    kopfKurz={`Deckel vom ${datumKurz(nachtrag.datum)}`}
-                    kopf={
-                      <HeroKopf
-                        eyebrow={`Dein Deckel vom ${datumKurz(nachtrag.datum)}`}
-                        titel={nachtragWirtshaus?.name ?? 'Stammtisch'}
-                        zeile={`Eigene Striche richten, noch ${nachtragRestTage} ${nachtragRestTage === 1 ? 'Tag' : 'Tage'}`}
-                      />
-                    }
-                  />
-                ),
-              }}
-              wertung={{
-                zeile: bewertet
-                  ? stammhausAbend ? 'abgegeben' : `${dez(daten.initial.sterne ?? 0)} ★${daten.team.anzahl > 1 ? ` · Team Ø ${dez(daten.team.schnitt)}` : ''}`
-                  : `noch nicht bewertet${stammhausAbend ? '' : ` · +${PTS.bewertung} WP`}`,
-                inhalt: (
-                  <MeiBewertung
-                    variante="abend"
-                    wirtshausName={null}
-                    initial={daten.initial}
-                    team={daten.team}
-                    action={meineBewertung.bind(null, nachtrag.id)}
-                    ohneSterne={stammhausAbend}
-                  />
-                ),
-              }}
-            />
-          </section>
-        );
-      })()}
-
-      {chronik.length > 0 && (
-        <section style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <HoamTitel action={<Link href="/karte" style={bereichHinweisStil}>alle im Archiv</Link>}>Chronik</HoamTitel>
-          <ChronikListe eintraege={chronik} />
-        </section>
       )}
     </div>
   );
@@ -250,6 +319,7 @@ async function AktiverTermin({
   isAdmin,
   nachtragOrga,
   deckelVoll = false,
+  unten = null,
 }: {
   terminId: string;
   meId: string;
@@ -257,6 +327,8 @@ async function AktiverTermin({
   nachtragOrga: React.ComponentProps<typeof OrganisationKarte>['nachtrag'];
   /** Vom Hoam-Deckel aus (/termin?deckel=voll): Deckel geht gleich im Vollbild auf */
   deckelVoll?: boolean;
+  /** Letzter Abend und Chronik, ab Tablet links unten */
+  unten?: React.ReactNode;
 }) {
   const termin = getAktuellerTermin();
   if (!termin || termin.id !== terminId) return null;
@@ -316,6 +388,8 @@ async function AktiverTermin({
 
     return (
       <>
+        <div className="wn-spalte wn-spalte--l">
+        <Platz n={1}>
         <Bierdeckel
           terminId={termin.id}
           startVoll={deckelVoll}
@@ -346,15 +420,22 @@ async function AktiverTermin({
             />
           }
         />
+        </Platz>
+        {unten}
+        </div>
 
+        <div className="wn-spalte wn-spalte--r">
         {/* Mei Wertung, jeder für sich, scho am Abend (bis 7 Tag nach’m Abschluss) */}
+        <Platz n={2}>
         <section style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <HoamTitel action={<span style={bereichHinweisStil}>{bewertet ? '✓ abgegeben' : stammhausAbend ? 'Brodn? Schmarrn?' : 'jeder für sich'}</span>}>Deine Wertung</HoamTitel>
           <MeiBewertung variante="abend" wirtshausName={null} initial={daten.initial} team={daten.team} action={meineBewertung.bind(null, termin.id)} ohneSterne={stammhausAbend} />
         </section>
+        </Platz>
 
         {/* Anmeldung no offen (Uhrzeit is rum, aber koaner hat gschlossen): Zeile mit Abstimmung drunter */}
         {termin.phase === 'reserviert' && (
+          <Platz n={3}>
           <WerKommtKarte anzahl={dabei.length}>
             <AbstimmungKarte terminId={termin.id} terminDatum={termin.datum} meinVote={meinVote} dabei={dabei} offen={offen} abgesagt={abgesagt} fristHinweis={fristHinweis} />
             {darfVerwalten && heuteTag && (
@@ -365,11 +446,12 @@ async function AktiverTermin({
               </form>
             )}
           </WerKommtKarte>
+          </Platz>
         )}
 
         {/* Wer war da + nächster Termin: die eine Hauptaktion, frühestens 2 Stunden nach Beginn.
             Der Abend bleibt dabei offen, er schließt sich um 3 Uhr früh von allein. */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <div style={{ order: 4, display: 'flex', flexDirection: 'column', gap: 8 }}>
           {termin.erfasstVon ? (
             <>
               <div style={{ ...karteStil, gap: 6 }}>
@@ -405,6 +487,7 @@ async function AktiverTermin({
             </>
           )}
         </div>
+        </div>
       </>
     );
   }
@@ -422,9 +505,12 @@ async function AktiverTermin({
     ? { action: wirtshausFestlegen.bind(null, termin.id), bekannte: getBekannteWirtshaeuser(), aktuell: { name: wirtshaus.name, bezirk: wirtshaus.bezirk } }
     : null;
 
+  const ort = config.geo?.suchSuffix ?? null;
+  const deckelWann = `${heuteTag ? 'heute' : datumMittel(termin.datum)} ab ${termin.zeit} Uhr`;
+
   return (
     <>
-      <HeroKarte>
+      <HeroKarte bild={wirtshaus?.photoUrl ?? null}>
         <HeroKopf
           eyebrow={`${heuteTag ? 'Heute' : datumMittel(termin.datum)} · ${termin.zeit} Uhr`}
           titel={titel}
@@ -436,14 +522,10 @@ async function AktiverTermin({
         )}
       </HeroKarte>
 
-      {orgaFrei && gesperrt && (
-        <ZeilenKarte>
-          <Zeile kachel={<Kachel ton="grau"><Icon name="lock" size={19} /></Kachel>} titel="Diesmal nicht du" untertitel="Du hast den letzten Abend organisiert" pfeil={false} letzte />
-        </ZeilenKarte>
-      )}
-
+      <div className="wn-spalte wn-spalte--l">
       {/* Reservieren: die eigene Aufgabe direkt unter der Karte (2c) */}
       {planung && termin.planerId && darfVerwalten && (
+        <Platz n={2}>
         <section style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <HoamTitel action={<span style={bereichHinweisStil}>{ichPlane ? 'deine Aufgabe' : 'Orga-Team'}</span>}>Reservieren</HoamTitel>
           {stammhaus ? (
@@ -493,17 +575,43 @@ async function AktiverTermin({
             </div>
           )}
         </section>
+        </Platz>
       )}
 
       {/* Abstimmung: sobald wer organisiert (geht scho vor der Reservierung) */}
       {!orgaFrei && (
+        <Platz n={3}>
         <section style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <HoamTitel action={<span style={bereichHinweisStil}>{stimmeHint}</span>}>Abstimmung</HoamTitel>
           <AbstimmungKarte terminId={termin.id} terminDatum={termin.datum} meinVote={meinVote} dabei={dabei} offen={offen} abgesagt={abgesagt} fristHinweis={fristHinweis} />
         </section>
+        </Platz>
+      )}
+      {unten}
+      </div>
+
+      <div className="wn-spalte wn-spalte--r">
+      {orgaFrei && gesperrt && (
+        <Platz n={1}>
+        <ZeilenKarte>
+          <Zeile kachel={<Kachel ton="grau"><Icon name="lock" size={19} /></Kachel>} titel="Diesmal nicht du" untertitel="Du hast den letzten Abend organisiert" pfeil={false} letzte />
+        </ZeilenKarte>
+        </Platz>
       )}
 
-      <OrganisationKarte hint={orgaRollen} anmeldungSchliessen={anmeldungSchliessen} reservierung={reservierung} verschieben={verschieben} nachtrag={nachtragOrga} />
+      <Platz n={4}>
+        <OrganisationKarte hint={orgaRollen} anmeldungSchliessen={anmeldungSchliessen} reservierung={reservierung} verschieben={verschieben} nachtrag={nachtragOrga} />
+      </Platz>
+      {/* Nur breit: Deckel-Vorschau und das Wirtshaus (Responsive 2a) */}
+      <div className="wn-nur-breit" style={{ order: 5 }}>
+        <DeckelVorschau wann={deckelWann} />
+      </div>
+      {wirtshaus && (
+        <div className="wn-nur-breit" style={{ order: 6 }}>
+          <WirtshausKarte w={wirtshaus} ort={ort} />
+        </div>
+      )}
+      </div>
     </>
   );
 }

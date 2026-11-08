@@ -14,7 +14,7 @@ export type TabDef = { href: string; label: string; icon: PhosphorIcon };
 
 /** Wandernder Stammtisch (Gründer): Karte mit Archiv. Icons und Labels wia im Design (Menü 1c). */
 export const TABS_WANDERND: TabDef[] = [
-  { href: '/', label: 'Hoam', icon: HouseLine },
+  { href: '/', label: 'Dahoam', icon: HouseLine },
   { href: '/termin', label: 'Termin', icon: CalendarCheck },
   { href: '/karte', label: 'Karte', icon: MapPin },
   { href: '/spezln', label: 'Rang', icon: Trophy },
@@ -33,6 +33,7 @@ export function TabBar({ tabs = TABS_WANDERND }: { tabs?: TabDef[] }) {
   const pathname = usePathname();
   return (
     <nav
+      className="wn-nur-handy"
       style={{
         flex: 'none',
         background: 'var(--navy-900)',

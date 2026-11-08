@@ -3,6 +3,8 @@ import { anzeigeName } from '@/lib/namen';
 import { getSaldo, getKasseEintraege, getOffeneStrafen, getAktiveMitglieder, getKassenwartId, getPraesidentId } from '@/lib/queries';
 import { tenantConfig } from '@/lib/tenant-config';
 import { euro, datumMitJahr } from '@/lib/format';
+import Link from 'next/link';
+import { Gavel } from '@phosphor-icons/react/dist/ssr/Gavel';
 import { Avatar, Icon, ZeilenKarte } from '@/components/ds';
 import { HoamTitel } from '@/components/domain/HoamTitel';
 import { KasseAktionen } from '@/components/domain/KasseAktionen';
@@ -57,9 +59,9 @@ export default async function KassePage() {
   const kassenwartName = kassenwart ? vorname(anzeigeName(kassenwart)) : null;
 
   return (
-    <div className="wn-eintritt" style={{ padding: 'calc(16px + var(--wn-oben)) 16px 32px', display: 'flex', flexDirection: 'column', gap: 24 }}>
-      {/* Kassenstand */}
-      <div style={{ borderRadius: 22, background: 'radial-gradient(120% 90% at 50% 20%, #1B4C8A 0%, #0C2B5A 55%, #07193A 100%)', color: 'var(--pergament)', border: '1.5px solid var(--gold)', overflow: 'hidden', boxShadow: 'var(--sh-lg)' }}>
+    <div className="wn-eintritt wn-zwei wn-breit" style={{ padding: 'calc(16px + var(--wn-oben)) 16px 32px', display: 'flex', flexDirection: 'column', gap: 24 }}>
+      {/* Kassenstand (ab Tablet über die ganze Breite) */}
+      <div className="wn-zwei-voll" style={{ borderRadius: 22, background: 'radial-gradient(120% 90% at 50% 20%, #1B4C8A 0%, #0C2B5A 55%, #07193A 100%)', color: 'var(--pergament)', border: '1.5px solid var(--gold)', overflow: 'hidden', boxShadow: 'var(--sh-lg)' }}>
         <div className="wn-raute wn-raute--sm" style={{ height: 8 }} />
         <div style={{ padding: 18, display: 'flex', flexDirection: 'column', gap: 6 }}>
           <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--gold)' }}>Kassenstand</span>
@@ -85,7 +87,10 @@ export default async function KassePage() {
         </div>
       </div>
 
+      {/* Ab Tablet: links das Kassenbuch, rechts Eigenes, Aktionen, Offenes und der Katalog (Responsive 4a) */}
+      <div className="wn-spalte wn-spalte--r">
       {/* Eigene offene Forderung oder „sauber“ */}
+      <div style={{ order: 1 }}>
       {meineOffenen.length > 0 ? (
         <div style={{ borderRadius: 20, background: 'var(--strafe-bg)', border: '1.5px solid rgba(192,57,43,0.35)', padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -116,7 +121,9 @@ export default async function KassePage() {
           <span style={{ fontSize: 14, fontWeight: 800, color: 'var(--erfolg)' }}>Du bist sauber, nichts offen.</span>
         </div>
       )}
+      </div>
 
+      <div style={{ order: 2 }}>
       <KasseAktionen
         mitglieder={mitglieder.map((m) => ({ id: m.id, name: anzeigeName(m), photoUrl: m.photoUrl, verein: m.verein }))}
         meId={me.id}
@@ -125,10 +132,48 @@ export default async function KassePage() {
         darfKatalog={darfErlassen}
         actions={{ strafeBuchen: strafeBuchenAction, spenden, auslage, einzahlung, ausgabe }}
       />
+      </div>
 
+      {/* Nur breit: alles Offene auf einen Blick und der Strafenkatalog */}
+      <section className="wn-nur-breit" style={{ order: 4, ...karteBreit }}>
+        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 8 }}>
+          <h2 style={breitTitel}>Offen</h2>
+          <span className="wn-tnum" style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink-500)' }}>{offene.length}</span>
+        </div>
+        {offene.length === 0 && <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink-500)' }}>Nix offen, alles beglichen.</span>}
+        {offene.map(({ eintrag, member }, i) => (
+          <div key={eintrag.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderTop: i > 0 ? '1px solid var(--ink-50)' : 'none' }}>
+            {member ? <Avatar src={member.photoUrl} name={member.name} size={34} verein={member.verein} /> : null}
+            <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 1 }}>
+              <span style={{ fontSize: 14, fontWeight: 800, color: 'var(--ink-900)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{member ? (member.id === me.id ? 'Du' : vorname(anzeigeName(member))) : 'Vereinskasse'}</span>
+              <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink-500)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{eintrag.grund}</span>
+            </span>
+            <span className="wn-tnum" style={{ flex: 'none', fontSize: 14, fontWeight: 800, color: 'var(--strafe)' }}>{euro(Math.abs(eintrag.betragCents))}</span>
+            {darfKasse && <StatusKnopf id={eintrag.id} status="beglichen" label="Beglichen" farbe="var(--navy)" />}
+          </div>
+        ))}
+      </section>
+      <section className="wn-nur-breit" style={{ order: 5, ...karteBreit }}>
+        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 8 }}>
+          <h2 style={breitTitel}>Strafenkatalog</h2>
+          <span className="wn-tnum" style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink-500)' }}>{regeln.filter((r) => r.aktiv).length}</span>
+        </div>
+        {regeln.filter((r) => r.aktiv).slice(0, 6).map((r, i) => (
+          <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 0', borderTop: i > 0 ? '1px solid var(--ink-50)' : 'none', fontSize: 13, fontWeight: 700, color: 'var(--ink-900)' }}>
+            <Gavel size={15} weight="fill" color="var(--gold-700)" style={{ flex: 'none' }} />
+            <span style={{ minWidth: 0 }}>{r.name} · <span style={{ color: 'var(--ink-500)' }}>{folgeWort(r.betragCents, -(r.wpStaffel[0] ?? 0))}</span></span>
+          </div>
+        ))}
+        <Link href="/stammtisch" className="wn-press" style={{ minHeight: 42, borderRadius: 12, border: '1.5px solid var(--ink-200)', color: 'var(--navy)', fontSize: 14, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, textDecoration: 'none' }}>
+          Alle Strafen
+          <Icon name="chevron" size={15} />
+        </Link>
+      </section>
+      </div>
 
+      <div className="wn-spalte wn-spalte--l">
       {/* Kassenbuch: alles aus Sicht der Kasse */}
-      <section style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <section style={{ order: 3, display: 'flex', flexDirection: 'column', gap: 12 }}>
         <HoamTitel action={<span style={bereichHinweisStil}>aus Sicht der Kasse</span>}>Kassenbuch</HoamTitel>
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', padding: '0 4px' }}>
           <span style={{ fontSize: 11, fontWeight: 800, padding: '4px 10px', borderRadius: 999, background: 'var(--erfolg-bg)', color: 'var(--erfolg)', whiteSpace: 'nowrap' }}>+ kommt rein</span>
@@ -206,9 +251,13 @@ export default async function KassePage() {
           })}
         </ZeilenKarte>
       </section>
+      </div>
     </div>
   );
 }
+
+const karteBreit: React.CSSProperties = { background: 'var(--weiss)', borderRadius: 'var(--r-lg)', border: '1px solid var(--ink-100)', boxShadow: 'var(--sh-sm)', padding: 18, display: 'flex', flexDirection: 'column', gap: 6 };
+const breitTitel: React.CSSProperties = { margin: 0, fontFamily: 'var(--font-fraktur)', fontWeight: 400, fontSize: 26, lineHeight: 1, color: 'var(--navy)' };
 
 function KleinKnopf({ action, label, farbe }: { action: () => Promise<void>; label: string; farbe: string }) {
   return (

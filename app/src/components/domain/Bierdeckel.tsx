@@ -783,6 +783,7 @@ export function Bierdeckel({
 
       {/* Der Tisch: dunkle Karte mit Rautenband; im Vollbild derselbe Tisch über der ganzen App */}
       <div
+        className={voll ? 'wn-fenster wn-buehne' : undefined}
         style={
           voll
             ? { position: 'fixed', inset: 0, zIndex: 70, maxWidth: 'var(--container-app)', margin: '0 auto', background: 'radial-gradient(120% 80% at 50% 45%, #1B4C8A 0%, #0C2B5A 52%, #07193A 100%)', color: 'var(--pergament)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14, padding: 'calc(16px + var(--wn-oben)) 18px calc(28px + env(safe-area-inset-bottom))' }

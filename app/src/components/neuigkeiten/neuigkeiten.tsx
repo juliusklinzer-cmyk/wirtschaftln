@@ -147,7 +147,7 @@ export function Neuigkeiten({ stammtischName, schnapsnase }: { stammtischName: s
       bild: <BildBuchen />,
       punkte: [
         { Icon: CheckSquare, titel: 'Am Zettel „Wer war da“', text: 'Strafe hinzufügen: wer, welche, buchen. Und erstmal sind jetzt alle als da markiert.' },
-        { Icon: Coins, titel: 'Alles im Kassenbuch', text: 'Strafen mit Geld stehen rot markiert im Kassenbuch, Strafen mit WP in eurer Abend-Auswertung auf Hoam.' },
+        { Icon: Coins, titel: 'Alles im Kassenbuch', text: 'Strafen mit Geld stehen rot markiert im Kassenbuch, Strafen mit WP in eurer Abend-Auswertung auf Dahoam.' },
       ],
     },
     {

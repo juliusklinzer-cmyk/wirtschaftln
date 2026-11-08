@@ -471,3 +471,307 @@ details[open] > summary .wn-klappe-pfeil {
     transform: rotate(90deg);
   }
 }
+
+/* ============================================================
+   Responsive (Responsive Redesign, 08.11.2026): am Handy bleibt alles
+   wia's is. Ab 768 px (Tablet) wird d'App breit: Tabs oben im Kopf, die
+   Tab-Leiste unten fällt weg, Fenster und Blätter stehen zentriert.
+   Ab 1100 px (Desktop) hat Dahoam drei Spalten.
+   ============================================================ */
+:root {
+  --container-rahmen: var(--container-app);
+  /* Kopf am Tablet/Desktop: Rautenband 8 + Zeile 76 */
+  --wn-kopf-h: calc(84px + var(--wn-oben));
+  --wn-seite-breite: 1270px;
+}
+
+/* Hero-Band (Dahoam, Termin): am Handy die Navy-Karte mit Goldrand */
+.wn-hero {
+  background: var(--grad-navy);
+  color: var(--pergament);
+  border: 1.5px solid var(--gold);
+  border-radius: var(--r-lg);
+  box-shadow: var(--sh-lg);
+  overflow: hidden;
+}
+.wn-hero-inhalt {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+/* Leere Hinweis-Zeile (koa Push-Frage, koa Installieren) frisst koan Abstand */
+.wn-hinweise:empty {
+  display: none;
+}
+
+@media (max-width: 767.98px) {
+  .wn-nur-breit {
+    display: none !important;
+  }
+  /* Spalten-Hüllen gibt's am Handy ned, ihre Kinder stehen direkt in der Seite (Reihenfolge per order) */
+  .wn-spalte {
+    display: contents !important;
+  }
+}
+@media (max-width: 1099.98px) {
+  .wn-nur-desktop {
+    display: none !important;
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .wn-eintritt > .wn-spalte > * { animation: wnEintritt 340ms cubic-bezier(0.23, 1, 0.32, 1) backwards; }
+}
+
+@keyframes wnFensterAuf {
+  from { transform: translateY(14px); opacity: 0; }
+}
+@media (min-width: 768px) {
+  :root {
+    --container-rahmen: none;
+  }
+  .wn-nur-handy {
+    display: none !important;
+  }
+
+  /* Seiten ohne eigenes Breit-Layout bleiben a ruhige Spalte in der Mitte */
+  .wn-flaeche > :not(header):not(.wn-breit) {
+    width: 100%;
+    max-width: 760px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  /* Kopf mit Tabs */
+  .wn-kopf-breit {
+    position: relative;
+    z-index: 20;
+    flex: none;
+    background: var(--navy-900);
+    color: var(--pergament);
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  /* Liegt a Hero-Band drunter (Dahoam, Termin), schaut der Kopf durch aufs Foto */
+  .wn-flaeche:has(.wn-hero) > .wn-kopf-breit {
+    background: transparent;
+  }
+  .wn-kopf-zeile {
+    max-width: calc(var(--wn-seite-breite) + 48px);
+    margin: 0 auto;
+    height: calc(76px + var(--wn-oben));
+    padding: var(--wn-oben) 24px 0;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  .wn-kopf-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    height: 40px;
+    padding: 0 16px;
+    border-radius: 999px;
+    color: rgba(246, 240, 226, 0.78);
+    font-size: 14px;
+    font-weight: 700;
+    text-decoration: none;
+    transition: background var(--dur-base), color var(--dur-base);
+  }
+  .wn-kopf-tab:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--pergament);
+  }
+  .wn-kopf-tab[aria-current='page'] {
+    background: rgba(255, 255, 255, 0.12);
+    color: var(--gold-bright);
+  }
+
+  /* Breite Seiten: zentrierter Rahmen, das Hero-Band läuft über die ganze Breite */
+  .wn-breit {
+    width: 100%;
+    max-width: calc(var(--wn-seite-breite) + 48px);
+    margin: 0 auto;
+    padding: 32px 24px 48px !important;
+    box-sizing: border-box;
+  }
+  .wn-hero {
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+    margin-top: calc(-1 * var(--wn-kopf-h) - 32px);
+    margin-left: calc(50% - 50vw);
+    margin-right: calc(50% - 50vw);
+    background:
+      linear-gradient(90deg, rgba(7, 25, 58, 0.9) 0%, rgba(7, 25, 58, 0.62) 50%, rgba(7, 25, 58, 0.3) 100%),
+      linear-gradient(180deg, rgba(12, 43, 90, 0.35) 0%, rgba(7, 25, 58, 0.8) 100%),
+      var(--wn-hero-bild, var(--wn-hero-ersatz, none)) center / cover no-repeat,
+      var(--grad-navy);
+  }
+  body.wn-muenchen .wn-hero {
+    --wn-hero-ersatz: url('/brand/munich-alps-panorama.jpg');
+  }
+  .wn-hero > .wn-raute {
+    display: none;
+  }
+  .wn-hero-inhalt {
+    max-width: calc(var(--wn-seite-breite) + 48px);
+    margin: 0 auto;
+    padding: calc(var(--wn-kopf-h) + 24px) 24px 36px !important;
+  }
+  .wn-hero-inhalt > * {
+    max-width: 620px;
+  }
+  .wn-hero-inhalt h2 {
+    font-size: 52px !important;
+  }
+
+  /* Zwei Spalten (Termin, Kasse): am Tablet untereinander, rechts als Raster */
+  .wn-zwei {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 24px !important;
+    align-items: start;
+  }
+  .wn-spalte {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    min-width: 0;
+  }
+  .wn-zwei > .wn-spalte--r {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+  }
+
+  /* Lexikon/Karte: Kopf mit Ansichten, Karte als Fläche, Liste daneben (am Tablet drunter) */
+  .wn-lex {
+    position: relative !important;
+    inset: auto !important;
+    overflow: visible !important;
+    display: grid;
+    gap: 24px;
+    grid-template-columns: minmax(0, 1fr);
+    align-items: start;
+  }
+  .wn-lex-kopf {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 20px;
+  }
+  .wn-lex-karte {
+    position: relative !important;
+    inset: auto !important;
+    height: 540px;
+    border-radius: 22px;
+    border: 1px solid var(--ink-100);
+    box-shadow: var(--sh-sm);
+  }
+  .wn-lex-kaertchen {
+    right: auto !important;
+    left: 16px !important;
+    bottom: 16px !important;
+    width: min(440px, calc(100% - 32px));
+  }
+
+  /* Dahoam am Tablet: Rang links, Umfragen und Kasse rechts */
+  .wn-dahoam {
+    display: grid !important;
+    gap: 24px !important;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-areas:
+      'hero hero'
+      'hinweis hinweis'
+      'rang mitte'
+      'rang kasse';
+    grid-template-rows: auto auto auto 1fr;
+    align-items: start;
+  }
+  .wn-dahoam > .wn-hero { grid-area: hero; }
+  .wn-dahoam > .wn-hinweise { grid-area: hinweis; }
+  .wn-dahoam > .wn-dahoam-rang { grid-area: rang; }
+  .wn-dahoam > .wn-dahoam-mitte { grid-area: mitte; }
+  .wn-dahoam > .wn-dahoam-kasse { grid-area: kasse; }
+
+  /* Fenster (Vollbild-Ansichten am Handy) und Blätter: zentriert über der Seite */
+  .wn-fenster {
+    inset: 5vh 0 auto 0 !important;
+    margin: 0 auto !important;
+    width: min(var(--wn-fenster-breite, 720px), calc(100vw - 48px)) !important;
+    max-width: none !important;
+    height: auto;
+    max-height: 90vh;
+    border-radius: 24px;
+    overflow-y: auto;
+    box-shadow: 0 0 0 100vmax rgba(7, 25, 58, 0.55), 0 24px 60px rgba(7, 25, 58, 0.45);
+  }
+  /* Feiern brauchen a feste Höhe (Inhalt is darin zentriert) */
+  .wn-fenster.wn-buehne {
+    height: min(880px, 90vh);
+    overflow: hidden;
+  }
+  .wn-sheet-auf {
+    animation-name: wnFensterAuf;
+  }
+  .wn-blatt,
+  .wn-sheet-auf {
+    top: 8vh !important;
+    bottom: auto !important;
+    width: min(560px, calc(100vw - 48px)) !important;
+    max-width: none !important;
+    max-height: 84vh !important;
+    overflow-y: auto;
+    border-radius: 24px !important;
+  }
+  .wn-blatt-huelle {
+    max-width: none !important;
+    align-items: center !important;
+    justify-content: center;
+  }
+  .wn-blatt-huelle > * {
+    width: min(560px, calc(100vw - 48px)) !important;
+    border-radius: 24px !important;
+  }
+}
+
+@media (min-width: 1100px) {
+  .wn-hero-inhalt h2 {
+    font-size: 64px !important;
+  }
+  .wn-zwei {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 520px);
+    grid-auto-flow: row dense;
+  }
+  .wn-zwei > .wn-spalte--l { grid-column: 1; }
+  .wn-zwei > .wn-spalte--r { grid-column: 2; }
+  .wn-lex {
+    grid-template-columns: minmax(0, 1fr) 400px;
+  }
+  .wn-lex-kopf {
+    grid-column: 1 / -1;
+  }
+  .wn-lex-karte {
+    height: max(520px, calc(100dvh - var(--wn-kopf-h) - 200px));
+  }
+  .wn-lex-liste {
+    max-height: max(520px, calc(100dvh - var(--wn-kopf-h) - 200px));
+    overflow-y: auto;
+  }
+  .wn-zwei > .wn-hero,
+  .wn-zwei > .wn-zwei-voll {
+    grid-column: 1 / -1;
+  }
+  .wn-zwei > .wn-spalte--r {
+    display: flex;
+    align-items: stretch;
+  }
+  .wn-dahoam {
+    grid-template-columns: 300px minmax(0, 1fr) 340px;
+    grid-template-areas:
+      'hero hero hero'
+      'rang hinweis kasse'
+      'rang mitte kasse';
+    grid-template-rows: auto auto 1fr;
+  }
+}

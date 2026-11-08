@@ -105,7 +105,7 @@ export function BadgeFeier({ terminId, feiern }: { terminId: string; feiern: Fei
 
   return (
     <div
-      className="wn-feier"
+      className="wn-feier wn-fenster wn-buehne"
       style={{
         position: 'fixed', inset: 0, zIndex: 90, maxWidth: 'var(--container-app)', margin: '0 auto', overflow: 'hidden',
         background: 'radial-gradient(circle at 50% 36%, #123E78 0%, #07193A 70%)', fontFamily: 'var(--font-ui)',

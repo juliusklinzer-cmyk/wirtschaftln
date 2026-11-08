@@ -40,16 +40,6 @@ export function Rangliste({
   const [metrik, setMetrik] = useState<Metrik>('punkte');
   const [detailId, setDetailId] = useState<string | null>(null);
   const [infoKey, setInfoKey] = useState<string | null>(null);
-  // Letzter Jahrgang unterm Träger (Weihnachten & Silvester Redesign 2d): „2026 · Sepp“
-  const jahrgang = (key: string, dunkel: boolean) => {
-    const j = badgeInfos[key]?.jahressieger?.[0];
-    if (!j) return null;
-    return (
-      <span style={{ alignSelf: dunkel ? 'center' : 'flex-start', marginTop: dunkel ? 2 : 4, fontSize: 10, fontWeight: 800, padding: '3px 8px', borderRadius: 99, whiteSpace: 'nowrap', background: dunkel ? 'rgba(230,198,132,0.16)' : 'var(--pergament)', color: dunkel ? 'var(--gold-bright)' : 'var(--gold-700)' }}>
-        {j.jahr} · {j.name}
-      </span>
-    );
-  };
   // Rangwechsel-Animation: nur in der Saison-WP-Ansicht, einmal pro Gerät und Abend
   const wechsel = useRangWechsel(eintraege, letzterTerminId, zeitraum === 'saison' && metrik === 'punkte' && !detailId);
   const ebene = wechsel.t !== null && wechsel.t < ENDE_EBENE && zeitraum === 'saison' && metrik === 'punkte';
@@ -59,7 +49,6 @@ export function Rangliste({
   const detail = detailId ? ranked.find((e) => e.id === detailId) : null;
   const podest = [ranked[1], ranked[0], ranked[2]].filter(Boolean) as SpezlEintrag[];
   const rest = ranked.slice(3);
-  const ich = eintraege.find((e) => e.istIch) ?? null;
   const kurzLabel = zeitraum === 'saison' ? saisonLabel.replace(/^Saison \d+ · /, 'Saison ') : 'Allzeit';
 
   const podestSpalte = (e: SpezlEintrag) => {
@@ -144,6 +133,58 @@ export function Rangliste({
         </ZeilenKarte>
       )}
 
+      <AemterUndBadges eintraege={eintraege} aemter={aemter} galerie={galerie} badgeInfos={badgeInfos} onInfo={setInfoKey} />
+
+      {wechsel.t !== null && wechsel.info && <RangToast info={wechsel.info} t={wechsel.t} onClose={wechsel.stopp} />}
+
+      {detail && (
+        <SpezlDetail
+          e={detail}
+          rank={ranked.indexOf(detail) + 1}
+          s={detail[zeitraum]}
+          zeitraumLabel={kurzLabel}
+          onClose={() => setDetailId(null)}
+          onInfo={setInfoKey}
+        />
+      )}
+      {infoKey && badgeInfos[infoKey] && <BadgeInfo info={badgeInfos[infoKey]} onClose={() => setInfoKey(null)} />}
+    </div>
+  );
+}
+
+/**
+ * Ämter, Saison-Badges und Serien-Abzeichen: auf der Rang-Seite unter der
+ * Liste, am Tablet und Desktop im Fenster „Ämter & Badges“ (Responsive 5a).
+ */
+export function AemterUndBadges({
+  eintraege,
+  aemter,
+  galerie,
+  badgeInfos,
+  onInfo,
+  breit = false,
+}: {
+  eintraege: SpezlEintrag[];
+  aemter: AmtEintrag[];
+  galerie: GalerieBadge[];
+  badgeInfos: Record<string, BadgeInfoDaten>;
+  onInfo: (key: string) => void;
+  /** Im breiten Fenster: Badges in mehr Spalten */
+  breit?: boolean;
+}) {
+  const ich = eintraege.find((e) => e.istIch) ?? null;
+  // Letzter Jahrgang unterm Träger (Weihnachten & Silvester Redesign 2d): „2026 · Sepp“
+  const jahrgang = (key: string, dunkel: boolean) => {
+    const j = badgeInfos[key]?.jahressieger?.[0];
+    if (!j) return null;
+    return (
+      <span style={{ alignSelf: dunkel ? 'center' : 'flex-start', marginTop: dunkel ? 2 : 4, fontSize: 10, fontWeight: 800, padding: '3px 8px', borderRadius: 99, whiteSpace: 'nowrap', background: dunkel ? 'rgba(230,198,132,0.16)' : 'var(--pergament)', color: dunkel ? 'var(--gold-bright)' : 'var(--gold-700)' }}>
+        {j.jahr} · {j.name}
+      </span>
+    );
+  };
+  return (
+    <>
       {/* Die Ämter */}
       <section style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         <HoamTitel action={<span style={bereichHinweisStil}>gewählt & automatisch</span>}>Die Ämter</HoamTitel>
@@ -153,7 +194,7 @@ export function Rangliste({
             const halter = a.holder ? eintraege.find((e) => e.name === a.holder!.name) ?? null : null;
             const modus = a.titel === 'Präsident' ? (a.mode === 'Gewählt' ? 'gewählt · fürs ganze Jahr' : 'automatisch · WP-Rang 1') : a.titel === 'Schriftführer' ? 'automatisch · am öftesten Termin ausgemacht' : a.mode.toLowerCase();
             return (
-              <div key={a.titel} onClick={() => key && setInfoKey(key)} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 0', borderBottom: i < aemter.length - 1 ? '1px solid var(--ink-50)' : 'none', cursor: key ? 'pointer' : 'default' }}>
+              <div key={a.titel} onClick={() => key && onInfo(key)} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 0', borderBottom: i < aemter.length - 1 ? '1px solid var(--ink-50)' : 'none', cursor: key ? 'pointer' : 'default' }}>
                 {a.slug ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={`/brand/badges/${a.slug}.png`} alt={a.patron ?? a.titel} style={{ width: 58, height: 58, borderRadius: '50%', objectFit: 'cover', border: '2px solid var(--gold-bright)', boxShadow: 'var(--sh-gold)', flex: 'none' }} />
@@ -186,13 +227,13 @@ export function Rangliste({
       {/* Saison-Badges mit den echten Grafiken */}
       <section style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         <HoamTitel action={<span style={bereichHinweisStil}>wandern automatisch weiter</span>}>Saison-Badges</HoamTitel>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: breit ? 'repeat(auto-fill, minmax(170px, 1fr))' : '1fr 1fr', gap: 10 }}>
           {galerie.map((b) => {
             const halter = b.holder ? eintraege.find((e) => e.name === b.holder!.name) ?? null : null;
             return (
               <div
                 key={b.key}
-                onClick={() => setInfoKey(b.key)}
+                onClick={() => onInfo(b.key)}
                 className="wn-press"
                 style={{
                   display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, padding: '14px 10px 12px', borderRadius: 'var(--r-lg)', cursor: 'pointer', textAlign: 'center',
@@ -243,27 +284,13 @@ export function Rangliste({
           </div>
         </section>
       )}
-
-      {wechsel.t !== null && wechsel.info && <RangToast info={wechsel.info} t={wechsel.t} onClose={wechsel.stopp} />}
-
-      {detail && (
-        <SpezlDetail
-          e={detail}
-          rank={ranked.indexOf(detail) + 1}
-          s={detail[zeitraum]}
-          zeitraumLabel={kurzLabel}
-          onClose={() => setDetailId(null)}
-          onInfo={setInfoKey}
-        />
-      )}
-      {infoKey && badgeInfos[infoKey] && <BadgeInfo info={badgeInfos[infoKey]} onClose={() => setInfoKey(null)} />}
-    </div>
+    </>
   );
 }
 
 /* ── Spezl-Detail als Vollbild (1b): Navy-Kopf mit Rang, Name in Fraktur und Punkten,
       darunter Zahlen, Auszeichnungen und Steckbrief ── */
-function SpezlDetail({
+export function SpezlDetail({
   e,
   rank,
   s,
@@ -289,7 +316,7 @@ function SpezlDetail({
   ];
   const wackelt = s.unentschuldigtStreak >= 3;
   return (
-    <div className="wn-scroll-still" style={{ position: 'fixed', inset: 0, zIndex: 60, maxWidth: 'var(--container-app)', margin: '0 auto', background: 'var(--ink-50)', overflowY: 'auto', overscrollBehavior: 'contain', animation: 'wnSpezlRein 260ms cubic-bezier(0.32, 0.72, 0, 1) both' }}>
+    <div className="wn-scroll-still wn-fenster" style={{ position: 'fixed', inset: 0, zIndex: 60, maxWidth: 'var(--container-app)', margin: '0 auto', background: 'var(--ink-50)', overflowY: 'auto', overscrollBehavior: 'contain', animation: 'wnSpezlRein 260ms cubic-bezier(0.32, 0.72, 0, 1) both' }}>
       <style>{`
         @keyframes wnSpezlRein { from { transform: translateY(24px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
         @keyframes wnFederPop { 0% { transform: scale(0.4); opacity: 0; } 62% { transform: scale(1.12); opacity: 1; } 100% { transform: scale(1); opacity: 1; } }

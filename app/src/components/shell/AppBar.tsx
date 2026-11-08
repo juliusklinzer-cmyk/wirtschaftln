@@ -19,6 +19,8 @@ import { SignOut } from '@phosphor-icons/react/dist/ssr/SignOut';
 import { X } from '@phosphor-icons/react/dist/ssr/X';
 import { CaretRight } from '@phosphor-icons/react/dist/ssr/CaretRight';
 import type { Icon as PhosphorIcon } from '@phosphor-icons/react/dist/lib/types';
+import { TABS_STAMMHAUS, TABS_WANDERND } from '@/components/shell/TabBar';
+import { EinstellungenFenster } from '@/components/shell/EinstellungenFenster';
 
 const TITLES: Record<string, string> = {
   '/termin': 'Termin & Abstimmung',
@@ -48,6 +50,9 @@ export function AppBar({
   badges,
   amt,
   verzeichnis = null,
+  stammhaus = false,
+  darfVerwalten = false,
+  gaudi = false,
   onLogout,
 }: {
   /** Name des Stammtischs (Tenant-Config), Wortmarke im Header */
@@ -68,15 +73,25 @@ export function AppBar({
   amt: string | null;
   /** Nur Gründer-Admins: Zeile „Alle Stammtische“ mit offenen Anfragen */
   verzeichnis?: { anfragen: number } | null;
+  /** Stammhaus: der Karten-Tab heißt Lexikon */
+  stammhaus?: boolean;
+  /** Admin oder Präsident: im Zahnrad-Fenster die Stammtisch-Verwaltung */
+  darfVerwalten?: boolean;
+  /** Gaudi-Modus freigeschaltet (Zahnrad-Fenster) */
+  gaudi?: boolean;
   onLogout: () => Promise<void>;
 }) {
   const [menu, setMenu] = useState(false);
+  const [einstellungen, setEinstellungen] = useState(false);
   const pathname = usePathname();
   const title = Object.entries(TITLES).find(([p]) => pathname.startsWith(p) && p !== '/')?.[1];
 
   // Seitenwechsel aus dem Menü raus → Menü zua (die Zeilen schließen's zusätzlich sofort beim Antippen,
   // sonst bleibt's offen, bis die neue Seite da is, und wirkt wia eingefroren)
-  useEffect(() => setMenu(false), [pathname]);
+  useEffect(() => {
+    setMenu(false);
+    setEinstellungen(false);
+  }, [pathname]);
 
   // Frisch verdiente Punkte zählen sichtbar hoch: kleiner „+n WP"-Flug an der Pill
   const [wpDelta, setWpDelta] = useState<number | null>(null);
@@ -91,11 +106,22 @@ export function AppBar({
     }
   }, [wp]);
 
-  // Karte, Rang und Kasse: Vollbild ohne Kopfleiste (Julius, 29.08.2026 bzw. Redesign 13./14.10.2026)
-  if (pathname.startsWith('/karte') || pathname.startsWith('/spezln') || pathname.startsWith('/kasse') || pathname.startsWith('/profil')) return null;
+  // Karte, Rang und Kasse: am Handy Vollbild ohne Kopfleiste (Julius, 29.08.2026 bzw. Redesign 13./14.10.2026)
+  const ohneHandyKopf = pathname.startsWith('/karte') || pathname.startsWith('/spezln') || pathname.startsWith('/kasse') || pathname.startsWith('/profil');
+  // Ab Tablet: Tabs oben im Kopf, der Rang steht auf Dahoam links (Responsive Redesign 1a)
+  const tabs = (stammhaus ? TABS_STAMMHAUS : TABS_WANDERND).filter((t) => t.href !== '/spezln');
+  const logo = logoSrc.startsWith('/brand/') ? (
+    <Image src={logoSrc} alt="" width={30} height={30} style={{ height: 30, width: 'auto' }} />
+  ) : (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img src={logoSrc} alt="" width={30} height={30} style={{ width: 30, height: 30, borderRadius: 8, objectFit: 'cover' }} />
+  );
 
   return (
+    <>
+    {!ohneHandyKopf && (
     <header
+      className="wn-nur-handy"
       style={{
         flex: 'none',
         background: 'var(--navy-900)',
@@ -118,12 +144,7 @@ export function AppBar({
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
-          {logoSrc.startsWith('/brand/') ? (
-            <Image src={logoSrc} alt="" width={30} height={30} style={{ height: 30, width: 'auto' }} />
-          ) : (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={logoSrc} alt="" width={30} height={30} style={{ width: 30, height: 30, borderRadius: 8, objectFit: 'cover' }} />
-          )}
+          {logo}
           {title ? (
             <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--pergament)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{title}</div>
           ) : (
@@ -179,7 +200,53 @@ export function AppBar({
         </div>
       </div>
       <div className="wn-raute wn-raute--sm" aria-hidden style={{ height: 8 }} />
+    </header>
+    )}
 
+    {/* Breiter Kopf (Tablet, Desktop): Wortmarke, Tabs in der Mitte, rechts Zahnrad und Profil */}
+    <header className="wn-nur-breit wn-kopf-breit">
+      <div className="wn-raute wn-raute--sm" aria-hidden style={{ height: 8 }} />
+      <div className="wn-kopf-zeile">
+        <Link href="/" style={{ flex: '1 1 0', minWidth: 0, display: 'flex', alignItems: 'center', gap: 12, textDecoration: 'none' }}>
+          {logo}
+          <span className="wn-nur-desktop" style={{ fontFamily: 'var(--font-fraktur)', fontSize: 28, lineHeight: 1, color: 'var(--gold-bright)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{appName}</span>
+        </Link>
+        <nav aria-label="Hauptmenü" style={{ display: 'flex', gap: 4, flex: 'none' }}>
+          {tabs.map((t) => {
+            const aktiv = t.href === '/' ? pathname === '/' : pathname.startsWith(t.href);
+            const Ikon = t.icon;
+            return (
+              <Link key={t.href} href={t.href} className="wn-kopf-tab" aria-current={aktiv ? 'page' : undefined}>
+                <Ikon size={18} weight={aktiv ? 'fill' : 'regular'} />
+                {t.label}
+              </Link>
+            );
+          })}
+        </nav>
+        <div style={{ flex: '1 1 0', display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 10 }}>
+          <button
+            type="button"
+            onClick={() => setEinstellungen(true)}
+            aria-label="Einstellungen"
+            className="wn-press"
+            style={{ width: 40, height: 40, borderRadius: '50%', border: '1px solid rgba(246,240,226,0.18)', background: 'rgba(255,255,255,0.1)', color: 'var(--pergament)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0 }}
+          >
+            <Gear size={20} />
+          </button>
+          <button
+            type="button"
+            onClick={() => setMenu(true)}
+            aria-label="Profil-Menü öffnen"
+            className="wn-press"
+            style={{ border: '2px solid var(--gold)', background: 'var(--muc-blau)', padding: 0, cursor: 'pointer', width: 40, height: 40, borderRadius: '50%', display: 'inline-flex', overflow: 'hidden' }}
+          >
+            <Avatar src={photoUrl} name={name} size={36} style={{ margin: 0 }} />
+          </button>
+        </div>
+      </div>
+    </header>
+
+      {einstellungen && <EinstellungenFenster darfVerwalten={darfVerwalten} gaudi={gaudi} onClose={() => setEinstellungen(false)} />}
       {menu && (
         <ProfilMenue
           name={name}
@@ -195,7 +262,7 @@ export function AppBar({
           onClose={() => setMenu(false)}
         />
       )}
-    </header>
+    </>
   );
 }
 
@@ -261,11 +328,11 @@ function ProfilMenue({
 
   return (
     <div
-      className="wn-profil-auf"
+      className="wn-profil-auf wn-fenster"
       role="dialog"
       aria-label="Profil-Menü"
       style={{
-        position: 'fixed', inset: 0, zIndex: 60, maxWidth: 'var(--container-app)', margin: '0 auto',
+        position: 'fixed', inset: 0, zIndex: 60, maxWidth: 'var(--container-app)', margin: '0 auto', ['--wn-fenster-breite' as string]: '480px',
         background: 'var(--ink-50)', color: 'var(--ink-900)', display: 'flex', flexDirection: 'column',
         userSelect: 'none', WebkitUserSelect: 'none',
       }}

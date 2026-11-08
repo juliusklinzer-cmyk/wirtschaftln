@@ -140,6 +140,7 @@ export function ArchivScreen({
   ich,
   ohneKarte = false,
   reservieren = null,
+  titel = 'Karte',
 }: {
   eintraege: ArchivEintrag[];
   /** Eingeloggter Spezl, darfModerieren = Admin oder aktueller Präsident. */
@@ -148,6 +149,8 @@ export function ArchivScreen({
   ohneKarte?: boolean;
   /** Vorschlag direkt reservieren (gebundene Action mit vorhandenesWirtshausId), null = grad ned möglich */
   reservieren?: ((formData: FormData) => Promise<void>) | null;
+  /** Überschrift ab Tablet: „Lexikon“ beim Stammhaus, sonst „Karte“ */
+  titel?: string;
 }) {
   const { geo } = useTenantConfig();
   const ort = geo?.suchSuffix ?? null;
@@ -186,16 +189,33 @@ export function ArchivScreen({
     const aktiv = eintraege[safeIdx];
     const step = (d: number) => setIdx((i) => (Math.min(i, eintraege.length - 1) + d + eintraege.length) % eintraege.length);
     const rundKnopf: React.CSSProperties = { width: 42, height: 42, borderRadius: '50%', border: 'none', background: 'var(--weiss)', boxShadow: '0 4px 12px rgba(7,25,58,0.25)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: 'var(--muc-blau)', cursor: 'pointer', padding: 0 };
+    // Ab Tablet steht neben der Karte die ganze Liste (Responsive 3a): Besuchte nach Sternen, dann der Rest
+    const liste = eintraege
+      .map((e, i) => ({ e, i }))
+      .sort((a, b) => Number(!!b.e.stammhaus) - Number(!!a.e.stammhaus) || (b.e.rating || 0) - (a.e.rating || 0) || a.e.name.localeCompare(b.e.name));
+    const stadtteile = new Set(eintraege.map((e) => e.bezirk).filter(Boolean)).size;
     return (
-      <div style={{ position: 'absolute', inset: 0, overflow: 'hidden' }}>
+      <div className="wn-lex wn-breit" style={{ position: 'absolute', inset: 0, overflow: 'hidden' }}>
+        <div className="wn-nur-breit wn-lex-kopf">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0 }}>
+            <h1 style={{ margin: 0, fontFamily: 'var(--font-fraktur)', fontWeight: 400, fontSize: 44, lineHeight: 1, color: 'var(--navy)' }}>{titel}</h1>
+            <span className="wn-tnum" style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink-500)' }}>
+              {eintraege.length} {eintraege.length === 1 ? 'Wirtshaus' : 'Wirtshäuser'}{stadtteile > 0 ? ` · ${stadtteile} ${stadtteile === 1 ? 'Stadtteil' : 'Stadtteile'}` : ''}
+            </span>
+          </div>
+          <div style={{ width: 'min(440px, 100%)' }}>
+            <Ansichten value={view} onChange={setView} ohneKarte={ohneKarte} />
+          </div>
+        </div>
+        <div className="wn-lex-karte" style={{ position: 'absolute', inset: 0, overflow: 'hidden' }}>
         <ArchivKarte
           pins={eintraege.map((e) => ({ id: e.id, name: e.name, lat: e.lat, lng: e.lng, photoUrl: e.photoUrl, naechstes: e.naechstes, top3: top3Ids.has(e.id), offen: nurEntdeckt(e), vorbewertet: !!e.vorbewertet && !e.besuchtAm && !e.naechstes, stammhaus: !!e.stammhaus }))}
           activeIdx={safeIdx}
           onPick={setIdx}
           standort={standort}
         />
-        {/* Oben nur die vier Ansichten */}
-        <div style={{ position: 'absolute', left: 12, right: 12, top: 'calc(12px + var(--wn-oben))', zIndex: 5 }}>
+        {/* Oben nur die vier Ansichten (ab Tablet stehen die im Kopf) */}
+        <div className="wn-nur-handy" style={{ position: 'absolute', left: 12, right: 12, top: 'calc(12px + var(--wn-oben))', zIndex: 5 }}>
           <Ansichten value={view} onChange={setView} ohneKarte={ohneKarte} aufKarte />
         </div>
         {/* Rechts: mein Standort + Pin-Legende */}
@@ -227,7 +247,7 @@ export function ArchivScreen({
           </>
         )}
         {aktiv && (
-          <div style={{ position: 'absolute', left: 12, right: 12, bottom: 12, zIndex: 5 }}>
+          <div className="wn-lex-kaertchen" style={{ position: 'absolute', left: 12, right: 12, bottom: 12, zIndex: 5 }}>
             {nurEntdeckt(aktiv) || (aktiv.vorbewertet && !aktiv.besuchtAm && !aktiv.naechstes) ? (
               <VorschlagKarte e={aktiv} idx={safeIdx} count={eintraege.length} onPrev={() => step(-1)} onNext={() => step(1)} ich={ich} ort={ort} reservieren={reservieren} onDetail={() => setDetail({ e: aktiv, rank: null })} />
             ) : (
@@ -250,12 +270,41 @@ export function ArchivScreen({
             )}
           </div>
         )}
-        {detail && <DetailModal e={detail.e} rank={detail.rank} onClose={() => setDetail(null)} ich={ich} reservieren={reservieren} />}
         {eintraege.length === 0 && (
           <div style={{ position: 'absolute', left: 16, right: 16, bottom: 20, zIndex: 5, ...karteStil, padding: 16, boxShadow: 'var(--sh-lg)', textAlign: 'center', fontSize: 13, fontWeight: 600, color: 'var(--ink-500)' }}>
             Wirtshäuser, die ihr entdeckt, bewertet oder bsucht, erscheinen hier auf der Karte.
           </div>
         )}
+        </div>
+        {eintraege.length > 0 && (
+          <aside className="wn-nur-breit wn-lex-liste" style={{ ...karteStil, padding: '16px 18px', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 8, paddingBottom: 6 }}>
+              <h2 style={{ margin: 0, fontFamily: 'var(--font-fraktur)', fontWeight: 400, fontSize: 26, lineHeight: 1, color: 'var(--navy)' }}>Alle Wirtshäuser</h2>
+              <span className="wn-tnum" style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink-500)' }}>{eintraege.length}</span>
+            </div>
+            {liste.map(({ e, i }, n) => (
+              <button
+                key={e.id}
+                type="button"
+                onClick={() => setIdx(i)}
+                aria-current={i === safeIdx ? 'true' : undefined}
+                style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 8px', margin: '0 -8px', border: 'none', borderRadius: 12, background: i === safeIdx ? 'var(--info-bg)' : 'transparent', boxShadow: n < liste.length - 1 && i !== safeIdx ? 'inset 0 -1px 0 var(--ink-50)' : 'none', textAlign: 'left', cursor: 'pointer', fontFamily: 'var(--font-ui)' }}
+              >
+                <span style={{ width: 46, height: 46, flex: 'none', borderRadius: 12, background: e.photoUrl ? `url(${JSON.stringify(e.photoUrl)}) center/cover` : streifen }} />
+                <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  <span style={{ fontSize: 14, fontWeight: 800, color: 'var(--ink-900)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{e.name}</span>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink-500)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {e.stammhaus ? [e.bezirk, 'euer Stammhaus'].filter(Boolean).join(' · ') : nurEntdeckt(e) ? [e.bezirk, 'Vorschlag'].filter(Boolean).join(' · ') : [e.bezirk, e.besuchtAm ?? (e.altbestand ? 'vor der App' : null)].filter(Boolean).join(' · ')}
+                  </span>
+                </span>
+                {e.rating > 0 && !e.stammhaus && (
+                  <span className="wn-tnum" style={{ flex: 'none', fontSize: 12, fontWeight: 800, padding: '4px 10px', borderRadius: 999, background: 'var(--pergament)', color: 'var(--gold-700)', whiteSpace: 'nowrap' }}>★ {dez(e.rating)}</span>
+                )}
+              </button>
+            ))}
+          </aside>
+        )}
+        {detail && <DetailModal e={detail.e} rank={detail.rank} onClose={() => setDetail(null)} ich={ich} reservieren={reservieren} />}
       </div>
     );
   }
@@ -540,7 +589,7 @@ export function DetailModal({
   const nurNach = !!e.altbestand || offen;
 
   return (
-    <div className="wn-scroll-still" style={{ position: 'fixed', inset: 0, zIndex: 60, maxWidth: 'var(--container-app)', margin: '0 auto', background: 'var(--ink-50)', overflowY: 'auto', overscrollBehavior: 'contain', animation: 'wnWirtshausRein 260ms cubic-bezier(0.32, 0.72, 0, 1) both' }}>
+    <div className="wn-scroll-still wn-fenster" style={{ position: 'fixed', inset: 0, zIndex: 60, maxWidth: 'var(--container-app)', margin: '0 auto', background: 'var(--ink-50)', overflowY: 'auto', overscrollBehavior: 'contain', animation: 'wnWirtshausRein 260ms cubic-bezier(0.32, 0.72, 0, 1) both' }}>
       <style>{`@keyframes wnWirtshausRein { from { transform: translateY(24px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }`}</style>
       {/* Foto-Kopf: Chip, Name, Adresse, Brauerei-Logo */}
       <div style={{ position: 'relative', height: e.photoUrl ? 290 : 210, background: e.photoUrl ? `url(${JSON.stringify(e.photoUrl)}) center/cover` : 'var(--grad-navy)' }}>

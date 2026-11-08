@@ -69,7 +69,7 @@ export function SperrKnopf({ id, name, gesperrt, spezln }: { id: string; name: s
       )}
       {fehler && <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--strafe)' }}>{fehler}</span>}
       {offen && (
-        <div role="dialog" aria-modal="true" onClick={() => setOffen(false)} style={{ position: 'fixed', inset: 0, zIndex: 70, background: 'rgba(7,25,58,0.5)', display: 'flex', alignItems: 'flex-end', maxWidth: 'var(--container-app)', margin: '0 auto' }}>
+        <div role="dialog" aria-modal="true" onClick={() => setOffen(false)} className="wn-blatt-huelle" style={{ position: 'fixed', inset: 0, zIndex: 70, background: 'rgba(7,25,58,0.5)', display: 'flex', alignItems: 'flex-end', maxWidth: 'var(--container-app)', margin: '0 auto' }}>
           <div onClick={(e) => e.stopPropagation()} style={{ width: '100%', background: 'var(--ink-50)', borderRadius: '28px 28px 0 0', padding: '10px 20px calc(34px + env(safe-area-inset-bottom))', display: 'flex', flexDirection: 'column', gap: 16, boxShadow: '0 -14px 36px rgba(7,25,58,0.3)' }}>
             <span style={{ alignSelf: 'center', width: 40, height: 5, borderRadius: 99, background: 'var(--ink-200)' }} />
             <span style={{ width: 56, height: 56, borderRadius: 99, background: 'var(--strafe-bg)', color: 'var(--strafe)', display: 'grid', placeItems: 'center', alignSelf: 'center' }}><Prohibit size={28} weight="fill" /></span>

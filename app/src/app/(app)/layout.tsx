@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation';
 import { anzeigeName } from '@/lib/namen';
 import { getCurrentMember } from '@/lib/session';
-import { getStats, getVergabeStand } from '@/lib/queries';
+import { getStats, getVergabeStand, getPraesidentId } from '@/lib/queries';
 import { aktuelleSaison } from '@/lib/saison';
 import { logout } from '@/app/login/actions';
 import { AppBar } from '@/components/shell/AppBar';
@@ -45,7 +45,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         // Vollbild-Modus (black-translucent) die Höhe anders rechnet.
         position: 'fixed',
         inset: 0,
-        maxWidth: 'var(--container-app)',
+        // Am Handy die schmale App-Spalte, ab Tablet die ganze Breite (globals.css)
+        maxWidth: 'var(--container-rahmen)',
         margin: '0 auto',
         display: 'flex',
         flexDirection: 'column',
@@ -65,7 +66,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <main className="wn-scroll-still" style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', position: 'relative', overscrollBehavior: 'contain', background: 'var(--navy-900)' }}>
         {/* Runterziehen zum Aktualisieren */}
         <ZiehenAktualisieren />
-        <div style={{ minHeight: '100%', background: 'var(--bg-app)', display: 'flex', flexDirection: 'column' }}>
+        <div className="wn-flaeche" style={{ minHeight: '100%', background: 'var(--bg-app)', display: 'flex', flexDirection: 'column' }}>
         <AppBar
           appName={config.name}
           logoSrc={config.istGruender ? '/brand/wappen-256.png' : config.logoUrl ? `${config.logoUrl}?s=128` : '/brand/rauten-256.png'}
@@ -78,6 +79,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           badges={meineBadges}
           amt={meinAmt ? AMT_TITEL[meinAmt] : null}
           verzeichnis={verzeichnis}
+          stammhaus={config.typ === 'stammhaus'}
+          darfVerwalten={me.role === 'admin' || me.id === getPraesidentId()}
+          gaudi={config.features.daniModus}
           onLogout={logout}
         />
         {children}

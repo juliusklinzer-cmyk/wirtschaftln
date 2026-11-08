@@ -43,7 +43,7 @@ export function PunkteInfo({ knopf }: { knopf?: (oeffnen: () => void) => React.R
       )}
 
       {offen && (
-        <div className="wn-scroll-still" style={{ position: 'fixed', inset: 0, zIndex: 70, maxWidth: 'var(--container-app)', margin: '0 auto', overflowY: 'auto', overscrollBehavior: 'contain', background: 'var(--ink-50)', animation: 'wnPunkteRein 240ms ease-out both' }}>
+        <div className="wn-scroll-still wn-fenster" style={{ position: 'fixed', inset: 0, zIndex: 70, maxWidth: 'var(--container-app)', margin: '0 auto', overflowY: 'auto', overscrollBehavior: 'contain', background: 'var(--ink-50)', animation: 'wnPunkteRein 240ms ease-out both' }}>
           <style>{`
             @keyframes wnPunkteRein { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
           `}</style>

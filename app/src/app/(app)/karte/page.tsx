@@ -22,6 +22,7 @@ export default async function KartePage() {
       ich={{ id: me.id, darfModerieren }}
       ohneKarte={!tenantConfig().features.archivKarte}
       reservieren={reservierbar && termin ? wirtshausFestlegen.bind(null, termin.id) : null}
+      titel={tenantConfig().typ === 'stammhaus' ? 'Lexikon' : 'Karte'}
     />
   );
 }

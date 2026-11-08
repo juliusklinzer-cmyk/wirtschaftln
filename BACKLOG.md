@@ -3,7 +3,6 @@
 ## In Arbeit
 
 ## Wartet auf Julius
-- [ ] WIR-024 Im Verzeichnis bei München Tag & Nacht den Schalter „Weihnachts-Token 2026“ einschalten (vor dem 24.12.) · bis:2026-12-23 · am:2026-11-08
 - [ ] WIR-002 Link-Vorschau in WhatsApp echt testen (Beitreten- und Gründen-Link schicken). Schon geteilte Links können noch das alte Bild zeigen. · am:2026-11-06 · quelle:TODO.md#14
 - [ ] WIR-003 Badge-Pflichten: restliche Regeln fehlen, dann nur Texte eintragen (`pflicht` in badges.ts) · am:2026-11-06 · quelle:TODO.md#15
 - [ ] WIR-004 „Kein Wirtshaus zweimal“: Warnung oder Sperre beim Wählen eines schon besuchten Wirtshauses? · am:2026-11-06 · quelle:TODO.md#16
@@ -29,6 +28,7 @@
 ## Ideen
 
 ## Erledigt
+- [x] WIR-024 Weihnachts-Token 2026 für München Tag & Nacht eingeschaltet (direkt in der Prod-Datenbank, läuft am 24.12. von allein) · am:2026-11-08 · fertig:2026-11-08
 - [x] WIR-023 Jahresabschluss: Jahressieger an Silvester auf den Badges, Weihnachts-Token mit Packerl-Popup, nach Weihnachten & Silvester Redesign · am:2026-11-08 · fertig:2026-11-08
 - [x] WIR-022 Feedback Tag & Nacht (Deckel-Runden, Präsident WP/gewählt mit Stichwahl, Zusagen) getestet und deployt, ohne Was-ist-neu-Slides · am:2026-11-06 · fertig:2026-11-06
 - [x] WIR-021 Feedback Tag & Nacht Runde 3: Präsident einrichten mit aktuellem Präsidenten und Wahltermin (3 Optionen), Stichwahl bei Gleichstand, Wahlergebnis auf Hoam, Deckel-Zeile auf Hoam ohne Goldknopf, alle Namen in der Termin-Abstimmung, goldene Striche ab 26 Halbe nicht mehr übermalt · am:2026-11-06 · fertig:2026-11-06

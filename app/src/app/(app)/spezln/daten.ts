@@ -14,10 +14,10 @@ import { datumKurz } from '@/lib/format';
 import { saisonBadgesVergeben, serienAbzeichen, amtInfo, AEMTER_INFO, saisonBadges, praesidentInfo } from '@/lib/badges';
 import { praesidentAus } from '@/lib/praesident';
 import type { BadgeInfoDaten, HallOfFameEintrag, JahressiegerEintrag, ZaehlerBlock } from '@/components/domain/BadgeInfo';
-import { alleJahressieger } from '@/lib/jahressieger';
+import { alleJahressieger, siegerMeta, siegerSpruch } from '@/lib/jahressieger';
 import type { SpezlEintrag, AmtEintrag, GalerieBadge, StatsBlock } from './rangliste';
 import type { AmtKurz } from '@/components/domain/Auszeichnungen';
-import { auszeichnungAn } from '@/lib/tenant-config';
+import { auszeichnungAn, tenantConfig } from '@/lib/tenant-config';
 
 function rangVon(liste: MitgliedStats[], memberId: string): number {
   return [...liste].sort((a, b) => b.punkte - a.punkte).findIndex((s) => s.member.id === memberId) + 1;
@@ -231,14 +231,41 @@ export function ladeRanglisteDaten(meId: string): {
       .sort((x, y) => y.saison - x.saison || y.gesamt - x.gesamt),
   };
 
-  // Jahressieger (an Silvester festgeschrieben) je Badge/Amt
+  // Jahressieger (an Silvester festgeschrieben) je Badge/Amt: Ehrentafel im Badge-Fenster,
+  // beim eigenen Eintrag mit Urkunde (Weihnachten & Silvester Redesign 2c)
   const sieger = alleJahressieger();
+  const config = tenantConfig();
+  const jahrPraesident = (jahr: number) => holderVon(sieger.find((z) => z.jahr === jahr && z.key === 'amt:praesident')?.memberId)?.name ?? null;
   const jahressiegerVon = (key: string): JahressiegerEintrag[] =>
     sieger
       .filter((z) => z.key === key)
       .map((z) => {
-        const m = holderVon(z.memberId);
-        return { jahr: z.jahr, name: m?.name ?? 'Ehemaliger', photoUrl: m?.photoUrl ?? null, ich: z.memberId === meId };
+        const m = statsAllzeit.find((x) => x.member.id === z.memberId)?.member ?? null;
+        const ich = z.memberId === meId;
+        const meta = siegerMeta(key);
+        const name = m ? anzeigeName(m) : 'Ehemaliger';
+        return {
+          jahr: z.jahr,
+          name,
+          vollerName: m ? urkundenName(m) : null,
+          photoUrl: m?.photoUrl ?? null,
+          ich,
+          gruendungsjahr: config.gruendungsjahr === z.jahr,
+          urkunde: ich && m && meta && key !== 'heiwong'
+            ? {
+                stammtisch: /stammtisch/i.test(config.name) ? config.name : `Stammtisch ${config.name}`,
+                name: urkundenName(m) ?? name,
+                badgeName: meta.name,
+                slug: meta.slug,
+                icon: meta.icon,
+                saison: `Jahr ${z.jahr}`,
+                grund: `Gehalten zum Jahresende ${z.jahr}. ${siegerSpruch(key, z.wert)}`,
+                praesident: jahrPraesident(z.jahr),
+                datum: `31. Dezember ${z.jahr}`,
+                ort: config.stadt,
+              }
+            : null,
+        };
       });
 
   const badgeInfos: Record<string, BadgeInfoDaten> = {};

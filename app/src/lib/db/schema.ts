@@ -396,6 +396,8 @@ export const jahressieger = sqliteTable(
     key: text('key').notNull(),
     memberId: text('member_id').notNull().references(() => members.id, { onDelete: 'cascade' }),
     createdAt: text('created_at').notNull(),
+    /** Die Zahl, die es gebracht hat (41 Hoibe, 12 Abende …), null bei gewählten Ämtern */
+    wert: integer('wert'),
   },
   (t) => [uniqueIndex('jahressieger_jahr_key').on(t.jahr, t.key)],
 );

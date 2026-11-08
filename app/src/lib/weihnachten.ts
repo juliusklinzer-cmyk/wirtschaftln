@@ -70,10 +70,16 @@ export async function weihnachtsTokensVergeben(jetzt = new Date()): Promise<void
  * (die Seite lädt nach der Server-Action neu); das Popup zeigt sich nur, wenn
  * er beim Öffnen no ungewidmet war.
  */
-export function offenesGeschenk(memberId: string): { token: string; link: string; jahr: number; gewidmet: boolean } | null {
+export function offenesGeschenk(memberId: string, jetzt = new Date()): { token: string; link: string; jahr: number; gewidmet: boolean; weihnachtszeit: boolean } | null {
   const gruppeId = currentTenant().gruppe.id;
   const t = tokensFuerMitglied(memberId)
     .filter((x) => x.gruppeId === gruppeId && x.quelle === 'geschenk' && x.status === 'offen')
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0];
-  return t ? { token: t.token, link: tokenLink(t.token), jahr: Number(t.createdAt.slice(0, 4)), gewidmet: !!t.widmung } : null;
+  if (!t) return null;
+  // Weihnachtszeit 24.12. bis 6.1.: Popup beim ersten Öffnen, Hinweiszeile oben auf Hoam
+  const tag = berlinTag(jetzt.toISOString()).slice(5);
+  // (oder der Token is frisch, z. B. wenn der Schalter erst nach Weihnachten angeht)
+  const frisch = jetzt.getTime() - Date.parse(t.createdAt) < 14 * 24 * 3600 * 1000;
+  const weihnachtszeit = tag >= HEILIGABEND || tag <= '01-06' || frisch;
+  return { token: t.token, link: tokenLink(t.token), jahr: Number(t.createdAt.slice(0, 4)), gewidmet: !!t.widmung, weihnachtszeit };
 }

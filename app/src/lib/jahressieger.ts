@@ -1,7 +1,7 @@
 import { and, desc, eq, inArray, ne } from 'drizzle-orm';
 import { db, jahressieger, termine, runWithTenant } from '@/lib/db';
 import { alleGruppen } from '@/lib/db/directory';
-import { getAemter, getVergabeStand } from '@/lib/queries';
+import { getAemter, getStats, getVergabeStand, type MitgliedStats } from '@/lib/queries';
 import { AEMTER_INFO, saisonBadges } from '@/lib/badges';
 import { auszeichnungAn } from '@/lib/tenant-config';
 import { berlinTag } from '@/lib/punkte';
@@ -51,13 +51,53 @@ export function jahresStand(jahr: number): Map<string, string> {
   return stand;
 }
 
+/** Welche Zahl hat das Badge gebracht? (Herbst-Saison) */
+const WERT: Record<string, (s: MitgliedStats) => number> = {
+  zacherHund: (s) => s.abende,
+  heiwong: (s) => s.abende,
+  maximator: (s) => s.hoiben,
+  moshammer: (s) => s.runden,
+  taxler: (s) => s.taxi,
+  dieSau: (s) => s.schweinsbraten,
+  schnapsler: (s) => s.schnaps,
+  gschaftler: (s) => s.zuSpaet,
+  alterPeter: (s) => s.bestStreak,
+  'amt:praesident': (s) => s.punkte,
+  'amt:schriftfuehrer': (s) => s.abschluesse,
+};
+
+/** Spruch für die Silvester-Feier, mit der Zahl, die’s gebracht hat. */
+export function siegerSpruch(key: string, wert: number | null): string {
+  const n = wert ?? 0;
+  const mit = wert !== null && wert > 0;
+  const s: Record<string, string> = {
+    'amt:praesident': 'Du hast den Stammtisch durchs Jahr geführt. Ab heute heißt’s: Präsident des Jahres.',
+    'amt:schriftfuehrer': mit ? `${n} Abende zsammgschriebn. Was ned aufgschrieben is, is nie passiert.` : 'Was ned aufgschrieben is, is nie passiert.',
+    'amt:kassenwart': 'Ein Jahr lang über die Kasse gwacht. Ohne di wär’s Geld scho lang versoffen.',
+    zacherHund: mit ? `${n} Abende in der Saison. Bei Schnee, Bahnstreik und Männergrippe.` : 'Am öftesten dabei von allen.',
+    heiwong: mit ? `Grad amal ${n} Abende. Nächstes Jahr kimmst öfter, gell?` : 'Am wenigsten dabei. Nächstes Jahr kimmst öfter, gell?',
+    maximator: mit ? `${n} Hoibe in einer Saison. Mehr hat koaner gstrichelt.` : 'Die meisten Hoibe der Saison.',
+    moshammer: mit ? `${n} Runden gschmissn. Spendabler geht’s nimmer.` : 'Die meisten Runden gschmissn.',
+    taxler: mit ? `${n} mal den Heimweg organisiert. Ohne di warn mia no heit im Wirtshaus.` : 'Am öftesten den Heimweg organisiert.',
+    dieSau: mit ? `${n} Schweinsbraten in einer Saison. Kruste, Knödl, Soß, nix bleibt über.` : 'Die meisten Schweinsbraten der Saison.',
+    schnapsler: mit ? `${n} Stamperl in einer Saison. Zum Wohl!` : 'Die meisten Stamperl der Saison.',
+    gschaftler: mit ? `${n} mal z’spät kemma. Pünktlich is was für Preißn.` : 'Am öftesten z’spät kemma.',
+    alterPeter: mit ? `${n} Stammtische am Stück. Die längste Serie, seit’s den Stammtisch gibt.` : 'Die längste Serie, seit’s den Stammtisch gibt.',
+    meisterEder: 'Dei Wirtshaus hat die beste Bewertung der Saison.',
+  };
+  return s[key] ?? 'Am Jahresende hast du’s ghabt.';
+}
+
 /** Festschreiben (idempotent): gibt die Zahl der neu eingetragenen Sieger zurück. */
 export function jahressiegerFestschreiben(jahr: number): number {
   const jetzt = nowIso();
+  const stats = getStats({ abDatum: `${jahr}-07-01`, bisDatum: `${jahr}-12-31` });
   let neu = 0;
   for (const [key, memberId] of jahresStand(jahr)) {
     if (!memberId || !siegerMeta(key)) continue;
-    const r = db.insert(jahressieger).values({ id: newId('js'), jahr, key, memberId, createdAt: jetzt }).onConflictDoNothing().run();
+    const s = stats.find((x) => x.member.id === memberId);
+    const wert = s && WERT[key] ? WERT[key](s) : null;
+    const r = db.insert(jahressieger).values({ id: newId('js'), jahr, key, memberId, createdAt: jetzt, wert }).onConflictDoNothing().run();
     neu += r.changes;
   }
   return neu;

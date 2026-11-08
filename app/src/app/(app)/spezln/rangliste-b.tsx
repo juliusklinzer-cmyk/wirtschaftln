@@ -40,6 +40,16 @@ export function Rangliste({
   const [metrik, setMetrik] = useState<Metrik>('punkte');
   const [detailId, setDetailId] = useState<string | null>(null);
   const [infoKey, setInfoKey] = useState<string | null>(null);
+  // Letzter Jahrgang unterm Träger (Weihnachten & Silvester Redesign 2d): „2026 · Sepp“
+  const jahrgang = (key: string, dunkel: boolean) => {
+    const j = badgeInfos[key]?.jahressieger?.[0];
+    if (!j) return null;
+    return (
+      <span style={{ alignSelf: dunkel ? 'center' : 'flex-start', marginTop: dunkel ? 2 : 4, fontSize: 10, fontWeight: 800, padding: '3px 8px', borderRadius: 99, whiteSpace: 'nowrap', background: dunkel ? 'rgba(230,198,132,0.16)' : 'var(--pergament)', color: dunkel ? 'var(--gold-bright)' : 'var(--gold-700)' }}>
+        {j.jahr} · {j.name}
+      </span>
+    );
+  };
   // Rangwechsel-Animation: nur in der Saison-WP-Ansicht, einmal pro Gerät und Abend
   const wechsel = useRangWechsel(eintraege, letzterTerminId, zeitraum === 'saison' && metrik === 'punkte' && !detailId);
   const ebene = wechsel.t !== null && wechsel.t < ENDE_EBENE && zeitraum === 'saison' && metrik === 'punkte';
@@ -164,6 +174,7 @@ export function Rangliste({
                       <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink-500)', fontStyle: 'italic' }}>Noch unbesetzt, wird nach dem ersten Stammtisch vergeben</span>
                     )}
                   </span>
+                  {key && jahrgang(key, false)}
                 </div>
                 {key && <Icon name="chevron" size={16} color="var(--ink-200)" style={{ flex: 'none' }} />}
               </div>
@@ -202,6 +213,7 @@ export function Rangliste({
                 ) : (
                   <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--ink-300)' }}>noch nicht vergeben</span>
                 )}
+                {jahrgang(b.key, true)}
               </div>
             );
           })}

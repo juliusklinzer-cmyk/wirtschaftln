@@ -1,11 +1,25 @@
 'use client';
 
+import { useState } from 'react';
+import { CrownSimple } from '@phosphor-icons/react/dist/ssr/CrownSimple';
+import { Scroll } from '@phosphor-icons/react/dist/ssr/Scroll';
 import { Avatar, Icon, ZeilenKarte } from '@/components/ds';
+import { Urkunde, type UrkundeDaten } from '@/components/domain/Urkunde';
 import { BadgeBild } from '@/components/domain/BadgeBild';
 import { HoamTitel } from '@/components/domain/HoamTitel';
 import { bereichHinweisStil } from '@/components/domain/hero-stil';
 
-export type JahressiegerEintrag = { jahr: number; name: string; photoUrl: string | null; ich: boolean };
+export type JahressiegerEintrag = {
+  jahr: number;
+  name: string;
+  /** „Da Bauer Sebastian“ beim eigenen Eintrag */
+  vollerName: string | null;
+  photoUrl: string | null;
+  ich: boolean;
+  gruendungsjahr: boolean;
+  /** Nur beim eigenen Eintrag: die Urkunde zum Jahr */
+  urkunde: UrkundeDaten | null;
+};
 
 export type HallOfFameEintrag = { name: string; photoUrl: string | null; zeitraum: string; aktiv: boolean };
 
@@ -50,6 +64,8 @@ export function BadgeInfo({ info, onClose }: { info: BadgeInfoDaten; onClose: ()
   const amt = info.art === 'amt';
   const halter = info.hallOfFame.find((h) => h.aktiv) ?? null;
   const pflichten = info.duties ? info.duties.split(' · ').map((t) => t.trim()).filter(Boolean) : [];
+  const eigeneUrkunde = info.jahressieger?.find((j) => j.ich && j.urkunde)?.urkunde ?? null;
+  const [urkunde, setUrkunde] = useState<UrkundeDaten | null>(null);
 
   return (
     <div className="wn-scroll-still" style={{ position: 'fixed', inset: 0, zIndex: 70, maxWidth: 'var(--container-app)', margin: '0 auto', background: 'var(--ink-50)', overflowY: 'auto', overscrollBehavior: 'contain', animation: 'wnBuehneAuf 260ms cubic-bezier(0.32, 0.72, 0, 1) both' }}>
@@ -124,18 +140,42 @@ export function BadgeInfo({ info, onClose }: { info: BadgeInfoDaten; onClose: ()
 
         {info.jahressieger && info.jahressieger.length > 0 && (
           <section style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            <HoamTitel action={<span style={bereichHinweisStil}>wer’s an Silvester ghabt hat</span>}>Jahressieger</HoamTitel>
-            {/* Ehrentafel wie im Golfclub: Navy-Tafel, Jahr in Gold, für immer drin */}
-            <div style={{ borderRadius: 'var(--r-lg)', overflow: 'hidden', border: '1.5px solid var(--gold)', background: 'radial-gradient(120% 90% at 50% 0%, #123E78 0%, #07193A 80%)', boxShadow: 'var(--sh-sm)' }}>
-              {info.jahressieger.map((j, i) => (
-                <div key={j.jahr} style={{ display: 'flex', alignItems: 'center', gap: 14, minHeight: 60, padding: '0 16px', borderBottom: i < info.jahressieger!.length - 1 ? '1px solid rgba(230,198,132,0.25)' : 'none' }}>
-                  <span className="wn-tnum" style={{ fontFamily: 'var(--font-fraktur)', fontSize: 26, lineHeight: 1, color: 'var(--gold-bright)', width: 64, flex: 'none' }}>{j.jahr}</span>
-                  <Avatar src={j.photoUrl} name={j.name} size={34} ring={j.ich} />
-                  <span style={{ flex: 1, minWidth: 0, fontSize: 15, fontWeight: 800, color: 'var(--pergament)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{j.name}</span>
-                  {j.ich && <span style={{ fontSize: 11, fontWeight: 800, padding: '4px 10px', borderRadius: 999, background: 'var(--grad-gold)', color: 'var(--navy-900)', whiteSpace: 'nowrap', flex: 'none' }}>du</span>}
-                </div>
-              ))}
+            {/* Ehrentafel (Weihnachten & Silvester Redesign 2c): Pergament mit Rautenband, alle Jahre, der eigene Eintrag hervorgehoben */}
+            <div style={{ background: 'var(--pergament)', borderRadius: 20, border: '1.5px solid var(--gold)', overflow: 'hidden' }}>
+              <div className="wn-raute wn-raute--sm" style={{ height: 8 }} />
+              <div style={{ padding: '16px 18px 6px', display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8 }}>
+                <span style={{ fontFamily: 'var(--font-fraktur)', fontSize: 24, lineHeight: 1, color: 'var(--navy)' }}>Ehrentafel</span>
+                <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--gold-700)', textAlign: 'right' }}>{info.name} des Jahres</span>
+              </div>
+              <div style={{ padding: '6px 18px 16px', display: 'flex', flexDirection: 'column' }}>
+                {info.jahressieger.map((j, i) => {
+                  const letzte = i === info.jahressieger!.length - 1;
+                  return j.ich ? (
+                    <div key={j.jahr} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 12, margin: '2px -6px', borderRadius: 14, background: 'var(--weiss)', border: '1.5px solid var(--gold)', boxShadow: '0 4px 12px rgba(166,132,62,0.18)' }}>
+                      <span className="wn-tnum" style={{ fontFamily: 'var(--font-fraktur)', fontSize: 26, lineHeight: 1, color: 'var(--gold-700)', width: 58, flex: 'none' }}>{j.jahr}</span>
+                      <Avatar src={j.photoUrl} name={j.name} size={34} ring />
+                      <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
+                        <span style={{ fontSize: 15, fontWeight: 800, color: 'var(--ink-900)' }}>{j.name}</span>
+                        <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink-500)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Du{j.vollerName ? ` · ${j.vollerName}` : ''}{j.gruendungsjahr ? ' · Gründungsjahr' : ''}</span>
+                      </span>
+                      <CrownSimple size={18} weight="fill" color="var(--gold)" style={{ flex: 'none' }} />
+                    </div>
+                  ) : (
+                    <div key={j.jahr} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 6px', borderBottom: letzte ? 'none' : '1px solid #E2D5B8' }}>
+                      <span className="wn-tnum" style={{ fontFamily: 'var(--font-fraktur)', fontSize: 24, lineHeight: 1, color: 'var(--gold-700)', width: 58, flex: 'none' }}>{j.jahr}</span>
+                      <Avatar src={j.photoUrl} name={j.name} size={32} />
+                      <span style={{ flex: 1, minWidth: 0, fontSize: 15, fontWeight: 800, color: 'var(--ink-900)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{j.name}</span>
+                      {j.gruendungsjahr && <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink-500)', flex: 'none' }}>Gründungsjahr</span>}
+                    </div>
+                  );
+                })}
+              </div>
             </div>
+            {eigeneUrkunde && (
+              <button type="button" onClick={() => setUrkunde(eigeneUrkunde)} className="wn-press" style={{ height: 48, borderRadius: 14, border: '1.5px solid var(--ink-200)', background: 'var(--weiss)', color: 'var(--navy)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, fontFamily: 'var(--font-ui)', fontSize: 15, fontWeight: 800, cursor: 'pointer' }}>
+                <Scroll size={18} />Urkunde {eigeneUrkunde.saison.replace('Jahr ', '')} ansehen
+              </button>
+            )}
           </section>
         )}
 
@@ -181,6 +221,7 @@ export function BadgeInfo({ info, onClose }: { info: BadgeInfoDaten; onClose: ()
           </section>
         )}
       </div>
+      {urkunde && <Urkunde daten={urkunde} onClose={() => setUrkunde(null)} />}
     </div>
   );
 }

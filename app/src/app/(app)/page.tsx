@@ -26,7 +26,8 @@ import { nowIso } from '@/lib/ids';
 import { aktuelleSaison } from '@/lib/saison';
 import { vergabeWechsel, wechselTexte, AEMTER_INFO, saisonBadges, feierTexte, praesidentInfo } from '@/lib/badges';
 import { praesidentGewaehlt } from '@/lib/praesident';
-import { jahressiegerVon, letzteVergabe, siegerMeta } from '@/lib/jahressieger';
+import { jahressiegerVon, letzteVergabe, siegerMeta, siegerSpruch } from '@/lib/jahressieger';
+import { JahresFeier, type JahresFeierEintrag } from '@/components/domain/JahresFeier';
 import { offenesGeschenk } from '@/lib/weihnachten';
 import { WeihnachtsGeschenk } from '@/components/domain/WeihnachtsGeschenk';
 import { offeneWahl, letzteWahl, wahlStand, wahlKandidaten, wahlErgebnis } from '@/lib/praesident-wahl';
@@ -209,9 +210,9 @@ export default async function HomePage() {
   // Weihnachtsgeschenk: ungewidmeter Geschenk-Token → Popup „Frohe Weihnachten“
   const geschenk = offenesGeschenk(me.id);
 
-  // Jahressieger (an Silvester festgeschrieben): zwei Wochen lang die eigene Feier „Maximator 2026“
+  // Jahressieger (an Silvester festgeschrieben): zwei Wochen lang die Silvester-Feier „Präsident des Jahres“
   const vergabe = letzteVergabe();
-  const jahresFeiern: FeierBadge[] =
+  const jahresFeiern: JahresFeierEintrag[] =
     vergabe && Date.now() - Date.parse(vergabe.am) < 14 * 24 * 3600 * 1000
       ? jahressiegerVon(vergabe.jahr)
           .filter((z) => z.memberId === me.id)
@@ -220,19 +221,14 @@ export default async function HomePage() {
             if (!meta) return [];
             const badge = saisonBadges().find((b) => b.key === z.key);
             const texte = feierTexte(z.key, meta.name, badge?.tag);
-            const heiwong = z.key === 'heiwong';
-            const titel = `${meta.name} ${vergabe.jahr}`;
             return [{
-              key: `jahr:${z.key}`,
-              art: meta.art,
+              key: z.key,
+              name: meta.name,
               slug: meta.slug,
               icon: meta.icon,
-              name: titel,
-              eyebrow: `Jahressieger ${vergabe.jahr}`,
-              titel1: 'Du gehst in die Geschichte ein',
-              titel2: `${titel}!`,
-              spruch: heiwong ? 'Am wenigsten dabei im ganzen Jahr. Des steht jetzt für immer drin, also kimm nächstes Jahr öfter!' : `Am Jahresende hast du’s ghabt, damit stehst du für immer in der Ehrentafel. ${texte.spruch}`,
-              urkunde: heiwong ? null : {
+              jahr: vergabe.jahr,
+              spruch: siegerSpruch(z.key, z.wert),
+              urkunde: z.key === 'heiwong' ? null : {
                 stammtisch: /stammtisch/i.test(config.name) ? config.name : `Stammtisch ${config.name}`,
                 name: urkundenName(me) ?? anzeigeName(me),
                 badgeName: meta.name,
@@ -244,8 +240,7 @@ export default async function HomePage() {
                 datum: `31. Dezember ${vergabe.jahr}`,
                 ort: config.stadt,
               },
-              knopf: heiwong ? 'Passt, nächstes Jahr kimm i öfter!' : undefined,
-            } satisfies FeierBadge];
+            }];
           })
       : [];
 
@@ -484,9 +479,9 @@ export default async function HomePage() {
     <div className="wn-eintritt" style={{ padding: '20px 16px 28px', display: 'flex', flexDirection: 'column', gap: 24 }}>
       {letzter && feiern.length > 0 && <BadgeFeier terminId={letzter.id} feiern={feiern} />}
       {(() => {
-        const jahresFeier = jahresFeiern.length > 0 && vergabe ? <BadgeFeier terminId={`jahr-${vergabe.jahr}`} feiern={jahresFeiern} /> : null;
+        const jahresFeier = jahresFeiern.length > 0 && vergabe ? <JahresFeier jahr={vergabe.jahr} vorname={me.vorname || me.spitzname || me.name.split(' ')[0]} feiern={jahresFeiern} /> : null;
         return geschenk
-          ? <WeihnachtsGeschenk vorname={me.vorname || me.spitzname || me.name.split(' ')[0]} token={geschenk.token} link={geschenk.link} jahr={geschenk.jahr} gewidmet={geschenk.gewidmet} danach={jahresFeier} />
+          ? <WeihnachtsGeschenk vorname={me.vorname || me.spitzname || me.name.split(' ')[0]} token={geschenk.token} link={geschenk.link} jahr={geschenk.jahr} gewidmet={geschenk.gewidmet} weihnachtszeit={geschenk.weihnachtszeit} danach={jahresFeier} />
           : jahresFeier;
       })()}
       {wahlFeier && gewonnen && <BadgeFeier terminId={`wahl-${gewonnen.id}`} feiern={[wahlFeier]} />}

@@ -8,7 +8,8 @@ import { LockSimpleOpen } from '@phosphor-icons/react/dist/ssr/LockSimpleOpen';
 import { Gift } from '@phosphor-icons/react/dist/ssr/Gift';
 import { PencilSimple } from '@phosphor-icons/react/dist/ssr/PencilSimple';
 import { goldKnopfStil } from '@/components/domain/hero-stil';
-import { anfrageEntscheidenAction, feedbackErledigtAction, gruppeStatusAendern, tokenSchenken } from './actions';
+import { anfrageEntscheidenAction, feedbackErledigtAction, gruppeStatusAendern, tokenSchenken, weihnachtsTokenSchalten } from './actions';
+import { Switch } from '@/components/ds';
 
 const nebenKnopfStil: React.CSSProperties = { height: 48, borderRadius: 14, border: '1.5px solid var(--ink-200)', background: 'var(--weiss)', color: 'var(--navy)', fontFamily: 'var(--font-ui)', fontSize: 15, fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, flex: 1 };
 const rotKnopfStil: React.CSSProperties = { ...nebenKnopfStil, border: '1.5px solid rgba(192,57,43,0.35)', color: 'var(--strafe)' };
@@ -98,6 +99,32 @@ export function SchenkKnopf({ id }: { id: string }) {
       </button>
       {fehler && <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--strafe)' }}>{fehler}</span>}
     </>
+  );
+}
+
+/** Weihnachts-Token fürs Jahr an alle Spezl des Stammtischs (am 24.12. im Takt verschenkt). */
+export function WeihnachtsSchalter({ id, jahr, an }: { id: string; jahr: number; an: boolean }) {
+  const [wert, setWert] = useState(an);
+  const [laeuft, starte] = useTransition();
+  const [fehler, setFehler] = useState<string | null>(null);
+  const router = useRouter();
+  const schalten = (neu: boolean) => {
+    setWert(neu);
+    starte(async () => {
+      const r = await weihnachtsTokenSchalten(id, neu ? jahr : null);
+      if (r.fehler) { setFehler(r.fehler); setWert(!neu); } else router.refresh();
+    });
+  };
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', background: 'var(--pergament)', border: '1px solid var(--pergament-edge)', borderRadius: 'var(--r-md)', opacity: laeuft ? 0.7 : 1 }}>
+      <Gift size={24} weight="fill" color="var(--gold-700)" style={{ flex: 'none' }} />
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2 }}>
+        <span style={{ fontSize: 14, fontWeight: 800, color: 'var(--ink-900)' }}>Weihnachts-Token {jahr}</span>
+        <span style={{ fontSize: 12, fontWeight: 600, lineHeight: 1.4, color: 'var(--ink-500)' }}>Am 24.12. kriegt jeder Spezl seinen persönlichen Einladungstoken, mit Push, Mail und Popup in der App.</span>
+        {fehler && <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--strafe)' }}>{fehler}</span>}
+      </div>
+      <Switch checked={wert} onChange={schalten} tone="gold" />
+    </div>
   );
 }
 

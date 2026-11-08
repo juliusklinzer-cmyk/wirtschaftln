@@ -13,7 +13,8 @@ import { aktuelleSaison } from '@/lib/saison';
 import { datumKurz } from '@/lib/format';
 import { saisonBadgesVergeben, serienAbzeichen, amtInfo, AEMTER_INFO, saisonBadges, praesidentInfo } from '@/lib/badges';
 import { praesidentAus } from '@/lib/praesident';
-import type { BadgeInfoDaten, HallOfFameEintrag, ZaehlerBlock } from '@/components/domain/BadgeInfo';
+import type { BadgeInfoDaten, HallOfFameEintrag, JahressiegerEintrag, ZaehlerBlock } from '@/components/domain/BadgeInfo';
+import { alleJahressieger } from '@/lib/jahressieger';
 import type { SpezlEintrag, AmtEintrag, GalerieBadge, StatsBlock } from './rangliste';
 import type { AmtKurz } from '@/components/domain/Auszeichnungen';
 import { auszeichnungAn } from '@/lib/tenant-config';
@@ -230,6 +231,16 @@ export function ladeRanglisteDaten(meId: string): {
       .sort((x, y) => y.saison - x.saison || y.gesamt - x.gesamt),
   };
 
+  // Jahressieger (an Silvester festgeschrieben) je Badge/Amt
+  const sieger = alleJahressieger();
+  const jahressiegerVon = (key: string): JahressiegerEintrag[] =>
+    sieger
+      .filter((z) => z.key === key)
+      .map((z) => {
+        const m = holderVon(z.memberId);
+        return { jahr: z.jahr, name: m?.name ?? 'Ehemaliger', photoUrl: m?.photoUrl ?? null, ich: z.memberId === meId };
+      });
+
   const badgeInfos: Record<string, BadgeInfoDaten> = {};
   for (const b of saisonBadges()) {
     badgeInfos[b.key] = {
@@ -243,6 +254,7 @@ export function ladeRanglisteDaten(meId: string): {
       pflicht: b.pflicht,
       duties: null,
       hallOfFame: hallOfFameVon(b.key),
+      jahressieger: jahressiegerVon(b.key),
       zaehler: b.key === 'moshammer' ? rundenZaehler : b.key === 'gschaftler' ? spaetZaehler : null,
     };
   }
@@ -262,6 +274,7 @@ export function ladeRanglisteDaten(meId: string): {
       pflicht: null,
       duties: info.duties,
       hallOfFame: hallOfFameVon(key),
+      jahressieger: jahressiegerVon(key),
     };
   }
   badgeInfos['amt:kassenwart'] = {
@@ -274,6 +287,7 @@ export function ladeRanglisteDaten(meId: string): {
     text: AEMTER_INFO['Kassenwart'].geschichte,
     pflicht: null,
     duties: AEMTER_INFO['Kassenwart'].duties,
+    jahressieger: jahressiegerVon('amt:kassenwart'),
     hallOfFame: getKassenwartHistorie().map(({ amt, member }) => ({
       name: member ? (anzeigeName(member)) : 'unbesetzt',
       photoUrl: member?.photoUrl ?? null,

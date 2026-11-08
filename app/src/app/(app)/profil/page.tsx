@@ -123,7 +123,8 @@ export default async function ProfilPage({ searchParams }: { searchParams: Promi
             eingeloest: t.status === 'eingeloest' ? { gruppeName: g?.name ?? '—', stadt: g?.stadt ?? null, am: t.eingeloestAm ? datumKurz(t.eingeloestAm.slice(0, 10)) : '—' } : null,
           };
         }),
-        fristen: gruppe.istGruender
+        // Fristen fürn Stammtisch sieht nur der Admin; normale Spezl haben nur ihr Weihnachtsgeschenk
+        fristen: gruppe.istGruender || me.role !== 'admin'
           ? []
           : (() => {
               const { gesperrt } = tokenAnspruch(gruppe);
@@ -137,7 +138,7 @@ export default async function ProfilPage({ searchParams }: { searchParams: Promi
         gruendung: datumKurz(gruppe.createdAt.slice(0, 10)),
         anfragen: tokenProfil.anfragen.map((a) => ({ id: a.id, status: a.status, am: datumKurz((a.entschiedenAm ?? a.createdAt).slice(0, 10)), grund: a.grund })),
         darfAnfragen: tokenProfil.darfAnfragen,
-        eigene: gruppe.istGruender && me.role !== 'admin',
+        eigene: me.role !== 'admin',
         widmen: tokenWidmen,
         anfrageSchicken: tokenProfil.darfAnfragen || tokenProfil.anfragen.length > 0 ? tokenAnfragen : undefined,
         neuerToken: tokenProfil.darfMuenzen ? tokenErzeugen : undefined,

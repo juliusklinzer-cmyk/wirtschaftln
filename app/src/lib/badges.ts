@@ -143,7 +143,7 @@ export function praesidentInfo(): (typeof AEMTER_INFO)[string] {
   return {
     ...info,
     mode: 'Gewählt',
-    duties: 'Jedes Jahr beim ersten Stammtisch gewählt, die Wahl is a Woch’ offen · entscheidet final über Aufnahmen neuer Mitglieder · zahlt am Tisch immer als Letzter, was offen bleibt, is sei Sach’',
+    duties: `${{ jahresanfang: 'Jedes Jahr beim ersten Stammtisch gewählt', jahresende: 'Jedes Jahr im Dezember fürs neue Jahr gewählt', zweiJahre: 'Alle zwei Jahre gewählt' }[tenantConfig().praesidentWahlZeit]}, die Wahl is a Woch’ offen · entscheidet final über Aufnahmen neuer Mitglieder · zahlt am Tisch immer als Letzter, was offen bleibt, is sei Sach’`,
   };
 }
 

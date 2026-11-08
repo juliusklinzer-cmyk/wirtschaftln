@@ -26,6 +26,9 @@ import { nowIso } from '@/lib/ids';
 import { aktuelleSaison } from '@/lib/saison';
 import { vergabeWechsel, wechselTexte, AEMTER_INFO, saisonBadges, feierTexte, praesidentInfo } from '@/lib/badges';
 import { praesidentGewaehlt } from '@/lib/praesident';
+import { jahressiegerVon, letzteVergabe, siegerMeta } from '@/lib/jahressieger';
+import { offenesGeschenk } from '@/lib/weihnachten';
+import { WeihnachtsGeschenk } from '@/components/domain/WeihnachtsGeschenk';
 import { offeneWahl, letzteWahl, wahlStand, wahlKandidaten, wahlErgebnis } from '@/lib/praesident-wahl';
 import { WahlErgebnis, type ErgebnisZeile } from '@/components/domain/WahlErgebnis';
 import { WahlKarte } from '@/components/domain/WahlKarte';
@@ -202,6 +205,49 @@ export default async function HomePage() {
           };
         })()
       : null;
+
+  // Weihnachtsgeschenk: ungewidmeter Geschenk-Token → Popup „Frohe Weihnachten“
+  const geschenk = offenesGeschenk(me.id);
+
+  // Jahressieger (an Silvester festgeschrieben): zwei Wochen lang die eigene Feier „Maximator 2026“
+  const vergabe = letzteVergabe();
+  const jahresFeiern: FeierBadge[] =
+    vergabe && Date.now() - Date.parse(vergabe.am) < 14 * 24 * 3600 * 1000
+      ? jahressiegerVon(vergabe.jahr)
+          .filter((z) => z.memberId === me.id)
+          .flatMap((z) => {
+            const meta = siegerMeta(z.key);
+            if (!meta) return [];
+            const badge = saisonBadges().find((b) => b.key === z.key);
+            const texte = feierTexte(z.key, meta.name, badge?.tag);
+            const heiwong = z.key === 'heiwong';
+            const titel = `${meta.name} ${vergabe.jahr}`;
+            return [{
+              key: `jahr:${z.key}`,
+              art: meta.art,
+              slug: meta.slug,
+              icon: meta.icon,
+              name: titel,
+              eyebrow: `Jahressieger ${vergabe.jahr}`,
+              titel1: 'Du gehst in die Geschichte ein',
+              titel2: `${titel}!`,
+              spruch: heiwong ? 'Am wenigsten dabei im ganzen Jahr. Des steht jetzt für immer drin, also kimm nächstes Jahr öfter!' : `Am Jahresende hast du’s ghabt, damit stehst du für immer in der Ehrentafel. ${texte.spruch}`,
+              urkunde: heiwong ? null : {
+                stammtisch: /stammtisch/i.test(config.name) ? config.name : `Stammtisch ${config.name}`,
+                name: urkundenName(me) ?? anzeigeName(me),
+                badgeName: meta.name,
+                slug: meta.slug,
+                icon: meta.icon,
+                saison: `Jahr ${vergabe.jahr}`,
+                grund: `Gehalten zum Jahresende ${vergabe.jahr}. ${texte.urkundeGrund.replace(/ der Saison\./, ' im Herbst.')}`,
+                praesident: nameVon(jahressiegerVon(vergabe.jahr).find((x) => x.key === 'amt:praesident')?.memberId ?? null),
+                datum: `31. Dezember ${vergabe.jahr}`,
+                ort: config.stadt,
+              },
+              knopf: heiwong ? 'Passt, nächstes Jahr kimm i öfter!' : undefined,
+            } satisfies FeierBadge];
+          })
+      : [];
 
   /* ---------- Termin-Karte: a Karte, alle Phasen (Zustände 2a–2h) ---------- */
   let heroInhalt: React.ReactNode;
@@ -437,6 +483,12 @@ export default async function HomePage() {
   return (
     <div className="wn-eintritt" style={{ padding: '20px 16px 28px', display: 'flex', flexDirection: 'column', gap: 24 }}>
       {letzter && feiern.length > 0 && <BadgeFeier terminId={letzter.id} feiern={feiern} />}
+      {(() => {
+        const jahresFeier = jahresFeiern.length > 0 && vergabe ? <BadgeFeier terminId={`jahr-${vergabe.jahr}`} feiern={jahresFeiern} /> : null;
+        return geschenk
+          ? <WeihnachtsGeschenk vorname={me.vorname || me.spitzname || me.name.split(' ')[0]} token={geschenk.token} link={geschenk.link} jahr={geschenk.jahr} gewidmet={geschenk.gewidmet} danach={jahresFeier} />
+          : jahresFeier;
+      })()}
       {wahlFeier && gewonnen && <BadgeFeier terminId={`wahl-${gewonnen.id}`} feiern={[wahlFeier]} />}
 
       {/* Nur im Browser: App aufs Handy (am iPhone gehen Benachrichtigungen erst nach der Installation) */}

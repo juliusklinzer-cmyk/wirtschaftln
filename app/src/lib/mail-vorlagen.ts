@@ -368,3 +368,19 @@ export function mailWacklerOhneAntwort(r: MailRahmen, d: { anrede: string; wackl
   });
   return { betreff: `${gross(d.wackler)} hat nicht geantwortet`, inhalt };
 }
+
+/** Weihnachtsgeschenk (24.12.2026): jeder Spezl kriegt seinen persönlichen Einladungstoken. */
+export function mailWeihnachten(r: MailRahmen, d: { vorname: string; token: string }): { betreff: string; inhalt: MailInhalt } {
+  const inhalt = baue(r, {
+    anrede: `Frohe Weihnachten, ${d.vorname}!`,
+    absaetze: [
+      'Unterm Christbaum liegt heuer was für dich: dein persönlicher Einladungstoken. Damit kannst du einen neuen Stammtisch einladen, Freunde, Kollegen, die Verwandtschaft.',
+      'In der App schreibst du dazu, für wen er ist, und schickst ihn gleich weiter.',
+    ],
+    kasten: [['Dein Token', d.token]],
+    knopf: { text: 'Token verschenken', pfad: '/' },
+    hinweis: 'Schöne Feiertage und an guaden Rutsch!',
+    einstellbar: false,
+  });
+  return { betreff: '🎁 Frohe Weihnachten! Dein Einladungstoken', inhalt };
+}

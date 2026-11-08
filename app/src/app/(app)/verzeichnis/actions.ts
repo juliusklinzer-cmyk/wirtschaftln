@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { eq } from 'drizzle-orm';
 import { db, members, runWithTenant } from '@/lib/db';
-import { anfrageEntscheiden, feedbackErledigt, findAnfrage, findGruppe, gruppeStatusSetzen } from '@/lib/db/directory';
+import { anfrageEntscheiden, feedbackErledigt, findAnfrage, findGruppe, gruppeAktualisieren, gruppeStatusSetzen } from '@/lib/db/directory';
 import { getCurrentMember } from '@/lib/session';
 import { tenantConfig, appUrl } from '@/lib/tenant-config';
 import { freierTokenString, neuerToken } from '@/lib/gruendung';
@@ -79,6 +79,24 @@ export async function tokenSchenken(gruppeId: string): Promise<{ fehler?: string
   neuerToken(halter, gruppeId, 'admin');
   revalidatePath(`/verzeichnis/${gruppeId}`);
   revalidatePath('/verzeichnis');
+  return {};
+}
+
+/**
+ * Weihnachts-Token (Jahresabschluss 2026) für einen Stammtisch an- oder
+ * ausschalten: am 24.12. kriegt dann jeder Spezl seinen persönlichen Token
+ * (lib/weihnachten.ts, im Takt).
+ */
+export async function weihnachtsTokenSchalten(gruppeId: string, jahr: number | null): Promise<{ fehler?: string }> {
+  const me = await verzeichnisAdmin();
+  if (!me) return { fehler: 'Des derf nur a Wirtschaftln-Admin.' };
+  const gruppe = findGruppe(gruppeId);
+  if (!gruppe || gruppe.istGruender) return { fehler: 'Unbekannter Stammtisch.' };
+  let config: Record<string, unknown> = {};
+  try { config = JSON.parse(gruppe.config || '{}'); } catch { /* kaputt → neu */ }
+  config.weihnachtsTokenJahr = jahr;
+  gruppeAktualisieren(gruppeId, { config: JSON.stringify(config) });
+  revalidatePath(`/verzeichnis/${gruppeId}`);
   return {};
 }
 

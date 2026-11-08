@@ -125,8 +125,9 @@ export type TokenProfil = {
 
 /**
  * Was der Spezl im Profil unter „Gründungs-Token“ sieht: beim Gründer die
- * eigenen Tokens, sonst (nur Admins) die Tokens des Stammtischs samt Fristen
- * und Anfragen. Mitglieder fremder Stammtische sehen nix.
+ * eigenen Tokens, sonst (Admins) die Tokens des Stammtischs samt Fristen
+ * und Anfragen. Mitglieder fremder Stammtische sehen nur ihre eigenen
+ * (Weihnachts-Token 2026); die Geschenke der anderen sieht auch der Admin ned.
  */
 export function tokensFuerProfil(me: { id: string; role: string }): TokenProfil {
   const gruppe = currentTenant().gruppe;
@@ -134,11 +135,12 @@ export function tokensFuerProfil(me: { id: string; role: string }): TokenProfil 
   if (gruppe.istGruender) {
     return { tokens: tokensFuerGruenderMitglied(me.id), gesperrt: [], anfragen: [], darfAnfragen: false, darfMuenzen: admin };
   }
-  if (!admin) return { tokens: [], gesperrt: [], anfragen: [], darfAnfragen: false, darfMuenzen: false };
+  const eigene = tokensFuerMitglied(me.id).filter((t) => t.gruppeId === gruppe.id);
+  if (!admin) return { tokens: eigene, gesperrt: [], anfragen: [], darfAnfragen: false, darfMuenzen: false };
   anspruchTokensSicherstellen(gruppe, me.id);
   const anfragen = anfragenFuerGruppe(gruppe.id);
   return {
-    tokens: tokensFuerGruppe(gruppe.id),
+    tokens: tokensFuerGruppe(gruppe.id).filter((t) => t.quelle !== 'geschenk' || t.memberId === me.id),
     gesperrt: tokenAnspruch(gruppe).gesperrt,
     anfragen,
     darfAnfragen: !anfragen.some((a) => a.status === 'offen'),
@@ -151,6 +153,8 @@ export function darfTokenNutzen(me: { id: string; role: string }, token: Gruendu
   const gruppe = currentTenant().gruppe;
   if (token.gruppeId !== gruppe.id) return false;
   if (gruppe.istGruender) return token.memberId === me.id || me.role === 'admin';
+  // Persönliches Weihnachtsgeschenk: nur der Beschenkte
+  if (token.quelle === 'geschenk') return token.memberId === me.id;
   return me.role === 'admin';
 }
 

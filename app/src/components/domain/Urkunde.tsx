@@ -38,6 +38,14 @@ const FARBE = { navy: '#0C2B5A', gold: '#D0AD66', gold700: '#A6843E', pergament:
  * Urkunden-Form, Badge groß, Unterschrift vom Präsidenten. Teilen schickt sie
  * als Bild in die Gruppe, Speichern legt das Bild aufs Handy.
  */
+/** „Herbst-Saison 2026“ → „der Herbst-Saison 2026“, „Jahr 2026“ → „des Jahres 2026“, „Amtsjahr 2026“ → „für das Amtsjahr 2026“ */
+function zeitraumText(saison: string): string {
+  const jahr = saison.match(/^Jahr (\d{4})$/);
+  if (jahr) return `des Jahres ${jahr[1]}`;
+  if (saison.startsWith('Amtsjahr')) return `für das ${saison}`;
+  return `der ${saison}`;
+}
+
 export function Urkunde({ daten, onClose }: { daten: UrkundeDaten; onClose: () => void }) {
   const [laeuft, setLaeuft] = useState<'teilen' | 'speichern' | null>(null);
   const [hinweis, setHinweis] = useState<string | null>(null);
@@ -116,7 +124,7 @@ export function Urkunde({ daten, onClose }: { daten: UrkundeDaten; onClose: () =
               <BadgeBild slug={daten.slug} icon={daten.icon} name={daten.badgeName} size={150} />
             </div>
             <span style={{ fontFamily: 'var(--font-fraktur)', fontSize: 30, lineHeight: 1, color: FARBE.gold700 }}>{titel}</span>
-            <span style={{ fontSize: 13, fontWeight: 600, color: FARBE.grau }}>der {daten.saison} ernannt.</span>
+            <span style={{ fontSize: 13, fontWeight: 600, color: FARBE.grau }}>{zeitraumText(daten.saison)} ernannt.</span>
             <span style={{ fontSize: 13, fontStyle: 'italic', fontWeight: 600, lineHeight: 1.5, color: FARBE.ink, marginTop: 8, maxWidth: 260 }}>{daten.grund}</span>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, alignSelf: 'stretch', marginTop: 20 }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'center' }}>
@@ -296,7 +304,7 @@ export async function urkundeAlsBild(d: UrkundeDaten): Promise<Blob> {
   });
   y += 150 + 4 + 6;
   text(titel, `30px ${fraktur}`, FARBE.gold700, 30);
-  text(`der ${d.saison} ernannt.`, `600 13px ${ui}`, FARBE.grau, 18);
+  text(`${zeitraumText(d.saison)} ernannt.`, `600 13px ${ui}`, FARBE.grau, 18);
   y += 8;
   for (const z of grundZeilen) text(z, `italic 600 13px ${ui}`, FARBE.ink, 19.5);
   y -= 6;

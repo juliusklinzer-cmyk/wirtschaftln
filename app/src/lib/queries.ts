@@ -634,11 +634,13 @@ export function getAltbestand() {
  * Aktueller Badge-/Amt-Vergabe-Stand der Saison (Badge-Key → Halter).
  * Mit `ohneTerminId` = der Stand, wie er VOR diesem Termin war.
  */
-export function getVergabeStand(ohneTerminId?: string): Map<string, string> {
-  const saison = aktuelleSaison();
-  const stats = getStats({ abDatum: saison.start, ohneTerminId });
+export function getVergabeStand(ohneTerminId?: string, zeitraum?: { abDatum: string; bisDatum: string }): Map<string, string> {
+  // Ohne Zeitraum: laufende Saison. Mit Zeitraum z. B. die Herbst-Saison bis Silvester (Jahressieger)
+  const ab = zeitraum?.abDatum ?? aktuelleSaison().start;
+  const bis = zeitraum?.bisDatum;
+  const stats = getStats({ abDatum: ab, bisDatum: bis, ohneTerminId });
   const archivSaison = getArchiv().filter(
-    (a) => a.termin.datum >= saison.start && a.termin.id !== ohneTerminId && a.rating > 0,
+    (a) => a.termin.datum >= ab && (!bis || a.termin.datum <= bis) && a.termin.id !== ohneTerminId && a.rating > 0,
   );
   const bestes = [...archivSaison].sort((a, b) => b.rating - a.rating)[0];
   return vergabeStand(stats, bestes?.planer?.id ?? null);

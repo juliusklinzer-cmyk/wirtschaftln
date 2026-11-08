@@ -18,7 +18,7 @@ import { AnfrageChip } from '@/components/domain/TokenKarte';
 import { StammtischForm } from '@/app/(app)/stammtisch/stammtisch-form';
 import { chipStil } from '../stil';
 import { gruppeSpeichern } from '../actions';
-import { BearbeitenKlappe, SchenkKnopf, SperrKnopf } from '../knoepfe';
+import { BearbeitenKlappe, SchenkKnopf, SperrKnopf, WeihnachtsSchalter } from '../knoepfe';
 
 export const metadata = { title: 'Stammtisch · Verzeichnis' };
 
@@ -47,11 +47,13 @@ export default async function VerzeichnisDetailPage({ params }: { params: Promis
   const mitglieder = mitgliederVon(gruppe.id);
   const gesperrt = gruppe.status === 'gesperrt';
   const anspruchTokens = tokens.filter((t) => t.quelle === 'anspruch');
+  const weihnachtsJahr = new Date().getFullYear();
   const tokenTitel = (t: (typeof tokens)[number]) => {
     if (t.quelle === 'anspruch') {
       const nr = anspruchTokens.indexOf(t) + 1;
       return `Token ${nr} · nach ${nr === 1 ? 2 : 6} Monaten`;
     }
+    if (t.quelle === 'geschenk') return `Weihnachts-Token von ${t.vonName}`;
     return t.quelle === 'anfrage' ? 'Token aus Anfrage' : t.quelle === 'admin' ? (gruppe.istGruender ? `Token von ${t.vonName}` : 'Token geschenkt') : `Token von ${t.vonName}`;
   };
 
@@ -157,6 +159,7 @@ export default async function VerzeichnisDetailPage({ params }: { params: Promis
           </div>
         )}
         {!gruppe.istGruender && <SchenkKnopf id={gruppe.id} />}
+        {!gruppe.istGruender && <WeihnachtsSchalter id={gruppe.id} jahr={weihnachtsJahr} an={config.weihnachtsTokenJahr === weihnachtsJahr} />}
       </section>
 
       {/* Mitglieder */}

@@ -5,6 +5,8 @@ import { BadgeBild } from '@/components/domain/BadgeBild';
 import { HoamTitel } from '@/components/domain/HoamTitel';
 import { bereichHinweisStil } from '@/components/domain/hero-stil';
 
+export type JahressiegerEintrag = { jahr: number; name: string; photoUrl: string | null; ich: boolean };
+
 export type HallOfFameEintrag = { name: string; photoUrl: string | null; zeitraum: string; aktiv: boolean };
 
 /** Zähler-Rangliste im Badge (z. B. Moshammer: geschmissene Runden je Spezl). */
@@ -23,6 +25,8 @@ export type BadgeInfoDaten = {
   pflicht: string | null;
   duties: string | null;
   hallOfFame: HallOfFameEintrag[];
+  /** Jahressieger: wer’s an Silvester ghabt hat, neuestes Jahr zerst */
+  jahressieger?: JahressiegerEintrag[];
   /** Optionale Zähler-Rangliste hinter der Hall of Fame (z. B. Runden beim Moshammer). */
   zaehler?: ZaehlerBlock | null;
 };
@@ -117,6 +121,23 @@ export function BadgeInfo({ info, onClose }: { info: BadgeInfoDaten; onClose: ()
             <span style={{ fontSize: 14, fontWeight: 600, lineHeight: 1.6, color: 'var(--ink-700)' }}>{info.text}</span>
           </div>
         </section>
+
+        {info.jahressieger && info.jahressieger.length > 0 && (
+          <section style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <HoamTitel action={<span style={bereichHinweisStil}>wer’s an Silvester ghabt hat</span>}>Jahressieger</HoamTitel>
+            {/* Ehrentafel wie im Golfclub: Navy-Tafel, Jahr in Gold, für immer drin */}
+            <div style={{ borderRadius: 'var(--r-lg)', overflow: 'hidden', border: '1.5px solid var(--gold)', background: 'radial-gradient(120% 90% at 50% 0%, #123E78 0%, #07193A 80%)', boxShadow: 'var(--sh-sm)' }}>
+              {info.jahressieger.map((j, i) => (
+                <div key={j.jahr} style={{ display: 'flex', alignItems: 'center', gap: 14, minHeight: 60, padding: '0 16px', borderBottom: i < info.jahressieger!.length - 1 ? '1px solid rgba(230,198,132,0.25)' : 'none' }}>
+                  <span className="wn-tnum" style={{ fontFamily: 'var(--font-fraktur)', fontSize: 26, lineHeight: 1, color: 'var(--gold-bright)', width: 64, flex: 'none' }}>{j.jahr}</span>
+                  <Avatar src={j.photoUrl} name={j.name} size={34} ring={j.ich} />
+                  <span style={{ flex: 1, minWidth: 0, fontSize: 15, fontWeight: 800, color: 'var(--pergament)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{j.name}</span>
+                  {j.ich && <span style={{ fontSize: 11, fontWeight: 800, padding: '4px 10px', borderRadius: 999, background: 'var(--grad-gold)', color: 'var(--navy-900)', whiteSpace: 'nowrap', flex: 'none' }}>du</span>}
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
 
         <section style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <HoamTitel action={<span style={bereichHinweisStil}>wer’s wie lang hatte</span>}>Hall of Fame</HoamTitel>

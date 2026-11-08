@@ -30,6 +30,8 @@ export type TenantConfig = PublicTenantConfig & {
   praesidentModus: PraesidentModus;
   /** Wann gewählt wird: Jahresanfang (Standard), Jahresende fürs neue Jahr oder alle zwei Jahre */
   praesidentWahlZeit: PraesidentWahlZeit;
+  /** Weihnachts-Token: in diesem Jahr kriegt am 24.12. jeder Spezl an persönlichen Token (setzt ein Wirtschaftln-Admin im Verzeichnis) */
+  weihnachtsTokenJahr: number | null;
 };
 
 export type PraesidentModus = 'wp' | 'wahl';
@@ -49,6 +51,7 @@ type ConfigJson = Partial<{
   auszeichnungenAus: string[];
   praesidentModus: PraesidentModus;
   praesidentWahlZeit: PraesidentWahlZeit;
+  weihnachtsTokenJahr: number | null;
 }>;
 
 function lesen(json: string): ConfigJson {
@@ -85,6 +88,7 @@ export function parseTenantConfig(gruppe: Gruppe): TenantConfig {
     logo,
     auszeichnungenAus: Array.isArray(c.auszeichnungenAus) ? c.auszeichnungenAus.filter((k): k is string => typeof k === 'string') : [],
     praesidentModus: c.praesidentModus === 'wahl' ? 'wahl' : 'wp',
+    weihnachtsTokenJahr: Number.isInteger(c.weihnachtsTokenJahr) ? (c.weihnachtsTokenJahr as number) : null,
     praesidentWahlZeit: WAHL_ZEITEN.includes(c.praesidentWahlZeit as PraesidentWahlZeit) ? (c.praesidentWahlZeit as PraesidentWahlZeit) : 'jahresanfang',
   };
 }
@@ -107,7 +111,8 @@ export function tenantConfig(): TenantConfig {
 
 /** Der Teil, der als Props an Client-Komponenten darf (siehe TenantProvider). */
 export function publicTenantConfig(): PublicTenantConfig {
-  const { saisonEpocheJahr: _epoche, logo: _logo, auszeichnungenAus: _aus, praesidentModus: _modus, praesidentWahlZeit: _zeit, ...rest } = tenantConfig();
+  const { saisonEpocheJahr: _epoche, logo: _logo, auszeichnungenAus: _aus, praesidentModus: _modus, praesidentWahlZeit: _zeit, weihnachtsTokenJahr: _weihnachten, ...rest } = tenantConfig();
+  void _weihnachten;
   void _modus;
   void _zeit;
   void _epoche;

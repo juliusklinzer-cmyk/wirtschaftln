@@ -23,6 +23,15 @@ async function abendTakt() {
   } catch (e) {
     console.error('[wahl] Takt fehlgeschlagen:', e);
   }
+  // Jahresabschluss: an Silvester die Jahressieger festschreiben, am 24.12. die Weihnachts-Tokens
+  try {
+    const { jahresabschlussAllerStammtische } = await import('./lib/jahressieger');
+    await jahresabschlussAllerStammtische();
+    const { weihnachtsTokensVergeben } = await import('./lib/weihnachten');
+    await weihnachtsTokensVergeben();
+  } catch (e) {
+    console.error('[jahresabschluss] Takt fehlgeschlagen:', e);
+  }
   // Erinnerungs-Mails (lib/erinnerungen.ts), verschickt wird nur zwischen 18 und 22 Uhr
   try {
     const { erinnerungenAllerStammtische } = await import('./lib/erinnerungen');

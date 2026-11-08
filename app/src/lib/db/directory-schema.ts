@@ -49,13 +49,14 @@ export const konten = sqliteTable(
 // ('admin'). Jeder andere Stammtisch bekommt nach 2 und 6 Monaten je einen
 // ('anspruch') und kann weitere anfragen ('anfrage'). Vor dem Teilen wird der
 // Token gewidmet („Sepp aus Regensburg“); member_id = wer ihn hält bzw. gewidmet hat.
+// 'geschenk' (Weihnachten 2026): persönlicher Token je Spezl eines anderen Stammtischs.
 export const gruendungsTokens = sqliteTable(
   'gruendungs_tokens',
   {
   token: text('token').primaryKey(), // lesbar, z. B. WIRT-XXXX-XXXX
   memberId: text('member_id').notNull(),
   gruppeId: text('gruppe_id').references(() => gruppen.id),
-  quelle: text('quelle', { enum: ['mitglied', 'admin', 'anspruch', 'anfrage'] }).notNull().default('mitglied'),
+  quelle: text('quelle', { enum: ['mitglied', 'admin', 'anspruch', 'anfrage', 'geschenk'] }).notNull().default('mitglied'),
   widmung: text('widmung'),
   gewidmetAm: text('gewidmet_am'),
   status: text('status', { enum: ['offen', 'eingeloest'] }).notNull().default('offen'),

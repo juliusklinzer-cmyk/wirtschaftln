@@ -382,3 +382,20 @@ export const aemter = sqliteTable('aemter', {
   memberId: text('member_id').references(() => members.id),
   saison: text('saison').notNull(), // z.B. "2026"
 });
+
+/**
+ * Jahressieger (Jahresabschluss, 08.11.2026): wer an Silvester ein Badge oder
+ * Amt hält, steht dafür fest drin, z. B. „Maximator 2026“ (wie der Clubmeister).
+ */
+export const jahressieger = sqliteTable(
+  'jahressieger',
+  {
+    id: text('id').primaryKey(),
+    jahr: integer('jahr').notNull(),
+    /** Badge-Key (z. B. 'maximator') oder Amt ('amt:praesident', 'amt:schriftfuehrer', 'amt:kassenwart') */
+    key: text('key').notNull(),
+    memberId: text('member_id').notNull().references(() => members.id, { onDelete: 'cascade' }),
+    createdAt: text('created_at').notNull(),
+  },
+  (t) => [uniqueIndex('jahressieger_jahr_key').on(t.jahr, t.key)],
+);

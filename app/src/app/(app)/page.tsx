@@ -26,7 +26,7 @@ import { nowIso } from '@/lib/ids';
 import { aktuelleSaison } from '@/lib/saison';
 import { vergabeWechsel, wechselTexte, AEMTER_INFO, saisonBadges, feierTexte, praesidentInfo } from '@/lib/badges';
 import { praesidentGewaehlt } from '@/lib/praesident';
-import { jahressiegerVon, letzteVergabe, siegerMeta, siegerSpruch } from '@/lib/jahressieger';
+import { jahressiegerVon, letzteVergabe, siegerMeta, siegerSpruch, siegerUrkundeGrund } from '@/lib/jahressieger';
 import { JahresFeier, type JahresFeierEintrag } from '@/components/domain/JahresFeier';
 import { offenesGeschenk } from '@/lib/weihnachten';
 import { WeihnachtsGeschenk } from '@/components/domain/WeihnachtsGeschenk';
@@ -235,7 +235,7 @@ export default async function HomePage() {
                 slug: meta.slug,
                 icon: meta.icon,
                 saison: `Jahr ${vergabe.jahr}`,
-                grund: `Gehalten zum Jahresende ${vergabe.jahr}. ${texte.urkundeGrund.replace(/ der Saison\./, ' im Herbst.')}`,
+                grund: siegerUrkundeGrund(z.key, z.wert, vergabe.jahr, texte.urkundeGrund),
                 praesident: nameVon(jahressiegerVon(vergabe.jahr).find((x) => x.key === 'amt:praesident')?.memberId ?? null),
                 datum: `31. Dezember ${vergabe.jahr}`,
                 ort: config.stadt,

@@ -88,6 +88,18 @@ export function siegerSpruch(key: string, wert: number | null): string {
   return s[key] ?? 'Am Jahresende hast du’s ghabt.';
 }
 
+/** Grund auf der Urkunde, mit der Zahl: „31 Hoibe in der Herbst-Saison, gehalten bis Silvester 2026.“ */
+export function siegerUrkundeGrund(key: string, wert: number | null, jahr: number, ersatz: string): string {
+  const zahl: Record<string, string> = {
+    zacherHund: 'Abende dabei', heiwong: 'Abende dabei', maximator: 'Hoibe', moshammer: 'geschmissene Runden',
+    taxler: 'Heimfahrten organisiert', dieSau: 'Schweinsbraten', schnapsler: 'Stamperl', gschaftler: 'mal z’spät kemma',
+    'amt:praesident': 'Wirtschaftln-Punkte', 'amt:schriftfuehrer': 'Abende zsammgschriebn',
+  };
+  if (wert && key === 'alterPeter') return `Für ${wert} Stammtische am Stück, gehalten bis Silvester ${jahr}.`;
+  if (wert && zahl[key]) return `Für ${wert} ${zahl[key]} in der Herbst-Saison, gehalten bis Silvester ${jahr}.`;
+  return `${ersatz} Gehalten bis Silvester ${jahr}.`;
+}
+
 /** Festschreiben (idempotent): gibt die Zahl der neu eingetragenen Sieger zurück. */
 export function jahressiegerFestschreiben(jahr: number): number {
   const jetzt = nowIso();

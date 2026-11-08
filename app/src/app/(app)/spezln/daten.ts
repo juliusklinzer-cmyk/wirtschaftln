@@ -14,7 +14,7 @@ import { datumKurz } from '@/lib/format';
 import { saisonBadgesVergeben, serienAbzeichen, amtInfo, AEMTER_INFO, saisonBadges, praesidentInfo } from '@/lib/badges';
 import { praesidentAus } from '@/lib/praesident';
 import type { BadgeInfoDaten, HallOfFameEintrag, JahressiegerEintrag, ZaehlerBlock } from '@/components/domain/BadgeInfo';
-import { alleJahressieger, siegerMeta, siegerSpruch } from '@/lib/jahressieger';
+import { alleJahressieger, siegerMeta, siegerSpruch, siegerUrkundeGrund } from '@/lib/jahressieger';
 import type { SpezlEintrag, AmtEintrag, GalerieBadge, StatsBlock } from './rangliste';
 import type { AmtKurz } from '@/components/domain/Auszeichnungen';
 import { auszeichnungAn, tenantConfig } from '@/lib/tenant-config';
@@ -259,7 +259,7 @@ export function ladeRanglisteDaten(meId: string): {
                 slug: meta.slug,
                 icon: meta.icon,
                 saison: `Jahr ${z.jahr}`,
-                grund: `Gehalten zum Jahresende ${z.jahr}. ${siegerSpruch(key, z.wert)}`,
+                grund: siegerUrkundeGrund(key, z.wert, z.jahr, siegerSpruch(key, z.wert)),
                 praesident: jahrPraesident(z.jahr),
                 datum: `31. Dezember ${z.jahr}`,
                 ort: config.stadt,

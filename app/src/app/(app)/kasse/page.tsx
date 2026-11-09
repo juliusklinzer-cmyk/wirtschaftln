@@ -9,9 +9,10 @@ import { Avatar, Icon, ZeilenKarte } from '@/components/ds';
 import { HoamTitel } from '@/components/domain/HoamTitel';
 import { KasseAktionen } from '@/components/domain/KasseAktionen';
 import { goldKnopfStil, bereichHinweisStil } from '@/components/domain/hero-stil';
-import { strafeBuchenAction, forderungStatus, einzahlung, spenden, auslage, ausgabe, strafeErlassenFormular, strafeZuruecknehmenFormular } from './actions';
+import { OffenKarte, type OffenPerson } from '@/components/domain/OffenKarte';
+import { strafeBuchenAction, forderungStatus, einzahlung, spenden, auslage, ausgabe, strafeErlassenFormular, strafeZuruecknehmenFormular, richtenAction, zahlungErinnernAction } from './actions';
 import { katalog, folgeWort } from '@/lib/strafen-regeln';
-import { buchungZurKasse, darfErlassen as darfStrafeErlassen, darfZuruecknehmen } from '@/lib/strafen';
+import { buchungZurKasse, darfErlassen as darfStrafeErlassen, darfZuruecknehmen, offenePosten, zuletztErinnert } from '@/lib/strafen';
 
 export const metadata = { title: 'Kasse · Wirtschaftln' };
 
@@ -57,6 +58,22 @@ export default async function KassePage() {
   const meineSumme = meineOffenen.reduce((sum, o) => sum + Math.abs(o.eintrag.betragCents), 0);
   const nameVon = (id: string | null) => { const m = id ? mitglieder.find((x) => x.id === id) : null; return m ? vorname(anzeigeName(m)) : null; };
   const kassenwartName = kassenwart ? vorname(anzeigeName(kassenwart)) : null;
+  // Präsident richtet, Kassenwart erinnert ans Zahlen (WIR-009, WIR-011): offene Strafen je Spezl
+  const zeigtOffenKarte = darfKasse || darfErlassen;
+  const posten = zeigtOffenKarte ? offenePosten(me) : [];
+  const personen: OffenPerson[] = mitglieder
+    .map((m) => {
+      const eigene = posten.filter((p) => p.memberId === m.id);
+      const zuletzt = zuletztErinnert(m.id);
+      return {
+        spezl: { id: m.id, name: anzeigeName(m), photoUrl: m.photoUrl, verein: m.verein },
+        posten: eigene.map(({ memberId: _m, ...p }) => p),
+        summeCents: eigene.reduce((s, p) => s + p.cents, 0),
+        heuteErinnert: !!zuletzt && Date.now() - Date.parse(zuletzt) < 20 * 60 * 60 * 1000,
+      };
+    })
+    .filter((p) => p.posten.length > 0)
+    .sort((a, b) => b.summeCents - a.summeCents);
 
   return (
     <div className="wn-eintritt wn-zwei wn-breit" style={{ padding: 'calc(16px + var(--wn-oben)) 16px 32px', display: 'flex', flexDirection: 'column', gap: 24 }}>
@@ -134,7 +151,21 @@ export default async function KassePage() {
       />
       </div>
 
+      {/* Präsident und Kassenwart: Offenes je Spezl, richten und erinnern (auch am Handy) */}
+      {zeigtOffenKarte && (
+        <div style={{ order: 2 }}>
+          <OffenKarte
+            personen={personen}
+            meId={me.id}
+            darfRichten={darfErlassen}
+            darfErinnern={darfKasse}
+            actions={{ richten: richtenAction, erinnern: zahlungErinnernAction }}
+          />
+        </div>
+      )}
+
       {/* Nur breit: alles Offene auf einen Blick und der Strafenkatalog */}
+      {!zeigtOffenKarte && (
       <section className="wn-nur-breit" style={{ order: 4, ...karteBreit }}>
         <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 8 }}>
           <h2 style={breitTitel}>Offen</h2>
@@ -149,10 +180,10 @@ export default async function KassePage() {
               <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink-500)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{eintrag.grund}</span>
             </span>
             <span className="wn-tnum" style={{ flex: 'none', fontSize: 14, fontWeight: 800, color: 'var(--strafe)' }}>{euro(Math.abs(eintrag.betragCents))}</span>
-            {darfKasse && <StatusKnopf id={eintrag.id} status="beglichen" label="Beglichen" farbe="var(--navy)" />}
           </div>
         ))}
       </section>
+      )}
       <section className="wn-nur-breit" style={{ order: 5, ...karteBreit }}>
         <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 8 }}>
           <h2 style={breitTitel}>Strafenkatalog</h2>
@@ -228,7 +259,13 @@ export default async function KassePage() {
                   {istForderung && erlassen && (
                     <span style={{ fontSize: 11, fontWeight: 800, color: 'var(--gold-700)', display: 'flex', alignItems: 'center', gap: 4 }}>
                       <Icon name="crown" size={12} stroke={2.4} />
-                      erlassen
+                      {eintrag.gerichtetVon ? `erlassen von ${nameVon(eintrag.gerichtetVon) ?? '?'}` : 'erlassen'}
+                    </span>
+                  )}
+                  {istForderung && eintrag.status === 'offen' && eintrag.gerichtetVon && (
+                    <span style={{ fontSize: 11, fontWeight: 800, color: 'var(--gold-700)', display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <Icon name="crown" size={12} stroke={2.4} />
+                      bleibt, gerichtet von {nameVon(eintrag.gerichtetVon) ?? '?'}
                     </span>
                   )}
                   {istForderung && !erlassen && (darfKasse || darfErl || darfWeg) && (

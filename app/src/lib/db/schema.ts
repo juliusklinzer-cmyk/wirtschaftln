@@ -242,6 +242,11 @@ export const kasse = sqliteTable('kasse', {
   status: text('status', { enum: ['offen', 'beglichen', 'aufgehoben'] }).notNull().default('offen'),
   // Wer den Eintrag angelegt/gemeldet hat, null = automatisch von der App (z. B. Abschluss-Strafen)
   gemeldetVon: text('gemeldet_von').references(() => members.id),
+  /** Präsident richtet (WIR-009): wer über die offene Forderung entschieden hat, aufgehoben = erlassen, offen = bleibt */
+  gerichtetVon: text('gerichtet_von'),
+  gerichtetAm: text('gerichtet_am'),
+  /** Zahlungsaufforderung (WIR-011): zuletzt ans Zahlen erinnert */
+  erinnertAm: text('erinnert_am'),
   createdAt: text('created_at').notNull(),
 });
 
@@ -303,6 +308,9 @@ export const strafen = sqliteTable('strafen', {
   benachrichtigt: integer('benachrichtigt', { mode: 'boolean' }).notNull().default(false),
   /** Von einer automatischen eigenen Strafe gebucht (eindeutig je Termin, Regel, Spezl) */
   auto: integer('auto', { mode: 'boolean' }).notNull().default(false),
+  /** Präsident richtet (WIR-009): erlassen = Status erlassen, bleibt = Status offen */
+  gerichtetVon: text('gerichtet_von'),
+  gerichtetAm: text('gerichtet_am'),
   createdAt: text('created_at').notNull(),
 });
 

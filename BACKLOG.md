@@ -1,22 +1,12 @@
 # Backlog – Wirtschaftln
 
 ## In Arbeit
-
-## Wartet auf Julius
-- [ ] WIR-026 Responsive Redesign live anschauen: wirtschaftln.de am PC breit und schmal, am iPad, und Rückmeldung geben · am:2026-11-08
-- [ ] WIR-002 Link-Vorschau in WhatsApp echt testen (Beitreten- und Gründen-Link schicken). Schon geteilte Links können noch das alte Bild zeigen. · am:2026-11-06 · quelle:TODO.md#14
-- [ ] WIR-003 Badge-Pflichten: restliche Regeln fehlen, dann nur Texte eintragen (`pflicht` in badges.ts) · am:2026-11-06 · quelle:TODO.md#15
-- [ ] WIR-004 „Kein Wirtshaus zweimal“: Warnung oder Sperre beim Wählen eines schon besuchten Wirtshauses? · am:2026-11-06 · quelle:TODO.md#16
-
-## Offen
-- [ ] WIR-005 Kassenwart per In-App-Wahl (bisher trägt Admin oder Präsident das Ergebnis ein) · am:2026-11-06 · quelle:TODO.md#19
-- [ ] WIR-006 Zu-/Absage direkt aus der Mail (Ein-Klick-Links mit Token) · am:2026-11-06 · quelle:TODO.md#20
+- [ ] WIR-003 Pflichten zu Badges und Ämtern pro Stammtisch selbst festlegen (Admin, z. B. zum Jahresanfang); Maximator-Starkbier nur noch Vorschlag · am:2026-11-06 · quelle:TODO.md#15
+- [ ] WIR-004 „Kein Wirtshaus zweimal“: nur Warnung beim Wählen eines schon besuchten Wirtshauses, wählen geht trotzdem (Julius, 09.11.) · am:2026-11-06 · quelle:TODO.md#16
 - [ ] WIR-007 „Termin absagen“-Pfad fehlt · am:2026-11-06 · quelle:TODO.md#21
-- [ ] WIR-008 Strafkatalog aus dem Design: zu spät, falsches Wirtshaus, Kurzfrist-Absage · am:2026-11-06 · quelle:TODO.md#22
 - [ ] WIR-009 Präsident „richtet“: offene Strafen erlassen oder bestehen lassen · am:2026-11-06 · quelle:TODO.md#23
 - [ ] WIR-010 +WP-Animation bei Sofort-Aktionen (einmalig) · am:2026-11-06 · quelle:TODO.md#24
 - [ ] WIR-011 Zahlungsaufforderung zusätzlich per Mail · am:2026-11-06 · quelle:TODO.md#25
-- [ ] WIR-012 Vorschaubild-Foto je Stammtisch hinterlegbar (Design sieht's vor, jetzt immer Panorama) · am:2026-11-06 · quelle:TODO.md#26
 - [ ] WIR-013 Echter Aufnahme-Flow mit Bürge und Kodex (statt nur Code) · am:2026-11-06 · quelle:TODO.md#27
 - [ ] WIR-014 Optional: Punkte-Ereignis-Journal · am:2026-11-06 · quelle:TODO.md#28
 - [ ] WIR-015 Aufgehobene Absage-Strafen leben bei Nachtrag wieder auf · unter:Technik · am:2026-11-06 · quelle:TODO.md#31
@@ -26,9 +16,19 @@
 - [ ] WIR-019 Service-Worker-Cache wächst unbegrenzt · unter:Technik · am:2026-11-06 · quelle:TODO.md#35
 - [ ] WIR-020 Registrierungs-Rate-Limit ist prozess-global · unter:Technik · am:2026-11-06 · quelle:TODO.md#36
 
+## Wartet auf Julius
+- [ ] WIR-026 Responsive Redesign live anschauen: wirtschaftln.de am PC breit und schmal, am iPad, und Rückmeldung geben · am:2026-11-08
+
+## Offen
+
 ## Ideen
 
 ## Erledigt
+- [x] WIR-002 Link-Vorschau in WhatsApp echt testen (Beitreten- und Gründen-Link schicken). Schon geteilte Links können noch das alte Bild zeigen. (kein eigener Test, Julius meldet sich bei Problemen) · am:2026-11-06 · quelle:TODO.md#14 · fertig:2026-11-09
+- [x] WIR-005 Kassenwart per In-App-Wahl (bisher trägt Admin oder Präsident das Ergebnis ein) (gestrichen, Julius 09.11.) · am:2026-11-06 · quelle:TODO.md#19 · fertig:2026-11-09
+- [x] WIR-006 Zu-/Absage direkt aus der Mail (Ein-Klick-Links mit Token) (gestrichen, Julius 09.11.) · am:2026-11-06 · quelle:TODO.md#20 · fertig:2026-11-09
+- [x] WIR-008 Strafkatalog aus dem Design: zu spät, falsches Wirtshaus, Kurzfrist-Absage (gestrichen, Julius 09.11.) · am:2026-11-06 · quelle:TODO.md#22 · fertig:2026-11-09
+- [x] WIR-012 Vorschaubild-Foto je Stammtisch hinterlegbar (Design sieht's vor, jetzt immer Panorama) (gestrichen, Julius 09.11.) · am:2026-11-06 · quelle:TODO.md#26 · fertig:2026-11-09
 - [x] WIR-027 iOS-Blur oben am iPhone getestet: kein Blur, Tab-Leiste unten wieder ganz sichtbar (Rahmen fest verankert statt 100vh) · am:2026-11-09 · fertig:2026-11-09
 - [x] WIR-028 iOS-Blur oben wie in der Dart-App: kein Statusleisten-Tag bei Wirtschaftln, deckender 11-px-Streifen in Navy, Abstand oben 12 statt Safe-Area + 30 px · am:2026-11-09 · fertig:2026-11-09
 - [x] WIR-025 Responsive Redesign: Tabs oben ab 768 px, Dahoam mit Hero-Band, Rang links und Kasse rechts, Termin/Kasse/Lexikon zweispaltig, Fenster zentriert, Zahnrad-Einstellungen; Hoam heißt jetzt Dahoam; deployt 08.11. · am:2026-11-08 · fertig:2026-11-08

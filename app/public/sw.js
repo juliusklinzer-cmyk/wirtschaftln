@@ -4,7 +4,10 @@
 // v4: Precache ohne München-Assets (Kindl, Panorama laufen beim Gründer über
 // stale-while-revalidate), Push-Icon kommt pro Stammtisch im Payload mit.
 // v6: nur erfolgreiche Antworten cachen, sonst blieb ein 404/500 eines Skripts für immer hängen (iPhone, 04.11.2026)
-const CACHE = 'wirtschaftln-v6';
+// v7: Skripte und Styles in eigenem Cache mit Obergrenze, sonst wuchs der mit jedem Deploy (neue Hashes) ewig weiter
+const CACHE = 'wirtschaftln-v7';
+const STATIC = 'wirtschaftln-static-v7';
+const STATIC_MAX = 200;
 const ASSETS = ['/brand/shield-256.png', '/brand/shield-512.png', '/brand/rauten-256.png', '/brand/rauten-512.png', '/sounds/plopp.mp3'];
 
 self.addEventListener('install', (event) => {
@@ -14,7 +17,7 @@ self.addEventListener('install', (event) => {
 
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))))
+    caches.keys().then((keys) => Promise.all(keys.filter((k) => k !== CACHE && k !== STATIC).map((k) => caches.delete(k))))
   );
   self.clients.claim();
 });
@@ -53,6 +56,11 @@ self.addEventListener('notificationclick', (event) => {
   );
 });
 
+// Älteste Einträge rauswerfen (keys() liefert in Einfüge-Reihenfolge)
+function kuerzen(c) {
+  return c.keys().then((keys) => Promise.all(keys.slice(0, Math.max(0, keys.length - STATIC_MAX)).map((k) => c.delete(k))));
+}
+
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
   if (event.request.method !== 'GET' || url.origin !== location.origin) return;
@@ -65,7 +73,7 @@ self.addEventListener('fetch', (event) => {
           fetch(event.request).then((res) => {
             if (res.ok) {
               const copy = res.clone();
-              caches.open(CACHE).then((c) => c.put(event.request, copy));
+              caches.open(STATIC).then((c) => c.put(event.request, copy).then(() => kuerzen(c)));
             }
             return res;
           })

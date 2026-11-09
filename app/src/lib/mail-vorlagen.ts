@@ -138,6 +138,25 @@ function icsText(s: string): string {
   return s.replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\r?\n/g, '\\n');
 }
 
+/** Zeilen über 75 Byte falten (RFC 5545: Fortsetzung beginnt mit Leerzeichen), ohne UTF-8-Zeichen zu zerteilen. */
+function icsFalten(zeile: string): string {
+  const teile: string[] = [];
+  let aktuell = '';
+  let bytes = 0;
+  for (const z of zeile) {
+    const n = Buffer.byteLength(z);
+    if (bytes + n > 75) {
+      teile.push(aktuell);
+      aktuell = ' ';
+      bytes = 1;
+    }
+    aktuell += z;
+    bytes += n;
+  }
+  teile.push(aktuell);
+  return teile.join('\r\n');
+}
+
 /** Kalendereintrag für an Stammtisch (4 Stunden), für Mail-Anhang und /termin/[id]/ics. */
 export function icsTermin(t: { uid: string; datum: string; zeit: string; titel: string; ort?: string | null; beschreibung?: string; url?: string }): string {
   const start = berlinNachUtc(t.datum, t.zeit || '19:00');
@@ -159,7 +178,8 @@ export function icsTermin(t: { uid: string; datum: string; zeit: string; titel: 
     'END:VEVENT',
     'END:VCALENDAR',
   ]
-    .filter(Boolean)
+    .filter((z): z is string => Boolean(z))
+    .map(icsFalten)
     .join('\r\n');
 }
 

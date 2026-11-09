@@ -211,6 +211,23 @@ export function mailTerminVerschoben(
   return { betreff: `Stammtisch verschoben auf ${d.datumText}`, inhalt };
 }
 
+/** Termin abgesagt (WIR-007): Präsident oder Admin hat ihn gestrichen. */
+export function mailTerminAbgesagt(
+  r: MailRahmen,
+  d: { wannText: string; wirtshaus: string | null; von: string; grund: string | null },
+): { betreff: string; inhalt: MailInhalt } {
+  const inhalt = baue(r, {
+    anrede: 'Servus!',
+    absaetze: [
+      `${gross(d.von)} hat den Stammtisch am ${d.wannText}${d.wirtshaus ? ` im ${d.wirtshaus}` : ''} abgesagt.`,
+      ...(d.grund ? [`Grund: ${d.grund}`] : []),
+      'Deine Zu- oder Absage zählt damit nicht, Strafen gibt es keine. Sobald ein neuer Termin steht, bekommst du Bescheid.',
+    ],
+    knopf: { text: 'Zur App', pfad: '/termin' },
+  });
+  return { betreff: `Stammtisch am ${d.wannText} abgesagt`, inhalt };
+}
+
 /** Noch nicht abgestimmt: 1 Tag vor der Frist (letzte = am Tag vorm Termin). */
 export function mailAbstimmen(
   r: MailRahmen,

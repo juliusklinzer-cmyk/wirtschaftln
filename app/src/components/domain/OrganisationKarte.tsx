@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useTransition } from 'react';
+import { useRouter } from 'next/navigation';
 import { Chip, Icon, Kachel, Zeile, ZeilenKarte } from '@/components/ds';
 import { HoamTitel } from '@/components/domain/HoamTitel';
 import { WirtshausSuche } from '@/components/domain/WirtshausSuche';
@@ -12,13 +13,15 @@ import type { BekanntesWirtshaus } from '@/lib/wirtshaus-abgleich';
  * Bereich „Organisation“ auf der Termin-Seite (Redesign 1a): nur für
  * Berechtigte (Organisator, Präsident, Admin). Drei Zeilen, jede öffnet
  * ihren Baustein direkt drunter: Anmeldung schließen (am Stammtisch-Tag),
- * Termin verschieben, Reservierung ändern (2i), letzten Abend für alle nachtragen.
+ * Termin verschieben, Reservierung ändern (2i), Termin absagen (nur Präsident
+ * und Admin), letzten Abend für alle nachtragen.
  */
 export function OrganisationKarte({
   hint,
   anmeldungSchliessen = null,
   reservierung = null,
   verschieben = null,
+  absagen = null,
   nachtrag = null,
 }: {
   hint: string;
@@ -26,19 +29,24 @@ export function OrganisationKarte({
   reservierung?: { action: (formData: FormData) => Promise<void>; bekannte: BekanntesWirtshaus[]; aktuell: { name: string; bezirk: string | null } } | null;
   /** Neues Datum setzen, alle Stimmen werden zurückgesetzt */
   verschieben?: { action: (formData: FormData) => Promise<{ ok: true } | { ok: false; meldung: string }>; datum: string; zeit: string; heute: string } | null;
+  /** Termin streichen: Stimmen, WP und Absage-Strafen fallen weg */
+  absagen?: ((formData: FormData) => Promise<{ ok: true } | { ok: false; meldung: string }>) | null;
   nachtrag?: { restTage: number; schnapsAn: boolean; mitglieder: AbschlussMitglied[]; initial: AbschlussWerte; action: (formData: FormData) => Promise<void> } | null;
 }) {
-  const [offen, setOffen] = useState<null | 'reservierung' | 'verschieben' | 'nachtrag'>(null);
+  const [offen, setOffen] = useState<null | 'reservierung' | 'verschieben' | 'absagen' | 'nachtrag'>(null);
+  const [sicher, setSicher] = useState(false);
+  const router = useRouter();
   const [fehler, setFehler] = useState<string | null>(null);
   const [meldung, setMeldung] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
-  const zeilen = [anmeldungSchliessen, reservierung, verschieben, nachtrag].filter(Boolean).length;
+  const zeilen = [anmeldungSchliessen, reservierung, verschieben, absagen, nachtrag].filter(Boolean).length;
   if (zeilen === 0) return null;
 
-  const umschalten = (was: 'reservierung' | 'verschieben' | 'nachtrag') => {
+  const umschalten = (was: 'reservierung' | 'verschieben' | 'absagen' | 'nachtrag') => {
     setMeldung(null);
     setFehler(null);
+    setSicher(false);
     setOffen((o) => (o === was ? null : was));
   };
 
@@ -52,7 +60,7 @@ export function OrganisationKarte({
             titel={pending ? 'Wird gschlossen…' : 'Anmeldung schließen'}
             untertitel="am Stammtisch-Tag, danach zählt der Deckel"
             onClick={() => startTransition(async () => { await anmeldungSchliessen(); })}
-            letzte={!reservierung && !verschieben && !nachtrag}
+            letzte={!reservierung && !verschieben && !absagen && !nachtrag}
           />
         )}
         {reservierung && (
@@ -62,7 +70,7 @@ export function OrganisationKarte({
             untertitel="alle werden informiert"
             onClick={() => umschalten('reservierung')}
             chip={offen === 'reservierung' ? <Chip ton="blau">offen</Chip> : null}
-            letzte={!verschieben && !nachtrag}
+            letzte={!verschieben && !absagen && !nachtrag}
           />
         )}
         {verschieben && (
@@ -72,6 +80,16 @@ export function OrganisationKarte({
             untertitel="alle stimmen neu ab"
             onClick={() => umschalten('verschieben')}
             chip={offen === 'verschieben' ? <Chip ton="blau">offen</Chip> : null}
+            letzte={!absagen && !nachtrag}
+          />
+        )}
+        {absagen && (
+          <Zeile
+            kachel={<Kachel ton="grau"><Icon name="x" size={19} /></Kachel>}
+            titel="Termin absagen"
+            untertitel="fällt aus, ohne Strafen"
+            onClick={() => umschalten('absagen')}
+            chip={offen === 'absagen' ? <Chip ton="strafe">offen</Chip> : null}
             letzte={!nachtrag}
           />
         )}
@@ -145,6 +163,41 @@ export function OrganisationKarte({
             <span style={{ fontSize: 12, fontWeight: 600, lineHeight: 1.5, color: 'var(--ink-500)' }}>Alle Zu- und Absagen werden zurückgesetzt, jeder bekommt Push und Mail und sagt neu zu oder ab. Die Reservierung im Wirtshaus bitte selbst umbuchen.</span>
             {fehler && <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--strafe)' }}>{fehler}</span>}
             <button type="submit" disabled={pending} className="wn-press" style={{ ...goldKnopfStil, minHeight: 52, opacity: pending ? 0.7 : 1 }}>{pending ? 'Wird verschoben …' : 'Verschieben & alle informieren'}</button>
+          </form>
+        </>
+      )}
+
+      {offen === 'absagen' && absagen && (
+        <>
+          <HoamTitel>Termin absagen</HoamTitel>
+          <form
+            action={(fd) =>
+              startTransition(async () => {
+                const r = await absagen(fd);
+                if (!r.ok) return setFehler(r.meldung);
+                setOffen(null);
+                router.replace('/termin?abgesagt=1');
+              })
+            }
+            style={{ background: 'var(--weiss)', borderRadius: 'var(--r-lg)', border: '1px solid var(--ink-100)', boxShadow: 'var(--sh-sm)', padding: 16, display: 'flex', flexDirection: 'column', gap: 14 }}
+          >
+            <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <span style={feldLabelStil}>Grund (freiwillig)</span>
+              <input type="text" name="grund" maxLength={200} placeholder="z. B. Wirtshaus hat zu" style={feldStil} />
+            </label>
+            <span style={{ fontSize: 12, fontWeight: 600, lineHeight: 1.5, color: 'var(--ink-500)' }}>Der Termin fällt komplett weg. Zu- und Absagen zählen nicht, es gibt keine WP und keine Strafen. Alle bekommen Push und Mail, danach könnt ihr gleich einen neuen Termin ausmachen. Die Reservierung im Wirtshaus bitte selbst stornieren.</span>
+            {fehler && <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--strafe)' }}>{fehler}</span>}
+            {sicher ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10, padding: 14, borderRadius: 'var(--r-md)', background: 'var(--strafe-bg)' }}>
+                <span style={{ fontSize: 14, fontWeight: 800, color: 'var(--strafe)', textAlign: 'center' }}>Wirklich absagen? Das lässt sich nicht rückgängig machen.</span>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button type="button" onClick={() => setSicher(false)} className="wn-press" style={{ flex: 1, minHeight: 48, borderRadius: 'var(--r-md)', border: '1.5px solid var(--ink-200)', background: 'var(--weiss)', color: 'var(--navy)', fontFamily: 'var(--font-ui)', fontSize: 14, fontWeight: 800, cursor: 'pointer' }}>Doch nicht</button>
+                  <button type="submit" disabled={pending} className="wn-press" style={{ flex: 1, minHeight: 48, borderRadius: 'var(--r-md)', border: 'none', background: 'var(--strafe)', color: '#fff', fontFamily: 'var(--font-ui)', fontSize: 14, fontWeight: 800, cursor: 'pointer', opacity: pending ? 0.7 : 1 }}>{pending ? 'Wird abgesagt …' : 'Ja, absagen'}</button>
+                </div>
+              </div>
+            ) : (
+              <button type="button" onClick={() => setSicher(true)} className="wn-press" style={{ minHeight: 52, borderRadius: 'var(--r-md)', border: '1.5px solid var(--strafe)', background: 'var(--weiss)', color: 'var(--strafe)', fontFamily: 'var(--font-ui)', fontSize: 15, fontWeight: 800, cursor: 'pointer' }}>Absagen & alle informieren</button>
+            )}
           </form>
         </>
       )}

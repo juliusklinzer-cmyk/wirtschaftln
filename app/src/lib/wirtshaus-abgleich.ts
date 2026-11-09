@@ -10,6 +10,8 @@ export type BekanntesWirtshaus = {
   art: 'besucht' | 'eingeplant' | 'vorgeschlagen';
   /** Wer's gfunden hat (nur bei „vorgeschlagen" interessant). */
   von: string | null;
+  /** Letzter Besuch (ISO-Datum), null bei Altbestand ohne Termin */
+  am?: string | null;
 };
 
 const norm = (s: string) => s.toLowerCase().replace(/\s+/g, ' ').trim();

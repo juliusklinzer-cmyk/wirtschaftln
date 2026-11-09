@@ -4,7 +4,7 @@ import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { anzeigeName } from '@/lib/namen';
 import { and, eq } from 'drizzle-orm';
-import { db, termine, votes, besuche, wirtshaeuser, pushSubscriptions, checkins, currentTenant, wirtshausBewertungen, erinnerungen } from '@/lib/db';
+import { db, termine, votes, besuche, wirtshaeuser, pushSubscriptions, checkins, currentTenant, wirtshausBewertungen, erinnerungen, kasse } from '@/lib/db';
 import { getCurrentMember } from '@/lib/session';
 import { getAktiveMitglieder, nachtragsfristOffen, getPraesidentId, getBekannteWirtshaeuser, getLetzterAbgeschlossenerTermin, getNaechsterTermin } from '@/lib/queries';
 import { abendRundenAufbauen } from '@/lib/abend';
@@ -16,7 +16,7 @@ import { appHost, tenantConfig } from '@/lib/tenant-config';
 import { imUmkreis, mitOrt } from '@/lib/tenant-config-public';
 import { fotoAblegen, fotoAlsDataUrl } from '@/lib/foto';
 import { mailAn } from '@/lib/mail';
-import { mailTerminFest, mailTerminVerschoben } from '@/lib/mail-vorlagen';
+import { mailTerminFest, mailTerminVerschoben, mailTerminAbgesagt } from '@/lib/mail-vorlagen';
 import { mailAdressen, mailRahmen, rufname } from '@/lib/mail-rahmen';
 import { navigationsUrl } from '@/lib/google-maps';
 import { pushAnAlle } from '@/lib/push';
@@ -111,12 +111,14 @@ async function wirtshausAusSuche(formData: FormData, vorgeschlagenVon: string | 
   const name = String(formData.get('w_name') ?? '').trim() || String(formData.get('w_freitext') ?? '').trim();
   if (!name) return null;
   // Gleicher Name schon da (z. B. Altbestand-Klassiker wird wiederbesucht)? → kein Duplikat anlegen
-  const bekannt = db
-    .select()
-    .from(wirtshaeuser)
-    .all()
-    .find((w) => w.name.trim().toLowerCase() === name.toLowerCase());
+  const alle = db.select().from(wirtshaeuser).all();
+  const bekannt = alle.find((w) => w.name.trim().toLowerCase() === name.toLowerCase());
   if (bekannt) return bekannt.id;
+  // Unscharf wie in der Suche („Max Emanuel Brauerei …“ = „Max Emanuel“): a scho
+  // besuchtes Wirtshaus wieder aussuchen (WIR-004) legt koa Duplikat an
+  const aehnlich = findeBekanntes(name, alle.map((w) => ({ name: w.name, art: 'besucht' as const, von: null })));
+  const aehnlichId = aehnlich && alle.find((w) => w.name === aehnlich.name)?.id;
+  if (aehnlichId) return aehnlichId;
   const adresse = String(formData.get('w_adresse') ?? '').trim() || null;
   const bezirk = String(formData.get('w_bezirk') ?? '').trim() || null;
   const telefon = String(formData.get('w_telefon') ?? '').trim() || null;
@@ -174,7 +176,7 @@ export async function wirtshausVorschlagen(formData: FormData): Promise<Vorschla
     }
     const meldung =
       bekannt.art === 'besucht'
-        ? `„${bekannt.name}“ steht scho in eurer Chronik${tenantConfig().features.nieZweimal ? ', a Wirtshaus wird nie zweimal bsucht' : ''}.`
+        ? `Da wart’s scho${bekannt.am ? ` am ${datumLang(bekannt.am)}` : ''}, „${bekannt.name}“ steht in eurer Chronik. Als neuer Fund zählt’s ned, aussuchen kann’s der Organisator trotzdem.`
         : bekannt.art === 'eingeplant'
           ? `„${bekannt.name}“ steht scho als nächster Stammtisch fest.`
           : `„${bekannt.name}“ ${bekannt.von ? `hat ${bekannt.von} scho entdeckt` : 'is scho entdeckt'}, steht auf da Kartn.`;
@@ -388,6 +390,36 @@ export async function terminVerschieben(terminId: string, formData: FormData): P
   await Promise.allSettled([
     pushAnAlle('📅 Stammtisch verschoben', `Neuer Termin: ${datumText}, ${zeit} Uhr. Bitte nochmal zu- oder absagen.`, '/termin'),
     mailAn(mailAdressen(getAktiveMitglieder(), 'termin'), mail.betreff, mail.inhalt),
+  ]);
+  revalidateAll();
+  return { ok: true };
+}
+
+/**
+ * Termin absagen (WIR-007, 09.11.2026): Präsident oder Admin, solange der
+ * Abend noch nicht erfasst is. Der Termin fliegt mitsamt Stimmen,
+ * Erinnerungen und Check-ins raus, drum gibt's dafür weder WP noch
+ * Absage-Strafen; danach kann sofort a neuer Termin angesetzt werden.
+ * Alle kriegen Push und Mail.
+ */
+export async function terminAbsagen(terminId: string, formData: FormData): Promise<OrgaErgebnis> {
+  const me = await getCurrentMember();
+  if (!me) return { ok: false, meldung: 'Ned angmeldt, bitte neu einloggen.' };
+  const termin = db.select().from(termine).where(eq(termine.id, terminId)).get();
+  if (!termin || termin.phase === 'abgeschlossen' || termin.erfasstVon) return { ok: false, meldung: 'Der Abend läuft schon, absagen geht nimmer.' };
+  if (me.role !== 'admin' && me.id !== getPraesidentId()) return { ok: false, meldung: 'Absagen dürfen nur Präsident und Admin.' };
+  const grund = String(formData.get('grund') ?? '').trim().slice(0, 200) || null;
+  const wirtshaus = termin.wirtshausId ? db.select().from(wirtshaeuser).where(eq(wirtshaeuser.id, termin.wirtshausId)).get() : null;
+  const wannText = `${datumLang(termin.datum)}, ${termin.zeit} Uhr`;
+
+  // Kasse hängt ohne Cascade am Termin: Einträge bleiben, nur der Bezug geht
+  db.update(kasse).set({ terminId: null }).where(eq(kasse.terminId, terminId)).run();
+  db.delete(termine).where(eq(termine.id, terminId)).run();
+
+  const mail = mailTerminAbgesagt(mailRahmen(), { wannText, wirtshaus: wirtshaus?.name ?? null, von: anzeigeName(me), grund });
+  await Promise.allSettled([
+    pushAnAlle('Stammtisch abgesagt', `Der Stammtisch am ${wannText} fällt aus.${grund ? ` ${grund}` : ''}`, '/termin'),
+    mailAn(mailAdressen(getAktiveMitglieder().filter((m) => m.id !== me.id), 'termin'), mail.betreff, mail.inhalt),
   ]);
   revalidateAll();
   return { ok: true };

@@ -130,9 +130,11 @@ export function getAktiveMitglieder() {
 export function getBekannteWirtshaeuser(): BekanntesWirtshaus[] {
   // Regel „koa Wirtshaus zweimal“: beim Stammhaus-Typ aus → Besuchte sind frei
   const nieZweimal = tenantConfig().features.nieZweimal;
-  const besuchtIds = new Set(
-    db.select().from(termine).where(eq(termine.phase, 'abgeschlossen')).all().map((t) => t.wirtshausId).filter(Boolean),
-  );
+  // Wirtshaus → letzter Besuch (für „Da wart's schon am …“)
+  const besuchtAm = new Map<string, string>();
+  for (const t of db.select().from(termine).where(eq(termine.phase, 'abgeschlossen')).all()) {
+    if (t.wirtshausId && (besuchtAm.get(t.wirtshausId) ?? '') < t.datum) besuchtAm.set(t.wirtshausId, t.datum);
+  }
   const eingeplantIds = new Set(
     db.select().from(termine).where(ne(termine.phase, 'abgeschlossen')).all().map((t) => t.wirtshausId).filter(Boolean),
   );
@@ -143,7 +145,8 @@ export function getBekannteWirtshaeuser(): BekanntesWirtshaus[] {
     .all()
     .map((w): BekanntesWirtshaus => ({
       name: w.name,
-      art: w.altbestand || besuchtIds.has(w.id) ? 'besucht' : eingeplantIds.has(w.id) ? 'eingeplant' : 'vorgeschlagen',
+      am: besuchtAm.get(w.id) ?? null,
+      art: w.altbestand || besuchtAm.has(w.id) ? 'besucht' : eingeplantIds.has(w.id) ? 'eingeplant' : 'vorgeschlagen',
       von: (w.vorgeschlagenVon && finder.get(w.vorgeschlagenVon)) || null,
     }))
     .filter((b) => nieZweimal || b.art !== 'besucht');

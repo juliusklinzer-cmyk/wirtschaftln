@@ -57,6 +57,12 @@ export async function stammdatenSpeichern(gruppe: Gruppe, formData: FormData): P
   }
   config.features = features;
   // Präsident nach WP oder gewählt (nur wenn das Feld mitkommt, darf nur der Admin)
+  // Kodex für die Aufnahme (WIR-013), nur wenn das Feld mitkommt; leer = Standard-Kodex
+  const kodex = formData.get('kodex');
+  if (typeof kodex === 'string') {
+    const zeilen = kodex.split('\n').map((z) => z.trim()).filter(Boolean).slice(0, 12).map((z) => z.slice(0, 160));
+    config.kodex = zeilen.length ? zeilen.join('\n') : null;
+  }
   const modus = formData.get('praesidentModus');
   if (modus === 'wp' || modus === 'wahl') config.praesidentModus = modus;
   const wahlZeit = formData.get('praesidentWahlZeit');

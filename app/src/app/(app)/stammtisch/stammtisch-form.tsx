@@ -29,6 +29,8 @@ export type StammtischWerte = {
   /** Beim ersten Umstellen auf „gewählt“: wer is grad Präsident (vorausgewählt der nach WP) */
   praesidentSpezln?: Array<{ id: string; name: string; photoUrl: string | null; verein: string | null }>;
   praesidentId?: string | null;
+  /** Kodex, den Neue beim Beitritt bestätigen (eine Regel je Zeile), undefined = Feld ned zeigen */
+  kodex?: string;
 };
 
 export function StammtischForm({ werte, speichern = stammtischSpeichern, onGespeichert }: { werte: StammtischWerte; /** Server Action, Standard = eigener Stammtisch; das Verzeichnis gibt die gebundene Variante rein */ speichern?: (prev: StammtischState, fd: FormData) => Promise<StammtischState>; /** Nach erfolgreichem Speichern (z. B. Formular zuklappen) */ onGespeichert?: () => void }) {
@@ -60,6 +62,20 @@ export function StammtischForm({ werte, speichern = stammtischSpeichern, onGespe
         maxLength={40}
         autoComplete="off"
       />
+      {werte.kodex !== undefined && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <label htmlFor="feld-kodex" style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink-700)' }}>Kodex</label>
+          <textarea
+            id="feld-kodex"
+            name="kodex"
+            defaultValue={werte.kodex}
+            rows={5}
+            maxLength={800}
+            style={{ width: '100%', padding: '10px 12px', borderRadius: 'var(--r-md)', border: '1.5px solid var(--ink-200)', background: 'var(--weiss)', fontFamily: 'var(--font-ui)', fontSize: 14, fontWeight: 600, lineHeight: 1.45, color: 'var(--ink-900)', resize: 'vertical', boxSizing: 'border-box' }}
+          />
+          <span style={{ fontSize: 12, fontWeight: 600, lineHeight: 1.45, color: 'var(--ink-500)' }}>Eine Regel pro Zeile. Wer neu dazukommt, bestätigt sie beim Beitritt. Leer heißt Standard-Kodex.</span>
+        </div>
+      )}
       <BierWahl label="Euer Bier" biere={HELLE_WAHL} value={bier} onChange={setBier} leerLabel="Koa bestimmtes" />
       <input type="hidden" name="bierName" value={bier} />
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', background: 'var(--pergament)', border: '1px solid var(--pergament-edge)', borderRadius: 'var(--r-md)' }}>

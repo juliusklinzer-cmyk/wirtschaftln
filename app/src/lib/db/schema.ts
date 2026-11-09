@@ -15,6 +15,10 @@ export const members = sqliteTable('members', {
   photoUrl: text('photo_url'),
   role: text('role', { enum: ['admin', 'mitglied'] }).notNull().default('mitglied'),
   status: text('status', { enum: ['aktiv', 'antrag', 'inaktiv'] }).notNull().default('aktiv'),
+  /** Aufnahme (WIR-013): wen der Neue als Bürgen genannt hat, solange er auf 'antrag' steht */
+  buergeId: text('buerge_id'),
+  /** Wann er den Kodex bestätigt hat (ISO) */
+  kodexAm: text('kodex_am'),
   // Profil, alles was bayrisch und witzig is
   herkunft: text('herkunft'), // Stadtviertel/Herkunft
   lieblingsbier: text('lieblingsbier'),

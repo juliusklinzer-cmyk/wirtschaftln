@@ -16,6 +16,7 @@ import { mailAn } from '@/lib/mail';
 import { mailWillkommen } from '@/lib/mail-vorlagen';
 import { mailRahmen } from '@/lib/mail-rahmen';
 import { darfWacklerEntscheiden, wacklerEntscheiden } from '@/lib/wackler';
+import { offeneAntraege, darfEntscheiden, antragAnnehmen, antragAblehnen, buergeLehntAb } from '@/lib/aufnahme';
 import { auszeichnungAn, tenantConfig } from '@/lib/tenant-config';
 
 export type AufnahmeErgebnis = { ok: true; meldung: string } | { ok: false; meldung: string };
@@ -120,5 +121,23 @@ export async function wacklerEntscheidenAction(anfrageId: string, entscheidung: 
   if (entscheidung !== 'raus' && entscheidung !== 'bleibt') return { ok: false };
   const ok = await wacklerEntscheiden(anfrageId, entscheidung);
   revalidatePath('/spezln');
+  return { ok };
+}
+
+/**
+ * Aufnahme (WIR-013): der Bürge bürgt oder kennt den Neuen nicht; Präsident
+ * und Admin nehmen auf oder lehnen ab, auch ohne Bürgen (Notfall).
+ */
+export async function aufnahmeEntscheiden(antragId: string, entscheidung: 'buergen' | 'kenneNicht' | 'aufnehmen' | 'ablehnen'): Promise<{ ok: boolean }> {
+  const me = await getCurrentMember();
+  if (!me) return { ok: false };
+  const antrag = offeneAntraege().find((a) => a.id === antragId);
+  if (!antrag || !darfEntscheiden(antrag, me)) return { ok: false };
+  const istEntscheider = me.role === 'admin' || me.id === getPraesidentId();
+  let ok = false;
+  if (entscheidung === 'buergen' || (entscheidung === 'aufnehmen' && istEntscheider)) ok = await antragAnnehmen(antragId, me.id);
+  else if (entscheidung === 'kenneNicht' && antrag.buergeId === me.id) ok = await buergeLehntAb(antragId, me.id);
+  else if (entscheidung === 'ablehnen' && istEntscheider) ok = antragAblehnen(antragId);
+  revalidatePath('/', 'layout');
   return { ok };
 }

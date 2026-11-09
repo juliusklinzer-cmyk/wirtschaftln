@@ -75,7 +75,31 @@ export function saisonBadges(): SaisonBadge[] {
   const f = tenantConfig().features;
   const set = f.muenchenBadges ? SAISON_BADGES : SAISON_BADGES_GENERISCH;
   // Schnapsler gibt's nur, wo gschnapselt wird; was der Admin abgschalten hat, fällt raus
-  return set.filter((b) => (b.key !== 'schnapsler' || f.schnaps) && auszeichnungAn(b.key));
+  return set.filter((b) => (b.key !== 'schnapsler' || f.schnaps) && auszeichnungAn(b.key)).map((b) => ({ ...b, pflicht: pflichtVon(b.key, b.pflicht) }));
+}
+
+/**
+ * Pflicht zu einem Badge oder Amt (WIR-003, 09.11.2026): jeder Stammtisch legt
+ * seine eigenen fest, z. B. zum Jahresanfang. Was er nie angefasst hat, kriegt
+ * die Vorbelegung (Maximator: Starkbier vorweg); ein leerer Text heißt koane.
+ */
+export function pflichtVon(key: string, standard: string | null = null): string | null {
+  const eigene = tenantConfig().pflichten;
+  if (key in eigene) return eigene[key].trim() || null;
+  return standard;
+}
+
+export type PflichtWahl = { key: string; name: string; icon: string; slug: string | null; art: 'Amt' | 'Badge'; pflicht: string };
+
+/** Alles, wozu der Stammtisch Pflichten festlegen kann: die Ämter, die an sind, und die Badges. */
+export function pflichtenWahl(): PflichtWahl[] {
+  const aemter = (['Präsident', 'Kassenwart', 'Schriftführer'] as const)
+    .map((titel) => ({ titel, key: `amt:${titel === 'Präsident' ? 'praesident' : titel === 'Kassenwart' ? 'kassenwart' : 'schriftfuehrer'}` }))
+    .filter(({ key }) => key === 'amt:praesident' || auszeichnungAn(key));
+  return [
+    ...aemter.map(({ titel, key }) => ({ key, name: titel, icon: AEMTER_INFO[titel].icon, slug: AEMTER_INFO[titel].slug, art: 'Amt' as const, pflicht: pflichtVon(key) ?? '' })),
+    ...saisonBadges().map((b) => ({ key: b.key, name: b.name, icon: b.icon, slug: b.slug, art: 'Badge' as const, pflicht: b.pflicht ?? '' })),
+  ];
 }
 
 export type BadgeVergabe = SaisonBadge & { holderId: string };

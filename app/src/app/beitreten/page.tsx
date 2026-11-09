@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
-import { getCurrentMember } from '@/lib/session';
+import { getAntragsteller, getCurrentMember } from '@/lib/session';
 import { findGruppeByCode } from '@/lib/db/directory';
 import { AuthRahmen } from '@/components/domain/AuthRahmen';
 import { AuthLink } from '@/components/domain/AuthFeld';
@@ -33,6 +33,8 @@ export async function generateMetadata({ searchParams }: { searchParams: Promise
 export default async function BeitretenPage({ searchParams }: { searchParams: Promise<{ code?: string }> }) {
   const me = await getCurrentMember();
   if (me) redirect('/');
+  // Aufnahme beantragt, Bürge hat no ned zugesagt (WIR-013)
+  if (await getAntragsteller()) redirect('/beitreten/warten');
   const { code } = await searchParams;
   const codeVorbelegt = typeof code === 'string' ? code.slice(0, 40) : '';
   const eingeladen = codeVorbelegt ? findGruppeByCode(codeVorbelegt.trim()) : null;
@@ -47,7 +49,7 @@ export default async function BeitretenPage({ searchParams }: { searchParams: Pr
       logoHoehe={110}
       eyebrow={eyebrow}
       titel={eingeladenZu ? 'Du bist eingeladen!' : 'Werd Mitglied'}
-      untertitel={eingeladenZu ? `Zum ${eingeladenZu.name}. Nur noch Name und E-Mail, dann bist du dabei.` : 'Mit dem Gründungscode aus deiner Runde.'}
+      untertitel={eingeladenZu ? `Zum ${eingeladenZu.name}. Name, E-Mail, ein Bürge aus der Runde und euer Kodex, dann geht’s los.` : 'Mit dem Gründungscode aus deiner Runde.'}
     >
       <BeitrittForm codeVorbelegt={codeVorbelegt} />
       <AuthLink href="/login">Schon dabei? Anmelden</AuthLink>

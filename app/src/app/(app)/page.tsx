@@ -20,11 +20,16 @@ import {
   getWirtshausById,
   getNaechsterTermin,
   getStrafenFuerTermin,
+  getPraesidentId,
 } from '@/lib/queries';
+import { offeneAntraege, darfEntscheiden } from '@/lib/aufnahme';
+import { AufnahmeKarte, type AufnahmeZeile } from '@/components/domain/AufnahmeKarte';
+import { aufnahmeEntscheiden } from './spezln/actions';
+import { Scroll } from '@phosphor-icons/react/dist/ssr/Scroll';
 import { PTS, WACKELT_AB_UNENTSCHULDIGT, checkinOffen, bierdeckelOffen, abschlussOffen, berlinTag } from '@/lib/punkte';
 import { nowIso } from '@/lib/ids';
 import { aktuelleSaison } from '@/lib/saison';
-import { vergabeWechsel, wechselTexte, AEMTER_INFO, saisonBadges, feierTexte, praesidentInfo } from '@/lib/badges';
+import { vergabeWechsel, wechselTexte, AEMTER_INFO, saisonBadges, feierTexte, praesidentInfo, pflichtVon } from '@/lib/badges';
 import { praesidentGewaehlt } from '@/lib/praesident';
 import { jahressiegerVon, letzteVergabe, siegerMeta, siegerSpruch, siegerUrkundeGrund } from '@/lib/jahressieger';
 import { JahresFeier, type JahresFeierEintrag } from '@/components/domain/JahresFeier';
@@ -69,6 +74,15 @@ export default async function HomePage() {
   const me = (await getCurrentMember())!;
   erzwingeProfil(me);
   const config = tenantConfig();
+  // Aufnahme (WIR-013): Anträge, über die i entscheiden darf (als Bürge, Präsident oder Admin)
+  const entscheider = me.role === 'admin' || me.id === getPraesidentId();
+  const antraege: AufnahmeZeile[] = offeneAntraege()
+    .filter((a) => darfEntscheiden(a, me))
+    .map((a) => ({ id: a.id, name: a.name, seit: a.seit, buergeName: a.buergeName, ichBuerge: a.buergeId === me.id }));
+  // Im Januar: Präsident und Admin an die Pflichten fürs neue Jahr erinnern (WIR-003), bis sie gespeichert sind
+  const berlinJahrMonat = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Berlin' }).slice(0, 7);
+  const pflichtenJahr = Number(berlinJahrMonat.slice(0, 4));
+  const pflichtenHinweis = entscheider && berlinJahrMonat.endsWith('-01') && config.pflichtenJahr !== pflichtenJahr ? String(pflichtenJahr) : null;
   const PAYPAL_POOL_URL = config.istGruender ? GRUENDER_PAYPAL_URL : undefined;
   const jetzt = nowIso();
   const heute = berlinTag(jetzt);
@@ -130,6 +144,8 @@ export default async function HomePage() {
       const texte = feierTexte(w.key, w.label, badge?.tag);
       const artikel = w.label.startsWith('Die ') ? `die neue ${w.label.slice(4)}` : `der neue ${w.label}`;
       const pflichten = amt ? amt.duties.split(' · ').map((t) => t.trim()).filter(Boolean) : [];
+      // Was der Stammtisch selbst als Pflicht festgelegt hat (WIR-003)
+      const eigenePflicht = amt ? pflichtVon(w.key) : (badge?.pflicht ?? null);
       const heiwong = w.key === 'heiwong';
       feiern.push({
         key: w.key,
@@ -140,7 +156,9 @@ export default async function HomePage() {
         titel1: 'Du bist jetzt',
         titel2: `${artikel}!`,
         spruch: texte.spruch,
-        infos: amt ? [{ icon: 'patron', text: `Patron: ${amt.patron}` }, ...pflichten.map((t, i) => ({ icon: i === 0 ? ('modus' as const) : ('pflicht' as const), text: t }))] : null,
+        infos: amt
+          ? [{ icon: 'patron', text: `Patron: ${amt.patron}` }, ...pflichten.map((t, i) => ({ icon: i === 0 ? ('modus' as const) : ('pflicht' as const), text: t })), ...(eigenePflicht ? [{ icon: 'pflicht' as const, text: eigenePflicht }] : [])]
+          : eigenePflicht ? [{ icon: 'pflicht', text: eigenePflicht }] : null,
         vorherName: nameVon(w.altId),
         urkunde: heiwong ? null : { ...urkundeBasis, badgeName: w.label, slug, icon: w.icon, grund: texte.urkundeGrund },
         knopf: heiwong ? 'Passt, i kimm wieder!' : undefined,
@@ -493,6 +511,17 @@ export default async function HomePage() {
 
       {/* Nur im Browser: App aufs Handy (am iPhone gehen Benachrichtigungen erst nach der Installation) */}
       <div className="wn-hinweise" style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+        <AufnahmeKarte antraege={antraege} entscheider={entscheider} entscheiden={aufnahmeEntscheiden} />
+        {pflichtenHinweis && (
+          <Link href="/stammtisch#pflichten" className="wn-press" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px', borderRadius: 18, background: 'var(--pergament)', border: '1.5px solid var(--gold)', textDecoration: 'none' }}>
+            <Scroll size={24} weight="fill" color="var(--gold-700)" style={{ flex: 'none' }} />
+            <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <span style={{ fontSize: 15, fontWeight: 800, color: 'var(--navy)' }}>Pflichten fürs neue Jahr</span>
+              <span style={{ fontSize: 12, fontWeight: 600, lineHeight: 1.4, color: 'var(--ink-500)' }}>Leg fest, was Präsident, Kassenwart und die Badge-Träger {pflichtenHinweis} tun müssen.</span>
+            </span>
+            <Icon name="chevron" size={18} color="var(--ink-300)" />
+          </Link>
+        )}
         <AppInstallieren variante="hoam" />
         <PushAktivieren />
       </div>

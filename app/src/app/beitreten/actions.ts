@@ -4,21 +4,25 @@ import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { randomBytes } from 'node:crypto';
 import { eq } from 'drizzle-orm';
-import { db, members, bindTenant } from '@/lib/db';
+import { db, members, bindTenant, runWithTenant } from '@/lib/db';
 import { findGruppeByCode, kontoAnlegen } from '@/lib/db/directory';
 import { hashPassword } from '@/lib/password';
 import { createSession } from '@/lib/session';
 import { newId, nowIso } from '@/lib/ids';
+import { moeglicheBuergen, kodexSaetze, buergenBenachrichtigen } from '@/lib/aufnahme';
 
 /** `feld` sagt, wo der Fehler hingehört (Login-Redesign 2c/2e), sonst als Box über dem Knopf. */
-export type BeitrittState = { error?: string; feld?: 'code' | 'email' };
+export type BeitrittState = { error?: string; feld?: 'code' | 'email' | 'buerge' | 'kodex' };
+
+/** Was der Neue nach dem Code sieht: Stammtisch, wer bürgen kann und der Kodex (WIR-013). */
+export type CodeTreffer = { name: string; stadt: string | null; buergen: Array<{ id: string; name: string }>; kodex: string[] };
 
 /**
  * Live-Check beim Tippen: zu welchem Stammtisch gehört der Code? (null = unbekannt)
  * Läuft über dieselbe Bremse wie der Beitritt selbst — sonst wär das a
  * kostenloses Orakel zum Code-Raten.
  */
-export async function codePruefen(code: string): Promise<{ name: string; stadt: string | null } | null> {
+export async function codePruefen(code: string): Promise<CodeTreffer | null> {
   const c = String(code ?? '').trim();
   if (c.length < 3) return null;
   const wer = await absender();
@@ -28,7 +32,9 @@ export async function codePruefen(code: string): Promise<{ name: string; stadt: 
     fehlversuchZaehlen(wer);
     return null;
   }
-  return { name: g.name, stadt: g.stadt };
+  // Mit dem richtigen Code darf er sehen, wer in der Runde is: er braucht an Bürgen draus
+  const { buergen, kodex } = runWithTenant(g.id, () => ({ buergen: moeglicheBuergen(), kodex: kodexSaetze() }));
+  return { name: g.name, stadt: g.stadt, buergen, kodex };
 }
 
 // Bremse gegen Code-Raten: 10 Fehlversuche → 15 Minuten Pause, gezählt pro
@@ -86,8 +92,20 @@ export async function beitreten(_prev: BeitrittState, formData: FormData): Promi
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return { error: 'Des schaut ned nach einer E-Mail aus.' };
 
   if (!bindTenant(gruppe.id)) return { error: 'Die Aufnahme ist gerade zu. Frag in deiner Runde nach.' };
+  // Bürge und Kodex (WIR-013): nur wenn's in der Runde scho wen gibt, der bürgen kann
+  const buergen = moeglicheBuergen();
+  const buergeId = String(formData.get('buerge') ?? '');
+  if (buergen.length > 0 && !buergen.some((b) => b.id === buergeId)) return { error: 'Wer aus der Runde bürgt für dich?', feld: 'buerge' };
+  if (formData.get('kodex') !== 'on') return { error: 'Ohne Kodex geht’s nicht. Bitte bestätigen.', feld: 'kodex' };
+  const mitBuerge = buergen.length > 0;
+
   const vorhanden = db.select().from(members).where(eq(members.email, email)).get();
   if (vorhanden) {
+    // Schon beworben (anderes Gerät, Cookie weg …): mit gleichem Namen zurück auf die Warteseite
+    if (vorhanden.status === 'antrag' && (vorhanden.vorname ?? '').trim().toLowerCase() === vorname.toLowerCase() && (vorhanden.nachname ?? '').trim().toLowerCase() === nachname.toLowerCase()) {
+      await createSession(vorhanden.id);
+      redirect('/beitreten/warten');
+    }
     // Beim ersten Mal abbrochen, bevor's Passwort gsetzt war (App zua, Akku leer …):
     // dann hat er no koa Passwort, des er vergessen könnt. Mit Code + gleicher
     // E-Mail + gleichem Namen geht's drum nomoi zum Passwort-Setzen.
@@ -112,7 +130,9 @@ export async function beitreten(_prev: BeitrittState, formData: FormData): Promi
       // gleich selbst (Erstanmeldung erzwingt es auf /profil)
       passwordHash: hashPassword(randomBytes(24).toString('hex')),
       role: 'mitglied',
-      status: 'aktiv',
+      status: mitBuerge ? 'antrag' : 'aktiv',
+      buergeId: mitBuerge ? buergeId : null,
+      kodexAm: nowIso(),
       erstanmeldung: true,
       createdAt: nowIso(),
     })
@@ -120,5 +140,9 @@ export async function beitreten(_prev: BeitrittState, formData: FormData): Promi
   kontoAnlegen(email, gruppe.id, id);
 
   await createSession(id);
+  if (mitBuerge) {
+    await buergenBenachrichtigen(id);
+    redirect('/beitreten/warten');
+  }
   redirect('/profil');
 }

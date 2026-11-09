@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { getCurrentMember } from '@/lib/session';
+import { getAntragsteller, getCurrentMember } from '@/lib/session';
 import { AuthRahmen } from '@/components/domain/AuthRahmen';
 import { AuthOder } from '@/components/domain/AuthFeld';
 import { LoginForm } from './login-form';
@@ -11,6 +11,8 @@ export const metadata = { title: 'Anmelden · Wirtschaftln' };
 export default async function LoginPage() {
   const me = await getCurrentMember();
   if (me) redirect('/');
+  // Aufnahme beantragt, Bürge hat no ned zugesagt (WIR-013)
+  if (await getAntragsteller()) redirect('/beitreten/warten');
 
   return (
     <AuthRahmen eyebrow="Dein Stammtisch in der Hosentasche" titel="Servus!" untertitel="Nur für Stammtisch-Mitglieder.">

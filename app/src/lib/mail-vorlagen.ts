@@ -439,3 +439,33 @@ export function mailWeihnachten(r: MailRahmen, d: { vorname: string; token: stri
   });
   return { betreff: '🎁 Frohe Weihnachten! Dein Einladungstoken', inhalt };
 }
+
+/** Aufnahme (WIR-013): der Neue hat den Spezl als Bürgen genannt, der soll's bestätigen. Kommt immer. */
+export function mailBuergschaft(r: MailRahmen, d: { vorname: string; neuer: string }): { betreff: string; inhalt: MailInhalt } {
+  const inhalt = baue(r, {
+    anrede: `Servus ${d.vorname}!`,
+    absaetze: [
+      `${d.neuer} will zum ${r.stammtisch} und hat dich als Bürgen genannt.`,
+      'Kennst du sie oder ihn und passt das zu uns? Dann bürg in der App, erst dann ist der Neue dabei.',
+    ],
+    knopf: { text: 'In der App bürgen', pfad: '/' },
+    hinweis: 'Kennst du den Neuen nicht, sag das in der App, dann entscheidet der Präsident.',
+    einstellbar: false,
+  });
+  return { betreff: `${d.neuer} will rein, bürgst du?`, inhalt };
+}
+
+/** Aufnahme (WIR-013): Bürge oder Präsident hat freigegeben, jetzt geht's los. Kommt immer. */
+export function mailAufgenommen(r: MailRahmen, d: { vorname: string; von: string }): { betreff: string; inhalt: MailInhalt } {
+  const inhalt = baue(r, {
+    anrede: `Servus ${d.vorname}!`,
+    absaetze: [
+      `${d.von} hat dich aufgenommen, du bist jetzt beim ${r.stammtisch} dabei.`,
+      'Mach die App auf, setz dir dein Passwort und stell dich kurz vor.',
+    ],
+    knopf: { text: 'Los geht’s', pfad: '/beitreten/warten' },
+    hinweis: 'Bis bald am Tisch!',
+    einstellbar: false,
+  });
+  return { betreff: `Du bist dabei beim ${r.stammtisch}!`, inhalt };
+}

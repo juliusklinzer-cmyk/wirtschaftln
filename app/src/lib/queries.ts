@@ -9,6 +9,7 @@ import {
   orgaPunkte,
   rechtzeitigAbgestimmt,
   bierdeckelOffen,
+  berlinTag,
 } from '@/lib/punkte';
 import { nowIso } from '@/lib/ids';
 import { vergabeStand } from '@/lib/badges';
@@ -262,7 +263,26 @@ function gemerkt<T>(was: string, rechne: () => T): T {
   return wert;
 }
 
-function berechneStats(optionen?: { abDatum?: string; bisDatum?: string; ohneTerminId?: string }): MitgliedStats[] {
+/** Ein Posten im Punkte-Journal: wann, wofür, wie viel. */
+export type JournalPosten = { datum: string; wp: number; was: string; terminId: string | null; wo: string | null };
+
+/**
+ * Punkte-Journal eines Spezls (WIR-014): dieselbe Rechnung wie getStats, nur
+ * schreibt sie jeden Posten mit. Kein eigenes Buch, die Summe ist immer
+ * genau die WP-Zahl aus der Rangliste. Neueste zuerst.
+ */
+export function getPunkteJournal(memberId: string, optionen?: { abDatum?: string }): JournalPosten[] {
+  return gemerkt(`journal|${memberId}|${optionen?.abDatum ?? ''}`, () => {
+    const posten: JournalPosten[] = [];
+    berechneStats(optionen, { memberId, posten });
+    return posten.filter((p) => p.wp !== 0).sort((a, b) => b.datum.localeCompare(a.datum));
+  });
+}
+
+function berechneStats(
+  optionen?: { abDatum?: string; bisDatum?: string; ohneTerminId?: string },
+  journal?: { memberId: string; posten: JournalPosten[] },
+): MitgliedStats[] {
   const alleMitglieder = getAktiveMitglieder();
   // Chronologisch alt → neu, damit die Serien-Zähler sauber mitlaufen
   const chronologisch = db
@@ -308,6 +328,7 @@ function berechneStats(optionen?: { abDatum?: string; bisDatum?: string; ohneTer
   // Runden: Saison-Zuordnung über das Termin-Datum (Nachträge ändern die Saison nicht)
   const terminDatum = new Map(db.select().from(termine).all().map((t) => [t.id, t.datum]));
   const rundenJeMitglied = new Map<string, number>();
+  const rundenListe: { memberId: string; datum: string; terminId: string | null }[] = [];
   for (const e of db.select().from(kasse).where(eq(kasse.kind, 'runde')).all()) {
     if (e.status === 'aufgehoben' || !e.memberId) continue;
     if (optionen?.ohneTerminId && e.terminId === optionen.ohneTerminId) continue;
@@ -315,6 +336,7 @@ function berechneStats(optionen?: { abDatum?: string; bisDatum?: string; ohneTer
     if (!imFenster(datum)) continue;
     if (optionen?.bisDatum && datum > optionen.bisDatum) continue;
     rundenJeMitglied.set(e.memberId, (rundenJeMitglied.get(e.memberId) ?? 0) + 1);
+    rundenListe.push({ memberId: e.memberId, datum, terminId: e.terminId });
   }
 
   // Abstimm-Bonus zählt SOFORT beim rechtzeitigen Zu-/Absagen, auch für no ned
@@ -337,11 +359,23 @@ function berechneStats(optionen?: { abDatum?: string; bisDatum?: string; ohneTer
   // Wirtshaus-Vorschläge: +1 beim Vorschlagen, +1 wenn's tatsächlich besucht wird
   const alleWirtshaeuser = db.select().from(wirtshaeuser).all();
   const besuchtErstmalsAm = new Map<string, string>(); // wirtshausId → Datum des (ersten) Besuchs
+  const besuchtBeiTermin = new Map<string, string>(); // wirtshausId → Termin des (ersten) Besuchs (fürs Journal)
   for (const t of chronologisch) {
-    if (t.wirtshausId && !besuchtErstmalsAm.has(t.wirtshausId)) besuchtErstmalsAm.set(t.wirtshausId, t.datum);
+    if (t.wirtshausId && !besuchtErstmalsAm.has(t.wirtshausId)) {
+      besuchtErstmalsAm.set(t.wirtshausId, t.datum);
+      besuchtBeiTermin.set(t.wirtshausId, t.id);
+    }
   }
 
+  const wirtshausName = new Map(alleWirtshaeuser.map((w) => [w.id, w.name]));
+  const terminWo = new Map(db.select().from(termine).all().map((t) => [t.id, t.wirtshausId ? wirtshausName.get(t.wirtshausId) ?? null : null]));
+
   return alleMitglieder.map((member) => {
+    /** Schreibt einen Posten ins Journal, wenn's um diesen Spezl geht */
+    const buch = (datum: string, wp: number, was: string, terminId: string | null = null) => {
+      if (journal?.memberId !== member.id || !wp) return;
+      journal.posten.push({ datum, wp, was, terminId, wo: terminId ? terminWo.get(terminId) ?? null : null });
+    };
     let hoiben = 0;
     let schnaps = 0;
     let weissbier = 0;
@@ -389,12 +423,18 @@ function berechneStats(optionen?: { abDatum?: string; bisDatum?: string; ohneTer
           if (b!.sterne != null) bewertungsBonus += PTS.bewertung;
           if (b!.kommentar?.trim()) textBonus += PTS.bewertungsText;
           if (t.wirtshausId) besuchteWirtshaeuser.add(t.wirtshausId);
+          buch(t.datum, PTS.teilnahme, 'Dabei', t.id);
+          buch(t.datum, b!.hoiben * PTS.hoibe, `${b!.hoiben} Hoibe`, t.id);
+          if (b!.taxi) buch(t.datum, PTS.taxi, 'Taxi', t.id);
+          if (b!.sterne != null) buch(t.datum, PTS.bewertung, 'Abend bewertet', t.id);
+          if (b!.kommentar?.trim()) buch(t.datum, PTS.bewertungsText, 'Bewertung mit Text', t.id);
         }
       }
       if (t.planerId === member.id) {
         if (zaehlt) {
           organisiert += 1;
           orgaSumme += orgaVon.get(t.id) ?? 0;
+          buch(t.datum, orgaVon.get(t.id) ?? 0, 'Organisiert', t.id);
         }
       }
       // Alte Abende (vor dem 3-Uhr-Schluss): der erste Abschließer kriegt +3.
@@ -402,6 +442,7 @@ function berechneStats(optionen?: { abDatum?: string; bisDatum?: string; ohneTer
       if (!t.erfasstVon && t.abgeschlossenVon === member.id && zaehlt) {
         abschluesse += 1;
         abschlussPunkte += PTS.abschluss;
+        buch(t.datum, PTS.abschluss, 'Abend abgeschlossen', t.id);
       }
 
       // Serie & Fehl-Staffeln, Termine vor dem Beitritt zählen nicht als gefehlt
@@ -412,7 +453,10 @@ function berechneStats(optionen?: { abDatum?: string; bisDatum?: string; ohneTer
         entschuldigtInFolge = 0;
         unentschuldigtInFolge = 0;
         if (besuchtInFolge > bestStreak) bestStreak = besuchtInFolge;
-        if (zaehlt) serienBonus += anwesenheitsBonus(besuchtInFolge);
+        if (zaehlt) {
+          serienBonus += anwesenheitsBonus(besuchtInFolge);
+          buch(t.datum, anwesenheitsBonus(besuchtInFolge), `Serienbonus, ${besuchtInFolge}. Abend in Folge`, t.id);
+        }
       } else {
         besuchtInFolge = 0;
         // Ab dem Strafenkatalog entscheidet die beim Abschluss eingefrorene Buchung
@@ -426,13 +470,20 @@ function berechneStats(optionen?: { abDatum?: string; bisDatum?: string; ohneTer
         }
         if (!unentschuldigt) {
           entschuldigtInFolge += 1;
-          if (zaehlt && regelE?.aktiv) fehlMalus += staffelWert(regelE.wpStaffel, entschuldigtInFolge);
+          if (zaehlt && regelE?.aktiv) {
+            fehlMalus += staffelWert(regelE.wpStaffel, entschuldigtInFolge);
+            buch(t.datum, staffelWert(regelE.wpStaffel, entschuldigtInFolge), `Abgesagt, ${entschuldigtInFolge}. Mal in Folge`, t.id);
+          }
         } else {
           unentschuldigtInFolge += 1;
-          if (zaehlt && regelU?.aktiv) fehlMalus += staffelWert(regelU.wpStaffel, unentschuldigtInFolge);
+          if (zaehlt && regelU?.aktiv) {
+            fehlMalus += staffelWert(regelU.wpStaffel, unentschuldigtInFolge);
+            buch(t.datum, staffelWert(regelU.wpStaffel, unentschuldigtInFolge), `Unentschuldigt gefehlt, ${unentschuldigtInFolge}. Mal`, t.id);
+          }
           // Serien-Strafe nur mit echter Buchung (ab dem Katalog), sonst würd's alte Abende rückwirkend treffen
           if (zaehlt && regelS?.aktiv && festeBuchung.get(`serie:${t.id}:${member.id}`)?.status === 'offen') {
             fehlMalus += staffelWert(regelS.wpStaffel, 1);
+            buch(t.datum, staffelWert(regelS.wpStaffel, 1), 'Strafrunde für die Fehlserie', t.id);
           }
         }
       }
@@ -442,11 +493,18 @@ function berechneStats(optionen?: { abDatum?: string; bisDatum?: string; ohneTer
     // Check-in-Bonus genauso: der Erste am Tisch kriegt seinen WP scho am Abend.
     for (const t of alleTermine) {
       const vote = voteByTermin.get(t.id)?.get(member.id);
-      if (vote && rechtzeitigAbgestimmt(vote.erstmalsAm, t.datum)) abstimmBonus += PTS.abstimmen;
-      if (ersterCheckin.get(t.id) === member.id) checkinBonus += PTS.checkin;
+      if (vote && rechtzeitigAbgestimmt(vote.erstmalsAm, t.datum)) {
+        abstimmBonus += PTS.abstimmen;
+        buch(berlinTag(vote.erstmalsAm!), PTS.abstimmen, vote.wert === 'ab' ? 'Rechtzeitig abgesagt' : 'Rechtzeitig zugesagt', t.id);
+      }
+      if (ersterCheckin.get(t.id) === member.id) {
+        checkinBonus += PTS.checkin;
+        buch(t.datum, PTS.checkin, 'Als Erster eingecheckt', t.id);
+      }
       if (t.erfasstVon === member.id) {
         abschluesse += 1;
         abschlussPunkte += PTS.terminAusmachen;
+        buch(t.datum, PTS.terminAusmachen, 'Nächsten Termin ausgemacht', t.id);
       }
     }
 
@@ -459,9 +517,15 @@ function berechneStats(optionen?: { abDatum?: string; bisDatum?: string; ohneTer
       if (w.vorgeschlagenVon !== member.id) continue;
       const vorgeschlagenAm = w.createdAt.slice(0, 10);
       if (optionen?.bisDatum && vorgeschlagenAm > optionen.bisDatum) continue;
-      if (imFenster(vorgeschlagenAm)) vorschlagPunkte += PTS.vorschlag;
+      if (imFenster(vorgeschlagenAm)) {
+        vorschlagPunkte += PTS.vorschlag;
+        buch(vorgeschlagenAm, PTS.vorschlag, `${w.name} vorgeschlagen`);
+      }
       const besuchtAm = besuchtErstmalsAm.get(w.id);
-      if (besuchtAm && imFenster(besuchtAm)) vorschlagPunkte += PTS.vorschlagBesucht;
+      if (besuchtAm && imFenster(besuchtAm)) {
+        vorschlagPunkte += PTS.vorschlagBesucht;
+        buch(besuchtAm, PTS.vorschlagBesucht, 'Dein Vorschlag besucht', besuchtBeiTermin.get(w.id) ?? null);
+      }
     }
 
     // Eigene Strafen mit WP (eingefroren beim Buchen), Saison über Termin-Datum bzw. Buchungstag
@@ -472,9 +536,11 @@ function berechneStats(optionen?: { abDatum?: string; bisDatum?: string; ohneTer
       const datum = (st.terminId ? terminDatum.get(st.terminId) : null) ?? st.createdAt.slice(0, 10);
       if (!imFenster(datum) || (optionen?.bisDatum && datum > optionen.bisDatum)) continue;
       strafWp += st.wp;
+      buch(datum, st.wp, `Strafe: ${st.name}`, st.terminId);
     }
 
     const runden = rundenJeMitglied.get(member.id) ?? 0;
+    for (const r of rundenListe) if (r.memberId === member.id) buch(r.datum, PTS.runde, 'Runde ausgegeben', r.terminId);
     const komponenten = { hoiben, abende, taxi, runden, abschluesse, abschlussPunkte, orgaSumme, serienBonus, fehlMalus, strafWp, abstimmBonus, vorschlagPunkte, bewertungsBonus, textBonus, checkinBonus };
     return {
       member,

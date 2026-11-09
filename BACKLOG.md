@@ -1,22 +1,9 @@
 # Backlog – Wirtschaftln
 
 ## In Arbeit
-- [ ] WIR-003 Pflichten zu Badges und Ämtern pro Stammtisch selbst festlegen (Admin, z. B. zum Jahresanfang); Maximator-Starkbier nur noch Vorschlag · am:2026-11-06 · quelle:TODO.md#15
-- [ ] WIR-004 „Kein Wirtshaus zweimal“: nur Warnung beim Wählen eines schon besuchten Wirtshauses, wählen geht trotzdem (Julius, 09.11.) · am:2026-11-06 · quelle:TODO.md#16
-- [ ] WIR-007 „Termin absagen“-Pfad fehlt · am:2026-11-06 · quelle:TODO.md#21
-- [ ] WIR-009 Präsident „richtet“: offene Strafen erlassen oder bestehen lassen · am:2026-11-06 · quelle:TODO.md#23
-- [ ] WIR-010 +WP-Animation bei Sofort-Aktionen (einmalig) · am:2026-11-06 · quelle:TODO.md#24
-- [ ] WIR-011 Zahlungsaufforderung zusätzlich per Mail · am:2026-11-06 · quelle:TODO.md#25
-- [ ] WIR-013 Echter Aufnahme-Flow mit Bürge und Kodex (statt nur Code) · am:2026-11-06 · quelle:TODO.md#27
-- [ ] WIR-014 Optional: Punkte-Ereignis-Journal · am:2026-11-06 · quelle:TODO.md#28
-- [ ] WIR-015 Aufgehobene Absage-Strafen leben bei Nachtrag wieder auf · unter:Technik · am:2026-11-06 · quelle:TODO.md#31
-- [ ] WIR-016 ICS-Escaping · unter:Technik · am:2026-11-06 · quelle:TODO.md#32
-- [ ] WIR-017 Saison-Zeitzone (UTC-Container, betrifft 1 bis 2 h am 1.1./1.7.) · unter:Technik · am:2026-11-06 · quelle:TODO.md#33
-- [ ] WIR-018 Legacy-„Vielleicht“-Stimmen noch sichtbar gelabelt · unter:Technik · am:2026-11-06 · quelle:TODO.md#34
-- [ ] WIR-019 Service-Worker-Cache wächst unbegrenzt · unter:Technik · am:2026-11-06 · quelle:TODO.md#35
-- [ ] WIR-020 Registrierungs-Rate-Limit ist prozess-global · unter:Technik · am:2026-11-06 · quelle:TODO.md#36
 
 ## Wartet auf Julius
+- [ ] WIR-029 Neue Funktionen vom 09.11. nach dem Deploy anschauen: Termin absagen (Termin-Tab, Organisation), Präsident richtet + „Ans Zahlen erinnern“ (Kasse, Karte Offen), „Meine WP“ (WP-Pille antippen), Pflichten festlegen (Unser Stammtisch), Aufnahme mit Bürge (Beitrittslink mit Testkonto). Entscheiden: bei „Wirtshaus gfunden“ auf Dahoam bleibt ein besuchtes Wirtshaus gesperrt, passt das? · am:2026-11-09
 - [ ] WIR-026 Responsive Redesign live anschauen: wirtschaftln.de am PC breit und schmal, am iPad, und Rückmeldung geben · am:2026-11-08
 
 ## Offen
@@ -24,6 +11,20 @@
 ## Ideen
 
 ## Erledigt
+- [x] WIR-003 Pflichten zu Badges und Ämtern pro Stammtisch selbst festlegen (Admin, z. B. zum Jahresanfang); Maximator-Starkbier nur noch Vorschlag · am:2026-11-06 · quelle:TODO.md#15 · fertig:2026-11-09
+- [x] WIR-004 „Kein Wirtshaus zweimal“: nur Warnung beim Wählen eines schon besuchten Wirtshauses, wählen geht trotzdem (Julius, 09.11.) · am:2026-11-06 · quelle:TODO.md#16 · fertig:2026-11-09
+- [x] WIR-007 „Termin absagen“-Pfad fehlt · am:2026-11-06 · quelle:TODO.md#21 · fertig:2026-11-09
+- [x] WIR-009 Präsident „richtet“: offene Strafen erlassen oder bestehen lassen · am:2026-11-06 · quelle:TODO.md#23 · fertig:2026-11-09
+- [x] WIR-010 +WP-Animation bei Sofort-Aktionen (einmalig) · am:2026-11-06 · quelle:TODO.md#24 · fertig:2026-11-09
+- [x] WIR-011 Zahlungsaufforderung zusätzlich per Mail · am:2026-11-06 · quelle:TODO.md#25 · fertig:2026-11-09
+- [x] WIR-013 Echter Aufnahme-Flow mit Bürge und Kodex (statt nur Code) · am:2026-11-06 · quelle:TODO.md#27 · fertig:2026-11-09
+- [x] WIR-014 Optional: Punkte-Ereignis-Journal · am:2026-11-06 · quelle:TODO.md#28 · fertig:2026-11-09
+- [x] WIR-015 Aufgehobene Absage-Strafen leben bei Nachtrag wieder auf · unter:Technik · am:2026-11-06 · quelle:TODO.md#31 · fertig:2026-11-09
+- [x] WIR-016 ICS-Escaping · unter:Technik · am:2026-11-06 · quelle:TODO.md#32 · fertig:2026-11-09
+- [x] WIR-017 Saison-Zeitzone (UTC-Container, betrifft 1 bis 2 h am 1.1./1.7.) · unter:Technik · am:2026-11-06 · quelle:TODO.md#33 · fertig:2026-11-09
+- [x] WIR-018 Legacy-„Vielleicht“-Stimmen noch sichtbar gelabelt · unter:Technik · am:2026-11-06 · quelle:TODO.md#34 · fertig:2026-11-09
+- [x] WIR-019 Service-Worker-Cache wächst unbegrenzt · unter:Technik · am:2026-11-06 · quelle:TODO.md#35 · fertig:2026-11-09
+- [x] WIR-020 Registrierungs-Rate-Limit ist prozess-global · unter:Technik · am:2026-11-06 · quelle:TODO.md#36 · fertig:2026-11-09
 - [x] WIR-002 Link-Vorschau in WhatsApp echt testen (Beitreten- und Gründen-Link schicken). Schon geteilte Links können noch das alte Bild zeigen. (kein eigener Test, Julius meldet sich bei Problemen) · am:2026-11-06 · quelle:TODO.md#14 · fertig:2026-11-09
 - [x] WIR-005 Kassenwart per In-App-Wahl (bisher trägt Admin oder Präsident das Ergebnis ein) (gestrichen, Julius 09.11.) · am:2026-11-06 · quelle:TODO.md#19 · fertig:2026-11-09
 - [x] WIR-006 Zu-/Absage direkt aus der Mail (Ein-Klick-Links mit Token) (gestrichen, Julius 09.11.) · am:2026-11-06 · quelle:TODO.md#20 · fertig:2026-11-09

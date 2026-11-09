@@ -279,6 +279,24 @@ export function mailStrafe(
   return { betreff: `Strafe: ${d.strafe}`, inhalt };
 }
 
+/** Zahlungsaufforderung vom Kassenwart (WIR-011): alle offenen Forderungen des Spezls. */
+export function mailZahlung(
+  r: MailRahmen,
+  d: { name: string; kassenwart: string | null; posten: Array<[string, string]>; summe: string; paypal: boolean },
+): { betreff: string; inhalt: MailInhalt } {
+  const wer = d.kassenwart ? `${gross(d.kassenwart)} wahrt die Kasse und` : 'Die Kasse';
+  const inhalt = baue(r, {
+    anrede: `Servus ${d.name}!`,
+    absaetze: [
+      `${wer} erinnert dich: bei dir ist noch was offen, zusammen ${d.summe}.`,
+      `Zahlen kannst du ${d.kassenwart ? `bar bei ${d.kassenwart}` : 'beim Kassenwart'}${d.paypal ? ' oder per PayPal' : ''}.`,
+    ],
+    kasten: [...d.posten, ['Zusammen', d.summe]],
+    knopf: { text: 'Zur Kasse', pfad: '/kasse' },
+  });
+  return { betreff: `Bitte zahlen: ${d.summe} offen`, inhalt };
+}
+
 /** Feedback aus der App: geht an Julius persönlich. */
 export function mailFeedback(r: MailRahmen, d: { name: string; gruppe: string; text: string }): { betreff: string; inhalt: MailInhalt } {
   const inhalt = baue(r, {

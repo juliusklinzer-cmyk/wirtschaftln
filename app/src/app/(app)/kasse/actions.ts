@@ -7,7 +7,7 @@ import { getCurrentMember } from '@/lib/session';
 import { getKassenwartId, getPraesidentId } from '@/lib/queries';
 import { newId, nowIso } from '@/lib/ids';
 import { katalog } from '@/lib/strafen-regeln';
-import { strafeBuchen, strafeZuruecknehmen, strafeErlassen, buchungZurKasse, buchungStatusAusKasse } from '@/lib/strafen';
+import { strafeBuchen, strafeZuruecknehmen, strafeErlassen, forderungErlassen, richten, zahlungErinnern, buchungZurKasse, buchungStatusAusKasse } from '@/lib/strafen';
 
 function revalidate() {
   revalidatePath('/kasse');
@@ -78,9 +78,34 @@ export async function forderungStatus(id: string, status: 'offen' | 'beglichen' 
     revalidate();
     return;
   }
+  // Alte Forderung ohne Katalog-Buchung: erlassen mit Vermerk und Push
+  if (status === 'aufgehoben') {
+    await forderungErlassen(me, id);
+    revalidate();
+    return;
+  }
   db.update(kasse).set({ status }).where(eq(kasse.id, id)).run();
   buchungStatusAusKasse(id, status);
   revalidate();
+}
+
+/** Präsident richtet (WIR-009): eine offene Strafe erlassen oder bestehen lassen. */
+export async function richtenAction(typ: 'buchung' | 'kasse', id: string, urteil: 'erlassen' | 'bleibt'): Promise<StrafAntwort> {
+  const me = await getCurrentMember();
+  if (!me) return { ok: false, meldung: 'Nicht angemeldet.' };
+  if (!['buchung', 'kasse'].includes(typ) || !['erlassen', 'bleibt'].includes(urteil)) return { ok: false, meldung: 'Unbekannt.' };
+  const r = await richten(me, typ, String(id), urteil);
+  if (r.ok) revalidate();
+  return r;
+}
+
+/** Zahlungsaufforderung (WIR-011): Kassenwart erinnert einen Spezl per Push und Mail. */
+export async function zahlungErinnernAction(memberId: string): Promise<StrafAntwort> {
+  const me = await getCurrentMember();
+  if (!me) return { ok: false, meldung: 'Nicht angemeldet.' };
+  const r = await zahlungErinnern(me, String(memberId), getKassenwartId());
+  if (r.ok) revalidate();
+  return r;
 }
 
 /** Fürs Kassenbuch (Formular-Knöpfe ohne Rückgabewert). */

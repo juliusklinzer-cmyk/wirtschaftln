@@ -5,7 +5,7 @@ import { WACKELT_AB_UNENTSCHULDIGT } from '@/lib/punkte';
 import { tenantConfig } from '@/lib/tenant-config';
 import { pushAn } from '@/lib/push';
 import { mailAn } from '@/lib/mail';
-import { mailStrafe, berlinNachUtc } from '@/lib/mail-vorlagen';
+import { mailStrafe, mailZahlung, berlinNachUtc } from '@/lib/mail-vorlagen';
 import { mailRahmen, rufname, willMail } from '@/lib/mail-rahmen';
 import { anzeigeName } from '@/lib/namen';
 import { newId, nowIso } from '@/lib/ids';
@@ -34,7 +34,7 @@ function anlegen(d: { regel: Regel; memberId: string; terminId: string | null; w
   const ort = wirtshausVon(d.terminId);
   const buchung: Buchung = {
     id: newId('st'), regelId: d.regel.id, art: d.regel.art, name: d.regel.name, memberId: d.memberId, terminId: d.terminId,
-    wp: d.wp, betragCents: d.regel.betragCents, kasseId, status: 'offen', gebuchtVon: d.gebuchtVon, benachrichtigt: false, auto: !!d.auto, createdAt: jetzt,
+    wp: d.wp, betragCents: d.regel.betragCents, kasseId, status: 'offen', gebuchtVon: d.gebuchtVon, benachrichtigt: false, auto: !!d.auto, gerichtetVon: null, gerichtetAm: null, createdAt: jetzt,
   };
   // In einer Transaktion: kracht der eindeutige Index (zwei Läufe gleichzeitig), bleibt auch keine Kassenzeile übrig
   db.transaction((tx) => {
@@ -206,11 +206,145 @@ export function darfErlassen(me: Mitglied, b: Pick<Buchung, 'regelId' | 'memberI
 export async function strafeErlassen(me: Mitglied, strafeId: string): Promise<boolean> {
   const b = db.select().from(strafen).where(eq(strafen.id, strafeId)).get();
   if (!b || !darfErlassen(me, b)) return false;
-  db.update(strafen).set({ status: 'erlassen' }).where(eq(strafen.id, b.id)).run();
-  if (b.kasseId) db.update(kasse).set({ status: 'aufgehoben' }).where(eq(kasse.id, b.kasseId)).run();
+  // Vermerk, wer erlassen hat (WIR-009)
+  const gericht = { gerichtetVon: me.id, gerichtetAm: nowIso() };
+  db.update(strafen).set({ status: 'erlassen', ...gericht }).where(eq(strafen.id, b.id)).run();
+  if (b.kasseId) db.update(kasse).set({ status: 'aufgehoben', ...gericht }).where(eq(kasse.id, b.kasseId)).run();
   // Ohne das Unentschuldigt fällt evtl. die Serien-Strafe weg
   if (b.terminId && b.art === 'unentschuldigt') await abendStrafenBuchen(b.terminId);
+  // Wer von der Strafe nix wusste (stiller WP-Abzug, Abend no offen), kriegt auch koa Push
+  if (b.memberId !== me.id && (b.benachrichtigt || abendZu(b.terminId))) {
+    await pushAn([b.memberId], '👑 Strafe erlassen', `${anzeigeName(me)} hat dir „${b.name}“ erlassen.`, '/kasse');
+  }
   return true;
+}
+
+/** Abend abgeschlossen (oder Strafe ohne Abend)? */
+function abendZu(terminId: string | null): boolean {
+  if (!terminId) return true;
+  return db.select().from(termine).where(eq(termine.id, terminId)).get()?.phase === 'abgeschlossen';
+}
+
+/** Alte Forderung ohne Katalog-Buchung erlassen (Präsident oder Admin), mit Vermerk und Push. */
+export async function forderungErlassen(me: Mitglied, kasseId: string): Promise<boolean> {
+  if (me.role !== 'admin' && me.id !== getPraesidentId()) return false;
+  const k = db.select().from(kasse).where(eq(kasse.id, kasseId)).get();
+  if (!k || k.kind !== 'strafe' || k.status !== 'offen') return false;
+  if (buchungZurKasse(kasseId)) return false;
+  if (k.memberId === me.id && me.role !== 'admin') return false;
+  db.update(kasse).set({ status: 'aufgehoben', gerichtetVon: me.id, gerichtetAm: nowIso() }).where(eq(kasse.id, kasseId)).run();
+  if (k.memberId && k.memberId !== me.id) await pushAn([k.memberId], '👑 Strafe erlassen', `${anzeigeName(me)} hat dir „${k.grund}“ erlassen.`, '/kasse');
+  return true;
+}
+
+/**
+ * Präsident richtet (WIR-009): alle offenen Strafen, je mit Entscheidung.
+ * `bleibt` = schon gerichtet (bleibt bestehen), `darfRichten` = Knöpfe für `me`.
+ */
+export type RichtPosten = {
+  typ: 'buchung' | 'kasse';
+  id: string;
+  memberId: string;
+  grund: string;
+  folge: string;
+  cents: number;
+  datum: string;
+  bleibtVon: string | null;
+  darfRichten: boolean;
+};
+
+export function offenePosten(me: Mitglied): RichtPosten[] {
+  const mitglieder = getAktiveMitglieder();
+  const name = (id: string | null) => { const m = id ? mitglieder.find((x) => x.id === id) : null; return m ? anzeigeName(m) : id ? '?' : null; };
+  const posten: RichtPosten[] = [];
+  const mitBuchung = new Set<string>();
+  for (const b of db.select().from(strafen).where(eq(strafen.status, 'offen')).all()) {
+    if (b.kasseId) mitBuchung.add(b.kasseId);
+    if (beglichen(b) || !(b.benachrichtigt || abendZu(b.terminId))) continue;
+    const wp = b.wp != null ? Math.max(0, -b.wp) : 0;
+    if (b.betragCents <= 0 && wp <= 0) continue;
+    const ort = wirtshausVon(b.terminId);
+    posten.push({
+      typ: 'buchung', id: b.id, memberId: b.memberId, grund: ort ? `${b.name} im ${ort}` : b.name, folge: folgeWort(b.betragCents, wp),
+      cents: b.betragCents, datum: b.createdAt, bleibtVon: b.gerichtetVon ? name(b.gerichtetVon) : null, darfRichten: darfErlassen(me, b),
+    });
+  }
+  const istRichter = me.role === 'admin' || me.id === getPraesidentId();
+  for (const k of db.select().from(kasse).where(and(eq(kasse.kind, 'strafe'), eq(kasse.status, 'offen'))).all()) {
+    if (mitBuchung.has(k.id) || !k.memberId) continue;
+    const cents = Math.abs(k.betragCents);
+    posten.push({
+      typ: 'kasse', id: k.id, memberId: k.memberId, grund: k.grund, folge: folgeWort(cents, 0),
+      cents, datum: k.createdAt, bleibtVon: k.gerichtetVon ? name(k.gerichtetVon) : null,
+      darfRichten: istRichter && (k.memberId !== me.id || me.role === 'admin'),
+    });
+  }
+  return posten.filter((p) => mitglieder.some((m) => m.id === p.memberId)).sort((a, b) => b.datum.localeCompare(a.datum));
+}
+
+/** Präsident richtet: erlassen (WP und € zurück) oder bleibt (Vermerk, Spezl kriegt Bescheid). */
+export async function richten(me: Mitglied, typ: 'buchung' | 'kasse', id: string, urteil: 'erlassen' | 'bleibt'): Promise<{ ok: boolean; meldung: string }> {
+  const posten = offenePosten(me).find((p) => p.typ === typ && p.id === id);
+  if (!posten || !posten.darfRichten) return { ok: false, meldung: 'Da darfst du nicht richten.' };
+  const opfer = getAktiveMitglieder().find((m) => m.id === posten.memberId);
+  const wer = opfer ? anzeigeName(opfer) : 'Der Spezl';
+  if (urteil === 'erlassen') {
+    const ok = typ === 'buchung' ? await strafeErlassen(me, id) : await forderungErlassen(me, id);
+    return ok ? { ok: true, meldung: `${wer} ist „${posten.grund}“ los.` } : { ok: false, meldung: 'Erlassen hat nicht geklappt.' };
+  }
+  const gericht = { gerichtetVon: me.id, gerichtetAm: nowIso() };
+  if (typ === 'buchung') {
+    const b = db.select().from(strafen).where(eq(strafen.id, id)).get()!;
+    db.update(strafen).set(gericht).where(eq(strafen.id, id)).run();
+    if (b.kasseId) db.update(kasse).set(gericht).where(eq(kasse.id, b.kasseId)).run();
+  } else {
+    db.update(kasse).set(gericht).where(eq(kasse.id, id)).run();
+  }
+  if (posten.memberId !== me.id) {
+    await pushAn([posten.memberId], '👑 Strafe bleibt', `${anzeigeName(me)} hat gerichtet: „${posten.grund}“ bleibt, ${posten.folge}.${posten.cents > 0 ? ' Zahlen beim Kassenwart.' : ''}`, '/kasse');
+  }
+  return { ok: true, meldung: `„${posten.grund}“ bleibt bei ${wer}.` };
+}
+
+/** Kassenwart erinnert ans Zahlen höchstens einmal am Tag je Spezl. */
+const ERINNERN_PAUSE_MS = 20 * 60 * 60 * 1000;
+
+/** Wann der Spezl zuletzt erinnert wurde (über alle offenen Forderungen). */
+export function zuletztErinnert(memberId: string): string | null {
+  const offen = db.select().from(kasse).where(and(eq(kasse.kind, 'strafe'), eq(kasse.status, 'offen'), eq(kasse.memberId, memberId))).all();
+  return offen.map((k) => k.erinnertAm).filter((x): x is string => !!x).sort().pop() ?? null;
+}
+
+/**
+ * Zahlungsaufforderung (WIR-011): Push plus Mail (wenn „Kasse und Strafen“
+ * an ist) mit allen offenen Forderungen, Summe und Kassenwart.
+ */
+export async function zahlungErinnern(me: Mitglied, memberId: string, kassenwartId: string | null): Promise<{ ok: boolean; meldung: string }> {
+  if (me.role !== 'admin' && me.id !== kassenwartId) return { ok: false, meldung: 'Erinnern darf nur der Kassenwart.' };
+  const opfer = getAktiveMitglieder().find((m) => m.id === memberId);
+  if (!opfer) return { ok: false, meldung: 'Den Spezl gibt’s nicht.' };
+  const offen = db.select().from(kasse).where(and(eq(kasse.kind, 'strafe'), eq(kasse.status, 'offen'), eq(kasse.memberId, memberId))).all();
+  const summe = offen.reduce((s, k) => s + Math.abs(k.betragCents), 0);
+  if (summe <= 0) return { ok: false, meldung: `Bei ${anzeigeName(opfer)} ist nix offen.` };
+  const zuletzt = zuletztErinnert(memberId);
+  if (zuletzt && Date.now() - Date.parse(zuletzt) < ERINNERN_PAUSE_MS) return { ok: false, meldung: `${anzeigeName(opfer)} wurde heute schon erinnert.` };
+  const jetzt = nowIso();
+  for (const k of offen) db.update(kasse).set({ erinnertAm: jetzt }).where(eq(kasse.id, k.id)).run();
+  const kassenwart = kassenwartId ? getAktiveMitglieder().find((m) => m.id === kassenwartId) ?? null : null;
+  const summeText = folgeWort(summe, 0);
+  const paypal = tenantConfig().istGruender;
+  const mail = mailZahlung(mailRahmen(), {
+    name: rufname(opfer),
+    kassenwart: kassenwart ? rufname(kassenwart) : null,
+    posten: offen.map((k) => [k.grund, folgeWort(Math.abs(k.betragCents), 0)] as [string, string]),
+    summe: summeText,
+    paypal,
+  });
+  await Promise.allSettled([
+    pushAn([opfer.id], '💶 Bitte zahlen', `Bei dir sind noch ${summeText} offen. Zahlen ${kassenwart ? `bar bei ${anzeigeName(kassenwart)}` : 'beim Kassenwart'}${paypal ? ' oder per PayPal' : ''}.`, '/kasse'),
+    willMail(opfer, 'kasse') ? mailAn([opfer.email], mail.betreff, mail.inhalt) : Promise.resolve(),
+  ]);
+  return { ok: true, meldung: `${anzeigeName(opfer)} ist erinnert${willMail(opfer, 'kasse') ? ', per Push und Mail' : ', per Push'}.` };
 }
 
 /** Buchung zu einer Kassenzeile (für die Erlassen-Rechte im Kassenbuch). */

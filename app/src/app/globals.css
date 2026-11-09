@@ -414,22 +414,10 @@ details[open] > summary .wn-klappe-pfeil {
        knapp unterm Streifen an statt 30 px tiefer wia beim Glas-Band */
     body.wn-glas {
       --wn-oben: max(env(safe-area-inset-top, 0px), 12px);
-      /* Unten genauso: iOS meldet ohne das Tag auch hier 0, drum mindestens
+      /* Unten zur Sicherheit mindestens
          die Höhe vom Home-Balken (34 px), sonst klebt Tab-Leiste und Menü
          am unteren Rand */
       --wn-unten: max(env(safe-area-inset-bottom, 0px), 34px);
-    }
-    /* Der Rahmen läuft mit 100vh mit statt fest verankert (seit 04.11.
-       so am iPhone getestet, reicht bis ganz unten) */
-    html:has(body.wn-glas),
-    body.wn-glas {
-      height: 100vh;
-      overflow: hidden;
-    }
-    body.wn-glas .wn-app-rahmen {
-      position: relative !important;
-      inset: auto !important;
-      height: 100vh;
     }
   }
 }

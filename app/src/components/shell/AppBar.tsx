@@ -21,6 +21,7 @@ import { CaretRight } from '@phosphor-icons/react/dist/ssr/CaretRight';
 import type { Icon as PhosphorIcon } from '@phosphor-icons/react/dist/lib/types';
 import { TABS_STAMMHAUS, TABS_WANDERND } from '@/components/shell/TabBar';
 import { EinstellungenFenster } from '@/components/shell/EinstellungenFenster';
+import { PunkteJournal } from '@/components/domain/PunkteJournal';
 
 const TITLES: Record<string, string> = {
   '/termin': 'Termin & Abstimmung',
@@ -83,6 +84,7 @@ export function AppBar({
 }) {
   const [menu, setMenu] = useState(false);
   const [einstellungen, setEinstellungen] = useState(false);
+  const [journal, setJournal] = useState(false);
   const pathname = usePathname();
   const title = Object.entries(TITLES).find(([p]) => pathname.startsWith(p) && p !== '/')?.[1];
 
@@ -91,6 +93,7 @@ export function AppBar({
   useEffect(() => {
     setMenu(false);
     setEinstellungen(false);
+    setJournal(false);
   }, [pathname]);
 
   // Frisch verdiente Punkte zählen sichtbar hoch: kleiner „+n WP"-Flug an der Pill
@@ -158,33 +161,34 @@ export function AppBar({
           <div style={{ position: 'relative' }}>
             {wpDelta != null && (
               <>
-                <style>{`@keyframes wnWpFlug { 0% { transform: translateY(4px); opacity: 0; } 25% { opacity: 1; } 100% { transform: translateY(-18px); opacity: 0; } }`}</style>
                 <span
-                  className="wn-tnum"
+                  className="wn-tnum wn-wp-flug"
+                  aria-hidden
                   style={{
                     position: 'absolute', right: 4, top: -14, fontSize: 12, fontWeight: 800,
                     color: 'var(--gold-bright)', pointerEvents: 'none', whiteSpace: 'nowrap',
-                    animation: 'wnWpFlug 1.4s ease-out both',
                   }}
                 >
                   +{wpDelta} WP
                 </span>
               </>
             )}
-            <Link
-              href="/spezln"
-              className="wn-tnum"
+            <button
+              type="button"
+              onClick={() => setJournal(true)}
+              aria-label={`${wp} WP, wofür es Punkte gab`}
+              className="wn-tnum wn-press"
               style={{
                 display: 'inline-flex', alignItems: 'center', gap: 4, height: 30, padding: '0 12px',
-                borderRadius: 999, border: '1.5px solid rgba(208,173,102,0.5)',
-                fontSize: 13, fontWeight: 800, color: 'var(--gold-bright)', textDecoration: 'none',
+                borderRadius: 999, border: '1.5px solid rgba(208,173,102,0.5)', background: 'transparent', cursor: 'pointer',
+                fontFamily: 'var(--font-ui)', fontSize: 13, fontWeight: 800, color: 'var(--gold-bright)', textDecoration: 'none',
                 transform: wpDelta != null ? 'scale(1.08)' : 'scale(1)',
                 transition: 'transform 300ms cubic-bezier(0.22, 1, 0.36, 1)',
               }}
             >
               {wp}
               <span>WP</span>
-            </Link>
+            </button>
           </div>
           <button
             onClick={() => setMenu(true)}
@@ -246,6 +250,14 @@ export function AppBar({
       </div>
     </header>
 
+      {/* Ohne Handy-Kopf (Rang, Karte, Kasse, Profil) und ab Tablet gibt's koa Pill:
+          dann fliegt das „+n WP“ frei oben rechts (WIR-010) */}
+      {wpDelta != null && (
+        <span aria-hidden className={`wn-tnum wn-wp-flug wn-wp-flug--frei${ohneHandyKopf ? '' : ' wn-nur-breit'}`}>
+          +{wpDelta} WP
+        </span>
+      )}
+      {journal && <PunkteJournal onClose={() => setJournal(false)} />}
       {einstellungen && <EinstellungenFenster darfVerwalten={darfVerwalten} gaudi={gaudi} onClose={() => setEinstellungen(false)} />}
       {menu && (
         <ProfilMenue
@@ -260,6 +272,7 @@ export function AppBar({
           verzeichnis={verzeichnis}
           onLogout={onLogout}
           onClose={() => setMenu(false)}
+          onPunkte={() => { setMenu(false); setJournal(true); }}
         />
       )}
     </>
@@ -282,6 +295,7 @@ function ProfilMenue({
   verzeichnis = null,
   onLogout,
   onClose,
+  onPunkte,
 }: {
   name: string;
   photoUrl: string | null;
@@ -294,6 +308,8 @@ function ProfilMenue({
   verzeichnis?: { anfragen: number } | null;
   onLogout: () => Promise<void>;
   onClose: () => void;
+  /** Punkte-Kachel: öffnet „Meine WP“ */
+  onPunkte: () => void;
 }) {
   // Benachrichtigungen: An/Aus pro Gerät (Push-Abo vorhanden?)
   const [push, setPush] = useState<'An' | 'Aus' | ''>('');
@@ -368,10 +384,10 @@ function ProfilMenue({
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
-          <div style={{ ...kachel, background: 'var(--navy)' }}>
+          <button type="button" onClick={onPunkte} className="wn-press" style={{ ...kachel, background: 'var(--navy)', border: 'none', cursor: 'pointer', textAlign: 'left', fontFamily: 'var(--font-ui)' }}>
             <span className="wn-tnum" style={{ fontSize: 22, fontWeight: 800, color: 'var(--gold-bright)' }}>{wp}</span>
             <span style={{ ...kachelLabel, color: 'rgba(246,240,226,0.7)' }}>Punkte</span>
-          </div>
+          </button>
           <div style={{ ...kachel, background: 'var(--weiss)' }}>
             <span className="wn-tnum" style={{ fontSize: 22, fontWeight: 800, color: 'var(--navy)' }}>{rang > 0 ? `${rang}.` : '–'}</span>
             <span style={{ ...kachelLabel, color: 'var(--ink-500)' }}>Platz</span>

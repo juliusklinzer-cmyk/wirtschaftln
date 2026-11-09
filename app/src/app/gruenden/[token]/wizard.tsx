@@ -159,7 +159,7 @@ export function GruendungsWizard({ token, von, fuer = null }: { token: string; /
         </div>
       )}
 
-      <form ref={formRef} action={action} style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'var(--weiss)', borderRadius: '28px 28px 0 0', padding: '22px 22px calc(34px + env(safe-area-inset-bottom))', boxShadow: '0 -10px 40px rgba(7,25,58,0.35)' }}>
+      <form ref={formRef} action={action} style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'var(--weiss)', borderRadius: '28px 28px 0 0', padding: '22px 22px calc(34px + var(--wn-unten))', boxShadow: '0 -10px 40px rgba(7,25,58,0.35)' }}>
         <div style={{ flex: 1, width: '100%', maxWidth: 400, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 16 }}>
 
           {/* 0 · Ehren-Einladung (1a) */}

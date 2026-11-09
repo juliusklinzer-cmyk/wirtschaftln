@@ -34,7 +34,7 @@ export function AuthRahmen({
         <span style={{ fontFamily: 'var(--font-fraktur)', fontSize: logoHoehe >= 150 ? 42 : 36, lineHeight: 1, color: 'var(--gold-bright)', marginTop: 12 }}>Wirtschaftln</span>
         <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(246,240,226,0.75)' }}>{eyebrow}</span>
       </div>
-      <div style={{ background: 'var(--weiss)', borderRadius: '28px 28px 0 0', padding: '24px 22px calc(34px + env(safe-area-inset-bottom))', boxShadow: '0 -10px 40px rgba(7,25,58,0.35)' }}>
+      <div style={{ background: 'var(--weiss)', borderRadius: '28px 28px 0 0', padding: '24px 22px calc(34px + var(--wn-unten))', boxShadow: '0 -10px 40px rgba(7,25,58,0.35)' }}>
         <div style={{ maxWidth: 400, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             <h1 style={{ fontFamily: 'var(--font-fraktur)', fontWeight: 400, fontSize: 30, lineHeight: 1, color: 'var(--navy)', margin: 0 }}>{titel}</h1>

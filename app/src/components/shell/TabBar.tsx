@@ -50,7 +50,7 @@ export function TabBar({ tabs = TABS_WANDERND }: { tabs?: TabDef[] }) {
         style={{
           display: 'grid',
           gridTemplateColumns: `repeat(${TABS.length}, 1fr)`,
-          padding: '10px 0 calc(10px + env(safe-area-inset-bottom))',
+          padding: '10px 0 calc(10px + var(--wn-unten))',
         }}
       >
         {TABS.map((t) => {

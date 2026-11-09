@@ -345,7 +345,7 @@ export function SpezlDetail({
       </div>
       <div className="wn-raute wn-raute--sm" style={{ height: 8 }} />
 
-      <div style={{ padding: '20px 16px calc(32px + env(safe-area-inset-bottom))', display: 'flex', flexDirection: 'column', gap: 24 }}>
+      <div style={{ padding: '20px 16px calc(32px + var(--wn-unten))', display: 'flex', flexDirection: 'column', gap: 24 }}>
         {wackelt && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px', borderRadius: 16, background: 'var(--strafe-bg)', border: '1.5px solid var(--strafe)' }}>
             <Icon name="warning" size={24} color="var(--strafe)" />

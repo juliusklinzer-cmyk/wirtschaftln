@@ -786,7 +786,7 @@ export function Bierdeckel({
         className={voll ? 'wn-fenster wn-buehne' : undefined}
         style={
           voll
-            ? { position: 'fixed', inset: 0, zIndex: 70, maxWidth: 'var(--container-app)', margin: '0 auto', background: 'radial-gradient(120% 80% at 50% 45%, #1B4C8A 0%, #0C2B5A 52%, #07193A 100%)', color: 'var(--pergament)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14, padding: 'calc(16px + var(--wn-oben)) 18px calc(28px + env(safe-area-inset-bottom))' }
+            ? { position: 'fixed', inset: 0, zIndex: 70, maxWidth: 'var(--container-app)', margin: '0 auto', background: 'radial-gradient(120% 80% at 50% 45%, #1B4C8A 0%, #0C2B5A 52%, #07193A 100%)', color: 'var(--pergament)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14, padding: 'calc(16px + var(--wn-oben)) 18px calc(28px + var(--wn-unten))' }
             : { borderRadius: 'var(--r-lg)', background: 'var(--grad-navy)', color: 'var(--pergament)', border: '1.5px solid var(--gold)', boxShadow: 'var(--sh-lg)', overflow: 'hidden', display: 'flex', flexDirection: 'column' }
         }
       >
@@ -907,7 +907,7 @@ export function Bierdeckel({
             role="dialog"
             aria-label="Runde schmeißen"
             className="wn-sheet-auf"
-            style={{ position: 'fixed', left: 0, right: 0, bottom: 0, zIndex: 81, maxWidth: 'var(--container-app)', margin: '0 auto', background: 'var(--ink-50)', borderRadius: '28px 28px 0 0', padding: '10px 16px calc(24px + env(safe-area-inset-bottom))', display: 'flex', flexDirection: 'column', gap: 14 }}
+            style={{ position: 'fixed', left: 0, right: 0, bottom: 0, zIndex: 81, maxWidth: 'var(--container-app)', margin: '0 auto', background: 'var(--ink-50)', borderRadius: '28px 28px 0 0', padding: '10px 16px calc(24px + var(--wn-unten))', display: 'flex', flexDirection: 'column', gap: 14 }}
           >
             <span style={{ alignSelf: 'center', width: 40, height: 5, borderRadius: 999, background: 'var(--ink-200)' }} />
             <span style={{ fontFamily: 'var(--font-fraktur)', fontSize: 28, lineHeight: 1, color: 'var(--navy)', padding: '0 4px' }}>Runde schmeißen</span>

@@ -109,7 +109,7 @@ export function BadgeInfo({ info, onClose }: { info: BadgeInfoDaten; onClose: ()
       </div>
       <div className="wn-raute wn-raute--sm" style={{ height: 8 }} />
 
-      <div style={{ padding: '20px 16px calc(32px + env(safe-area-inset-bottom))', display: 'flex', flexDirection: 'column', gap: 22 }}>
+      <div style={{ padding: '20px 16px calc(32px + var(--wn-unten))', display: 'flex', flexDirection: 'column', gap: 22 }}>
         {info.pflicht && (
           <div style={{ padding: '14px 16px', borderRadius: 16, background: 'var(--pergament)', border: '1.5px solid var(--gold)', display: 'flex', gap: 12 }}>
             <Icon name="scroll" size={22} color="var(--gold-700)" style={{ flex: 'none' }} />

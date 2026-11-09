@@ -3,7 +3,7 @@
 ## In Arbeit
 
 ## Wartet auf Julius
-- [ ] WIR-027 iOS-Blur oben: seit 09.11. deployt: Wirtschaftln-App vom iPhone-Home-Bildschirm löschen, in Safari wirtschaftln.de (eingeloggt) neu „Zum Home-Bildschirm“, prüfen ob oben kein Blur mehr ist und der Kopf passt · am:2026-11-09
+- [ ] WIR-027 iOS-Blur oben: seit 09.11. deployt: Wirtschaftln-App vom iPhone-Home-Bildschirm löschen, in Safari wirtschaftln.de (eingeloggt) neu „Zum Home-Bildschirm“, prüfen ob oben kein Blur mehr ist, der Kopf passt und unten im Menü und an der Tab-Leiste genug Platz ist (seit 09.11. mind. 34 px) · am:2026-11-09
 - [ ] WIR-026 Responsive Redesign live anschauen: wirtschaftln.de am PC breit und schmal, am iPad, und Rückmeldung geben · am:2026-11-08
 - [ ] WIR-002 Link-Vorschau in WhatsApp echt testen (Beitreten- und Gründen-Link schicken). Schon geteilte Links können noch das alte Bild zeigen. · am:2026-11-06 · quelle:TODO.md#14
 - [ ] WIR-003 Badge-Pflichten: restliche Regeln fehlen, dann nur Texte eintragen (`pflicht` in badges.ts) · am:2026-11-06 · quelle:TODO.md#15

@@ -619,7 +619,7 @@ export function DetailModal({
         </div>
       </div>
 
-      <div style={{ padding: '18px 16px calc(32px + env(safe-area-inset-bottom))', display: 'flex', flexDirection: 'column', gap: 24 }}>
+      <div style={{ padding: '18px 16px calc(32px + var(--wn-unten))', display: 'flex', flexDirection: 'column', gap: 24 }}>
         {/* Drei Wertungen */}
         <div style={{ ...karteStil, display: 'flex' }}>
           {([['rating', 'Wirtshaus', w?.sterne], ['kaiser', 'Schmarrn', w?.kaiser], ['brodn', 'Brodn', w?.brodn]] as const).map(([f, label, n], i) => {

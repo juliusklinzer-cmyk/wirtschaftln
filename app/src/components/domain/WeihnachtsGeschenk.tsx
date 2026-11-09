@@ -230,7 +230,7 @@ export function WeihnachtsGeschenk({
       {lichter}
       {ausgepackt && <div aria-hidden style={{ position: 'absolute', left: '50%', top: '22%', width: 320, height: 320, marginLeft: -160, borderRadius: 999, background: 'radial-gradient(circle,rgba(230,198,132,0.5),transparent 65%)', opacity: op, pointerEvents: 'none' }} />}
       <button type="button" onClick={zu} aria-label="Schließen" style={{ position: 'absolute', right: 16, top: 'calc(14px + var(--wn-oben))', zIndex: 2, width: 36, height: 36, borderRadius: 99, border: 'none', background: 'rgba(246,240,226,0.12)', color: '#F6F0E2', display: 'grid', placeItems: 'center', cursor: 'pointer' }}><X size={17} /></button>
-      <div style={{ position: 'absolute', inset: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 'calc(70px + var(--wn-oben)) 28px calc(24px + env(safe-area-inset-bottom))', textAlign: 'center' }}>
+      <div style={{ position: 'absolute', inset: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 'calc(70px + var(--wn-oben)) 28px calc(24px + var(--wn-unten))', textAlign: 'center' }}>
         {/* Ausgepackt rückt das Packerl a bissl zamm, damit Ticket und Text unter der Lichterkette Platz haben */}
         <div style={{ transform: `rotate(${wackeln}deg) scale(${1 - 0.22 * op})`, marginTop: ausgepackt ? 40 * op : 0, marginBottom: -30 * op }}>{packerl}</div>
         {inhalt}

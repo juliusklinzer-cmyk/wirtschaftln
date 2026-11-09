@@ -250,7 +250,7 @@ export function RangToast({ info, t, onClose }: { info: WechselInfo; t: number; 
       onClick={onClose}
       role="status"
       style={{
-        position: 'fixed', left: 0, right: 0, bottom: 'calc(84px + env(safe-area-inset-bottom))', zIndex: 50, maxWidth: 'var(--container-app)', margin: '0 auto', padding: '0 16px', pointerEvents: p > 0.5 ? 'auto' : 'none',
+        position: 'fixed', left: 0, right: 0, bottom: 'calc(84px + var(--wn-unten))', zIndex: 50, maxWidth: 'var(--container-app)', margin: '0 auto', padding: '0 16px', pointerEvents: p > 0.5 ? 'auto' : 'none',
       }}
     >
       <div style={{ opacity: p, transform: `translateY(${24 * (1 - p)}px)`, display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px', borderRadius: 18, cursor: 'pointer', background: info.rauf ? 'var(--grad-gold)' : 'var(--weiss)', border: info.rauf ? 'none' : '1.5px solid rgba(192,57,43,0.35)', color: info.rauf ? 'var(--navy-900)' : 'var(--strafe)', boxShadow: '0 10px 28px rgba(12,43,90,0.25)' }}>

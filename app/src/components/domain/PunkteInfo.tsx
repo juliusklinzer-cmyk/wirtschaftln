@@ -57,7 +57,7 @@ export function PunkteInfo({ knopf }: { knopf?: (oeffnen: () => void) => React.R
           </div>
           <div className="wn-raute wn-raute--sm" style={{ height: 8 }} />
 
-          <div style={{ padding: '20px 16px calc(32px + env(safe-area-inset-bottom))', display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div style={{ padding: '20px 16px calc(32px + var(--wn-unten))', display: 'flex', flexDirection: 'column', gap: 8 }}>
             <Ueberschrift text="So gibt’s Punkte" />
             <div style={{ background: 'var(--weiss)', borderRadius: 'var(--r-lg)', border: '1px solid var(--ink-100)', boxShadow: 'var(--sh-sm)', padding: '4px 16px' }}>
               <Zeile icon="calendar" text="Beim Stammtisch dabei" wp={`+${PTS.teilnahme}`} />

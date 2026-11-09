@@ -341,7 +341,7 @@ function ProfilMenue({
         className="wn-scroll-still"
         style={{
           flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 16,
-          padding: 'calc(16px + var(--wn-oben)) 16px calc(24px + env(safe-area-inset-bottom))',
+          padding: 'calc(16px + var(--wn-oben)) 16px calc(24px + var(--wn-unten))',
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '6px 4px 0' }}>

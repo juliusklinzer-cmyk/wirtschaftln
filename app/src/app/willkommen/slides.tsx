@@ -119,7 +119,7 @@ export function SlideStrecke({ slides, fertig, pending, letzterKnopf }: { slides
             <div style={{ height: 'clamp(250px, 40dvh, 380px)', flex: 'none', display: 'grid', placeItems: 'center', padding: 'calc(28px + var(--wn-oben)) 0 10px' }}>
               <div style={{ width: 300, maxWidth: 'calc(100vw - 48px)' }}>{s.bild}</div>
             </div>
-            <div style={{ flex: 1, background: 'var(--weiss)', borderRadius: '28px 28px 0 0', padding: '26px 24px calc(30px + env(safe-area-inset-bottom))', display: 'flex', flexDirection: 'column', gap: 18, boxShadow: '0 -10px 40px rgba(7,25,58,0.35)' }}>
+            <div style={{ flex: 1, background: 'var(--weiss)', borderRadius: '28px 28px 0 0', padding: '26px 24px calc(30px + var(--wn-unten))', display: 'flex', flexDirection: 'column', gap: 18, boxShadow: '0 -10px 40px rgba(7,25,58,0.35)' }}>
               <div style={{ width: '100%', maxWidth: 400, margin: '0 auto', flex: 1, display: 'flex', flexDirection: 'column', gap: 18 }}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                   <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--gold-700)' }}>{s.eyebrow}</span>

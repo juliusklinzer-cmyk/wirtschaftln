@@ -5,6 +5,7 @@ import { loadGoogleMaps } from '@/lib/google-maps';
 import { findeBekanntes, type BekanntesWirtshaus } from '@/lib/wirtshaus-abgleich';
 import { useTenantConfig } from '@/components/shell/TenantProvider';
 import { umkreisBounds, type TenantGeo } from '@/lib/tenant-config-public';
+import { datumMitJahr } from '@/lib/format';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -28,6 +29,7 @@ export function WirtshausSuche({
   bekannte = [],
   bias,
   label = 'Wirtshaus',
+  vorschlag = false,
 }: {
   namePrefix?: string;
   /** Umkreis für die Google-Suche; undefined = Tenant-Config, null = ganz Deutschland (Gründungs-Wizard) */
@@ -35,6 +37,8 @@ export function WirtshausSuche({
   label?: string;
   /** Alle bekannten Wirtshäuser (besucht/eingeplant/vorgeschlagen), Regel: koa Wirtshaus zweimal. */
   bekannte?: BekanntesWirtshaus[];
+  /** Nur „Wirtshaus gfunden“: dort zählt a scho besuchtes ned als neuer Fund. Beim Aussuchen is es nur a Warnung (WIR-004). */
+  vorschlag?: boolean;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const geoConfig = useTenantConfig().geo;
@@ -47,6 +51,8 @@ export function WirtshausSuche({
 
   // Unscharfer Abgleich (gleiche Logik wie die Server-Regel beim Vorschlagen)
   const bekanntes = findeBekanntes(treffer?.name ?? eingabe, bekannte);
+  // Gold = nur Hinweis, Rot = geht so ned
+  const nurHinweis = bekanntes?.art === 'vorgeschlagen' || (bekanntes?.art === 'besucht' && !vorschlag);
 
   useEffect(() => {
     let aufgeraeumt = false;
@@ -122,13 +128,18 @@ export function WirtshausSuche({
         <div
           style={{
             display: 'flex', gap: 10, padding: '10px 12px', borderRadius: 'var(--r-md)', alignItems: 'flex-start',
-            background: bekanntes.art === 'vorgeschlagen' ? 'var(--pergament)' : 'var(--strafe-bg)',
-            border: `1.5px solid ${bekanntes.art === 'vorgeschlagen' ? 'var(--gold)' : 'var(--strafe)'}`,
+            background: nurHinweis ? 'var(--pergament)' : 'var(--strafe-bg)',
+            border: `1.5px solid ${nurHinweis ? 'var(--gold)' : 'var(--strafe)'}`,
           }}
         >
           <span style={{ fontSize: 18, lineHeight: 1.2 }}>{bekanntes.art === 'vorgeschlagen' ? '📍' : '⚠️'}</span>
-          <div style={{ fontSize: 13, fontWeight: 700, color: bekanntes.art === 'vorgeschlagen' ? 'var(--gold-700)' : 'var(--strafe)', lineHeight: 1.5 }}>
-            {bekanntes.art === 'besucht' && <>Do warts’s scho! „{bekanntes.name}“ steht in eurer Chronik, und a Wirtshaus wird nie zweimal bsucht.</>}
+          <div style={{ fontSize: 13, fontWeight: 700, color: nurHinweis ? 'var(--gold-700)' : 'var(--strafe)', lineHeight: 1.5 }}>
+            {bekanntes.art === 'besucht' && (
+              <>
+                Da wart’s scho{bekanntes.am ? ` am ${datumMitJahr(bekanntes.am)}` : ''}! „{bekanntes.name}“ steht in eurer Chronik.
+                {vorschlag ? ' Als neuer Fund zählt’s ned.' : ' Aussuchen geht trotzdem.'}
+              </>
+            )}
             {bekanntes.art === 'eingeplant' && <>„{bekanntes.name}“ steht scho als nächster Stammtisch fest.</>}
             {bekanntes.art === 'vorgeschlagen' && <>„{bekanntes.name}“ {bekanntes.von ? `hat ${bekanntes.von} scho gfunden` : 'is scho vorgschlagen'}, steht als „Offen“ auf da Kartn.</>}
           </div>

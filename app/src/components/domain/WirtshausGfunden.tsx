@@ -50,7 +50,7 @@ export function WirtshausGfunden({ bekannte }: { bekannte: BekanntesWirtshaus[] 
 
   return (
     <form action={eintragen} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-      <WirtshausSuche key={suchKey} bekannte={bekannte} />
+      <WirtshausSuche key={suchKey} bekannte={bekannte} vorschlag />
       {/* Welches Helle schenken s' aus? Optional, steht dann am Pin dabei */}
       <input type="hidden" name="w_biersorte" value={biersorte} />
       <BierWahl

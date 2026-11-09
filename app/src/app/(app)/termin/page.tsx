@@ -25,7 +25,7 @@ import { datumMittel, datumKurz } from '@/lib/format';
 import { PTS, berlinTag, bierdeckelOffen, abschlussOffen, abschlussAb, ABEND_ENDE_UHRZEIT } from '@/lib/punkte';
 import { nowIso } from '@/lib/ids';
 import { Icon, Chip, Kachel, Zeile, ZeilenKarte, KlappenKopf } from '@/components/ds';
-import { neuerTermin, wirtshausFestlegen, phaseSetzen, besuchAbschliessen, meineBewertung, orgaSchnappen, terminVerschieben } from './actions';
+import { neuerTermin, wirtshausFestlegen, phaseSetzen, besuchAbschliessen, meineBewertung, orgaSchnappen, terminVerschieben, terminAbsagen } from './actions';
 import { type AbschlussWerte } from './abschluss-form';
 import { MeiBewertung } from '@/components/domain/MeiBewertung';
 import { bewertungsDaten } from '@/lib/bewertungs-daten';
@@ -158,8 +158,9 @@ function HeroKopf({ eyebrow, titel, zeile, extra = null, rechts = null }: { eyeb
   );
 }
 
-export default async function TerminPage({ searchParams }: { searchParams: Promise<{ deckel?: string }> }) {
-  const { deckel: deckelParam } = await searchParams;
+export default async function TerminPage({ searchParams }: { searchParams: Promise<{ deckel?: string; abgesagt?: string }> }) {
+  const { deckel: deckelParam, abgesagt } = await searchParams;
+  const abgesagtParam = abgesagt === '1';
   const me = (await getCurrentMember())!;
   erzwingeProfil(me);
   const config = tenantConfig();
@@ -277,8 +278,13 @@ export default async function TerminPage({ searchParams }: { searchParams: Promi
       ) : (
         <>
           <HeroKarte>
-            <HeroKopf eyebrow="Nächster Stammtisch" titel="Noch nix ausgemacht" zeile="Wer abgeschlossen hat, legt den nächsten Termin fest." />
+            <HeroKopf eyebrow="Nächster Stammtisch" titel="Noch nix ausgemacht" zeile={abgesagtParam ? 'Der letzte Termin ist abgesagt. Macht gleich einen neuen aus.' : 'Wer abgeschlossen hat, legt den nächsten Termin fest.'} />
           </HeroKarte>
+          {abgesagtParam && (
+            <div className="wn-toast-in wn-zwei-voll" style={{ padding: '10px 14px', borderRadius: 'var(--r-md)', textAlign: 'center', background: 'var(--erfolg-bg)', border: '1px solid var(--erfolg)', fontSize: 13, fontWeight: 800, color: 'var(--erfolg)' }}>
+              ✓ Abgesagt, alle bekommen Bescheid.
+            </div>
+          )}
           <div className="wn-spalte wn-spalte--l">
           <Platz n={1}>
           <section style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -501,6 +507,8 @@ async function AktiverTermin({
   const verschieben = darfVerwalten && !termin.erfasstVon
     ? { action: terminVerschieben.bind(null, termin.id), datum: termin.datum, zeit: termin.zeit, heute: berlinTag(nowIso()) }
     : null;
+  // Absagen nur Präsident und Admin, ned der Organisator allein (WIR-007)
+  const absagen = (isAdmin || meId === getPraesidentId()) && !termin.erfasstVon ? terminAbsagen.bind(null, termin.id) : null;
   const reservierung = termin.phase === 'reserviert' && darfVerwalten && wirtshaus
     ? { action: wirtshausFestlegen.bind(null, termin.id), bekannte: getBekannteWirtshaeuser(), aktuell: { name: wirtshaus.name, bezirk: wirtshaus.bezirk } }
     : null;
@@ -600,7 +608,7 @@ async function AktiverTermin({
       )}
 
       <Platz n={4}>
-        <OrganisationKarte hint={orgaRollen} anmeldungSchliessen={anmeldungSchliessen} reservierung={reservierung} verschieben={verschieben} nachtrag={nachtragOrga} />
+        <OrganisationKarte hint={orgaRollen} anmeldungSchliessen={anmeldungSchliessen} reservierung={reservierung} verschieben={verschieben} absagen={absagen} nachtrag={nachtragOrga} />
       </Platz>
       {/* Nur breit: Deckel-Vorschau und das Wirtshaus (Responsive 2a) */}
       <div className="wn-nur-breit" style={{ order: 5 }}>

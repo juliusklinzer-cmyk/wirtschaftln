@@ -11,7 +11,7 @@ import {
 import { anzeigeName, urkundenName } from '@/lib/namen';
 import { aktuelleSaison } from '@/lib/saison';
 import { datumKurz } from '@/lib/format';
-import { saisonBadgesVergeben, serienAbzeichen, amtInfo, AEMTER_INFO, saisonBadges, praesidentInfo } from '@/lib/badges';
+import { saisonBadgesVergeben, serienAbzeichen, amtInfo, AEMTER_INFO, saisonBadges, praesidentInfo, pflichtVon } from '@/lib/badges';
 import { praesidentAus } from '@/lib/praesident';
 import type { BadgeInfoDaten, HallOfFameEintrag, JahressiegerEintrag, ZaehlerBlock } from '@/components/domain/BadgeInfo';
 import { alleJahressieger, siegerMeta, siegerSpruch, siegerUrkundeGrund } from '@/lib/jahressieger';
@@ -298,7 +298,7 @@ export function ladeRanglisteDaten(meId: string): {
       name: titel,
       untertitel: `Amt · ${info.mode} · Patron: ${info.patron}`,
       text: info.geschichte,
-      pflicht: null,
+      pflicht: pflichtVon(key),
       duties: info.duties,
       hallOfFame: hallOfFameVon(key),
       jahressieger: jahressiegerVon(key),
@@ -312,7 +312,7 @@ export function ladeRanglisteDaten(meId: string): {
     name: 'Kassenwart',
     untertitel: `Amt · Gewählt · Patron: ${AEMTER_INFO['Kassenwart'].patron}`,
     text: AEMTER_INFO['Kassenwart'].geschichte,
-    pflicht: null,
+    pflicht: pflichtVon('amt:kassenwart'),
     duties: AEMTER_INFO['Kassenwart'].duties,
     jahressieger: jahressiegerVon('amt:kassenwart'),
     hallOfFame: getKassenwartHistorie().map(({ amt, member }) => ({

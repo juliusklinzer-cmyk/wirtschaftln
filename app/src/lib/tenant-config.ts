@@ -32,6 +32,12 @@ export type TenantConfig = PublicTenantConfig & {
   praesidentWahlZeit: PraesidentWahlZeit;
   /** Weihnachts-Token: in diesem Jahr kriegt am 24.12. jeder Spezl an persönlichen Token (setzt ein Wirtschaftln-Admin im Verzeichnis) */
   weihnachtsTokenJahr: number | null;
+  /** Pflichten je Badge/Amt (Key wie 'maximator', 'amt:praesident'), vom Stammtisch selbst festgelegt; leerer Text = bewusst koane */
+  pflichten: Record<string, string>;
+  /** Jahr, in dem die Pflichten zuletzt gespeichert wurden (Hinweis im Januar) */
+  pflichtenJahr: number | null;
+  /** Kodex, den Neue beim Beitritt bestätigen (null = Standard-Kodex) */
+  kodex: string | null;
 };
 
 export type PraesidentModus = 'wp' | 'wahl';
@@ -52,6 +58,9 @@ type ConfigJson = Partial<{
   praesidentModus: PraesidentModus;
   praesidentWahlZeit: PraesidentWahlZeit;
   weihnachtsTokenJahr: number | null;
+  pflichten: Record<string, string>;
+  pflichtenJahr: number | null;
+  kodex: string | null;
 }>;
 
 function lesen(json: string): ConfigJson {
@@ -90,6 +99,9 @@ export function parseTenantConfig(gruppe: Gruppe): TenantConfig {
     praesidentModus: c.praesidentModus === 'wahl' ? 'wahl' : 'wp',
     weihnachtsTokenJahr: Number.isInteger(c.weihnachtsTokenJahr) ? (c.weihnachtsTokenJahr as number) : null,
     praesidentWahlZeit: WAHL_ZEITEN.includes(c.praesidentWahlZeit as PraesidentWahlZeit) ? (c.praesidentWahlZeit as PraesidentWahlZeit) : 'jahresanfang',
+    pflichten: c.pflichten && typeof c.pflichten === 'object' ? Object.fromEntries(Object.entries(c.pflichten).filter((e): e is [string, string] => typeof e[1] === 'string')) : {},
+    pflichtenJahr: Number.isInteger(c.pflichtenJahr) ? (c.pflichtenJahr as number) : null,
+    kodex: typeof c.kodex === 'string' && c.kodex.trim() ? c.kodex.trim() : null,
   };
 }
 
@@ -111,8 +123,11 @@ export function tenantConfig(): TenantConfig {
 
 /** Der Teil, der als Props an Client-Komponenten darf (siehe TenantProvider). */
 export function publicTenantConfig(): PublicTenantConfig {
-  const { saisonEpocheJahr: _epoche, logo: _logo, auszeichnungenAus: _aus, praesidentModus: _modus, praesidentWahlZeit: _zeit, weihnachtsTokenJahr: _weihnachten, ...rest } = tenantConfig();
+  const { saisonEpocheJahr: _epoche, logo: _logo, auszeichnungenAus: _aus, praesidentModus: _modus, praesidentWahlZeit: _zeit, weihnachtsTokenJahr: _weihnachten, pflichten: _pflichten, pflichtenJahr: _pflichtenJahr, kodex: _kodex, ...rest } = tenantConfig();
   void _weihnachten;
+  void _pflichten;
+  void _pflichtenJahr;
+  void _kodex;
   void _modus;
   void _zeit;
   void _epoche;

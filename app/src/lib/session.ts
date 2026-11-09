@@ -96,6 +96,20 @@ export async function destroySession() {
  * dem der Mandant für Server Components & Actions gebunden wird.
  */
 export const getCurrentMember = cache(async () => {
+  const m = await sessionMitglied();
+  return m && m.status === 'aktiv' ? m : null;
+});
+
+/**
+ * Wer sich beworben hat und noch auf den Bürgen wartet (Status 'antrag',
+ * WIR-013). Kommt NUR auf die Warteseite, nirgends sonst in die App.
+ */
+export const getAntragsteller = cache(async () => {
+  const m = await sessionMitglied();
+  return m && m.status === 'antrag' ? m : null;
+});
+
+const sessionMitglied = cache(async () => {
   const s = await sessionAusCookie();
   if (!s) return null;
   if (!bindTenant(s.gruppeId)) return null;
@@ -110,7 +124,6 @@ export const getCurrentMember = cache(async () => {
     db.delete(sessions).where(eq(sessions.token, s.token)).run();
     return null;
   }
-  if (row.member.status !== 'aktiv') return null;
   return row.member;
 });
 

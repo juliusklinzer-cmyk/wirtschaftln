@@ -7,7 +7,7 @@ import { Wine } from '@phosphor-icons/react/dist/ssr/Wine';
 import { Cards } from '@phosphor-icons/react/dist/ssr/Cards';
 import { UsersThree } from '@phosphor-icons/react/dist/ssr/UsersThree';
 import { Key } from '@phosphor-icons/react/dist/ssr/Key';
-import { auszeichnungsWahl, saisonBadges, AEMTER_INFO } from '@/lib/badges';
+import { auszeichnungsWahl, saisonBadges, AEMTER_INFO, pflichtenWahl } from '@/lib/badges';
 import { getCurrentMember, erzwingeProfil } from '@/lib/session';
 import { currentTenant } from '@/lib/db';
 import { tenantConfig, auszeichnungAn } from '@/lib/tenant-config';
@@ -25,6 +25,8 @@ import { bereichHinweisStil } from '@/components/domain/hero-stil';
 import { StammdatenKlappe } from './stammdaten-klappe';
 import { StrafenKatalog } from './strafen-katalog';
 import { PraesidentVerwaltung } from './praesident-verwaltung';
+import { PflichtenKlappe } from './pflichten-klappe';
+import { kodexText, kodexSaetze } from '@/lib/aufnahme';
 import { praesidentGewaehlt, eingetragenerPraesident } from '@/lib/praesident';
 import { offeneWahl } from '@/lib/praesident-wahl';
 import { regelSpeichern } from '../kasse/actions';
@@ -206,6 +208,7 @@ export default async function StammtischPage() {
               praesidentWahlZeit: config.praesidentWahlZeit,
               praesidentSpezln: me.role === 'admin' ? mitglieder.map((m) => ({ id: m.id, name: anzeigeName(m), photoUrl: m.photoUrl, verein: m.verein })) : undefined,
               praesidentId,
+              kodex: kodexText(),
             }}
           />
         )}
@@ -219,9 +222,19 @@ export default async function StammtischPage() {
         )}
       </section>
 
-      {/* Ämter & Badges, klein */}
+      {/* Kodex, den jeder Neue beim Beitritt bestätigt (WIR-013) */}
+      <section style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <HoamTitel>Unser Kodex</HoamTitel>
+        <ol style={{ ...karteStil, margin: 0, padding: '14px 16px 14px 36px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+          {kodexSaetze().map((k) => (
+            <li key={k} style={{ fontSize: 14, fontWeight: 700, lineHeight: 1.4, color: 'var(--navy)' }}>{k}</li>
+          ))}
+        </ol>
+      </section>
+
+      {/* Ämter & Badges, klein, darunter die Pflichten (WIR-003) */}
       {badges.length > 0 && (
-        <section style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <section id="pflichten" style={{ display: 'flex', flexDirection: 'column', gap: 12, scrollMarginTop: 'calc(var(--wn-kopf-h, 80px) + 16px)' }}>
           <HoamTitel action={<span style={bereichHinweisStil}>diese Saison</span>}>Ämter & Badges</HoamTitel>
           <div style={{ ...karteStil, padding: 14, display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '14px 6px' }}>
             {badges.map((b) => (
@@ -232,6 +245,7 @@ export default async function StammtischPage() {
               </div>
             ))}
           </div>
+          <PflichtenKlappe wahl={pflichtenWahl()} darfPflegen={darfBearbeiten} />
         </section>
       )}
 

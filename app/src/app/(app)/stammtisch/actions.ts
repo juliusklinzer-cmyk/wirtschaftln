@@ -8,6 +8,8 @@ import { getAktiveMitglieder, getPraesidentId } from '@/lib/queries';
 import { tenantConfig } from '@/lib/tenant-config';
 import { eingetragenerPraesident } from '@/lib/praesident';
 import { praesidentEintragen } from '@/lib/praesident-wahl';
+import { pflichtenWahl } from '@/lib/badges';
+import { gruppeAktualisieren } from '@/lib/db/directory';
 
 export type StammtischState = { error?: string; ok?: boolean };
 
@@ -33,6 +35,35 @@ export async function stammtischSpeichern(_prev: StammtischState, formData: Form
     if (aktuell && (gewaehlt || !eingetragenerPraesident())) praesidentEintragen(aktuell);
   }
   // bindTenant lädt die gruppen-Zeile bei jedem Request frisch → nächste Seite zeigt die neuen Werte
+  revalidatePath('/', 'layout');
+  return { ok: true };
+}
+
+/**
+ * Pflichten der Ämter und Badges festlegen (WIR-003, 09.11.2026): pro
+ * Stammtisch eigene, typischerweise zum Jahresanfang. Ein geleertes Feld
+ * heißt „koane Pflicht“ und überschreibt auch die Vorbelegung.
+ */
+export async function pflichtenSpeichern(_prev: StammtischState, formData: FormData): Promise<StammtischState> {
+  const me = await getCurrentMember();
+  if (!me || (me.role !== 'admin' && me.id !== getPraesidentId())) return { error: 'Das dürfen nur Präsident und Admin.' };
+  const gruppe = currentTenant().gruppe;
+  const pflichten: Record<string, string> = {};
+  for (const { key } of pflichtenWahl()) {
+    const text = formData.get(`pflicht:${key}`);
+    if (typeof text === 'string') pflichten[key] = text.trim().replace(/\s+/g, ' ').slice(0, 160);
+  }
+  let config: Record<string, unknown> = {};
+  try {
+    const v = JSON.parse(gruppe.config);
+    if (v && typeof v === 'object') config = v as Record<string, unknown>;
+  } catch {
+    /* kaputtes JSON → frisch anfangen */
+  }
+  const bisher = (config.pflichten && typeof config.pflichten === 'object' ? config.pflichten : {}) as Record<string, unknown>;
+  config.pflichten = { ...bisher, ...pflichten };
+  config.pflichtenJahr = Number(new Date().toLocaleString('en-US', { timeZone: 'Europe/Berlin', year: 'numeric' }));
+  gruppeAktualisieren(gruppe.id, { config: JSON.stringify(config) });
   revalidatePath('/', 'layout');
   return { ok: true };
 }

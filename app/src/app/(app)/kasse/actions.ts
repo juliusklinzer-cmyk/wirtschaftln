@@ -1,7 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { db, kasse, strafenRegeln } from '@/lib/db';
 import { getCurrentMember } from '@/lib/session';
 import { getKassenwartId, getPraesidentId } from '@/lib/queries';
@@ -97,6 +97,16 @@ export async function richtenAction(typ: 'buchung' | 'kasse', id: string, urteil
   const r = await richten(me, typ, String(id), urteil);
   if (r.ok) revalidate();
   return r;
+}
+
+/** Kassenwart erinnert alle mit offenen Strafen auf einmal (Responsive 4a, „Alle erinnern“). */
+export async function alleErinnernAction() {
+  const me = await getCurrentMember();
+  if (!me) return;
+  const offene = db.select({ memberId: kasse.memberId }).from(kasse).where(and(eq(kasse.kind, 'strafe'), eq(kasse.status, 'offen'))).all();
+  const ids = [...new Set(offene.map((o) => o.memberId).filter((id): id is string => !!id))];
+  for (const id of ids) await zahlungErinnern(me, id, getKassenwartId());
+  revalidate();
 }
 
 /** Zahlungsaufforderung (WIR-011): Kassenwart erinnert einen Spezl per Push und Mail. */

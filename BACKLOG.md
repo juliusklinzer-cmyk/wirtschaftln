@@ -3,14 +3,16 @@
 ## In Arbeit
 
 ## Wartet auf Julius
+- [ ] WIR-032 Dahoam-Hero (1a) und Kasse (4a) lokal anschauen: http://localhost:3010 am PC breit und schmal ziehen. Zeigt der Browser noch das alte Layout, einmal hart neu laden (der PWA-Service-Worker hält altes CSS). Sagen, ob es so aufs Prod soll. · am:2026-11-12
 - [ ] WIR-029 Neue Funktionen vom 09.11. nach dem Deploy anschauen: Termin absagen (Termin-Tab, Organisation), Präsident richtet + „Ans Zahlen erinnern“ (Kasse, Karte Offen), „Meine WP“ (WP-Pille antippen), Pflichten festlegen (Unser Stammtisch), Aufnahme mit Bürge (Beitrittslink mit Testkonto). Entscheiden: bei „Wirtshaus gfunden“ auf Dahoam bleibt ein besuchtes Wirtshaus gesperrt, passt das? · am:2026-11-09
-- [ ] WIR-026 Responsive Redesign live anschauen: wirtschaftln.de am PC breit und schmal, am iPad, und Rückmeldung geben · am:2026-11-08
 
 ## Offen
 
 ## Ideen
 
 ## Erledigt
+- [x] WIR-030 Dahoam-Kopf und Hero ab Tablet nach Responsive Redesign 1a/1b: Titel in Gold, Datum im Eyebrow, Adresse mit Status-Chip, Knöpfe nebeneinander, „Wer kommt“ rechts unten · am:2026-11-12 · fertig:2026-11-12
+- [x] WIR-031 Kasse ab Tablet nach Responsive Redesign 4a/4b: drei Spalten mit Kassenstand, Saison-Verlauf, Kassenbuch mit Filtern und Export, Offen mit Beglichen, Strafenkatalog · am:2026-11-12 · fertig:2026-11-12
 - [x] WIR-003 Pflichten zu Badges und Ämtern pro Stammtisch selbst festlegen (Admin, z. B. zum Jahresanfang); Maximator-Starkbier nur noch Vorschlag · am:2026-11-06 · quelle:TODO.md#15 · fertig:2026-11-09
 - [x] WIR-004 „Kein Wirtshaus zweimal“: nur Warnung beim Wählen eines schon besuchten Wirtshauses, wählen geht trotzdem (Julius, 09.11.) · am:2026-11-06 · quelle:TODO.md#16 · fertig:2026-11-09
 - [x] WIR-007 „Termin absagen“-Pfad fehlt · am:2026-11-06 · quelle:TODO.md#21 · fertig:2026-11-09
@@ -38,3 +40,4 @@
 - [x] WIR-022 Feedback Tag & Nacht (Deckel-Runden, Präsident WP/gewählt mit Stichwahl, Zusagen) getestet und deployt, ohne Was-ist-neu-Slides · am:2026-11-06 · fertig:2026-11-06
 - [x] WIR-021 Feedback Tag & Nacht Runde 3: Präsident einrichten mit aktuellem Präsidenten und Wahltermin (3 Optionen), Stichwahl bei Gleichstand, Wahlergebnis auf Hoam, Deckel-Zeile auf Hoam ohne Goldknopf, alle Namen in der Termin-Abstimmung, goldene Striche ab 26 Halbe nicht mehr übermalt · am:2026-11-06 · fertig:2026-11-06
 - [x] WIR-001 Kichererbsen-Termin vom 12.09.2026 hängt offen auf Prod (Phase heute). Auto-Schluss greift nur für die letzten 3 Tage. Schließen? (Prod-DB-Schreibzugriff, braucht OK) · am:2026-11-06 · fertig:2026-11-08 · quelle:TODO.md#13
+- [x] WIR-026 Responsive Redesign live anschauen: wirtschaftln.de am PC breit und schmal, am iPad, und Rückmeldung geben · am:2026-11-08 · fertig:2026-11-12

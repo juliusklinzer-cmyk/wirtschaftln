@@ -33,6 +33,7 @@ export function KasseAktionen({
   regeln,
   darfKasse,
   darfKatalog = false,
+  variante = 'kacheln',
   actions,
 }: {
   mitglieder: KasseSpezl[];
@@ -42,6 +43,11 @@ export function KasseAktionen({
   darfKasse: boolean;
   /** Präsident oder Admin → „Neue Strafe erstellen“ im Buchen-Sheet */
   darfKatalog?: boolean;
+  /**
+   * Responsive 4a (12.11.2026): `knoepfe` = nur „Melden“ und „Spenden“ als Knöpfe in der
+   * Kassenstand-Karte, `weitere` = die übrigen Kacheln (Auslage, Kassenwart: Einzahlung, Ausgabe).
+   */
+  variante?: 'kacheln' | 'knoepfe' | 'weitere';
   actions: { strafeBuchen: (fd: FormData) => Promise<StrafAntwort>; spenden: Action; auslage: Action; einzahlung: Action; ausgabe: Action };
 }) {
   const [offen, setOffen] = useState<Aktion | null>(null);
@@ -171,19 +177,45 @@ export function KasseAktionen({
     );
   }
 
+  const knopf: React.CSSProperties = { height: 46, borderRadius: 14, border: 'none', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8, fontFamily: 'var(--font-ui)', fontSize: 15, fontWeight: 800 };
+
   return (
-    <section style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-      <HoamTitel action={darfKasse ? <span style={bereichHinweisStil}>Kassenwart</span> : null}>Aktionen</HoamTitel>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
-        {kachel('strafe', <Gavel size={22} weight="fill" />, ['var(--strafe-bg)', 'var(--strafe)'], 'Strafe', 'aus dem Katalog buchen')}
-        {kachel('spenden', <Icon name="heart" size={20} stroke={2.2} />, ['var(--pergament)', 'var(--gold-700)'], 'Spenden', 'Geld für die Kasse')}
-        {kachel('auslage', <Icon name="receipt" size={20} stroke={2.2} />, ['var(--info-bg)', 'var(--muc-blau)'], 'Auslage', 'Privat für den Verein bezahlt')}
-      </div>
-      {darfKasse && (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-          {kachel('einzahlung', <Icon name="hand-coins" size={20} stroke={2.2} />, ['var(--navy)', 'var(--gold-bright)'], 'Einzahlung', 'Bares digital machen')}
-          {kachel('ausgabe', <Icon name="cart" size={20} stroke={2.2} />, ['var(--navy)', 'var(--gold-bright)'], 'Ausgabe', 'Aus der Kasse bezahlt')}
+    <section style={{ display: 'flex', flexDirection: 'column', gap: variante === 'knoepfe' ? 0 : 12 }}>
+      {variante === 'knoepfe' ? (
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+          <button type="button" className="wn-press" onClick={() => oeffnen('strafe')} style={{ ...knopf, background: 'var(--strafe)', color: '#fff' }}>
+            <Gavel size={18} weight="fill" />Melden
+          </button>
+          <button type="button" className="wn-press" onClick={() => oeffnen('spenden')} style={{ ...knopf, background: 'var(--grad-gold)', color: 'var(--navy-900)', boxShadow: 'var(--sh-gold)' }}>
+            <Icon name="heart" size={18} stroke={2.2} />Spenden
+          </button>
         </div>
+      ) : variante === 'weitere' ? (
+        <>
+          <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--ink-500)', padding: '0 4px' }}>
+            {darfKasse ? 'Weitere Aktionen · Kassenwart' : 'Weitere Aktionen'}
+          </span>
+          <div style={{ display: 'grid', gridTemplateColumns: darfKasse ? 'repeat(3, 1fr)' : '1fr', gap: 8 }}>
+            {kachel('auslage', <Icon name="receipt" size={20} stroke={2.2} />, ['var(--info-bg)', 'var(--muc-blau)'], 'Auslage', 'Privat für den Verein bezahlt')}
+            {darfKasse && kachel('einzahlung', <Icon name="hand-coins" size={20} stroke={2.2} />, ['var(--navy)', 'var(--gold-bright)'], 'Einzahlung', 'Bares digital machen')}
+            {darfKasse && kachel('ausgabe', <Icon name="cart" size={20} stroke={2.2} />, ['var(--navy)', 'var(--gold-bright)'], 'Ausgabe', 'Aus der Kasse bezahlt')}
+          </div>
+        </>
+      ) : (
+        <>
+          <HoamTitel action={darfKasse ? <span style={bereichHinweisStil}>Kassenwart</span> : null}>Aktionen</HoamTitel>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
+            {kachel('strafe', <Gavel size={22} weight="fill" />, ['var(--strafe-bg)', 'var(--strafe)'], 'Strafe', 'aus dem Katalog buchen')}
+            {kachel('spenden', <Icon name="heart" size={20} stroke={2.2} />, ['var(--pergament)', 'var(--gold-700)'], 'Spenden', 'Geld für die Kasse')}
+            {kachel('auslage', <Icon name="receipt" size={20} stroke={2.2} />, ['var(--info-bg)', 'var(--muc-blau)'], 'Auslage', 'Privat für den Verein bezahlt')}
+          </div>
+          {darfKasse && (
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+              {kachel('einzahlung', <Icon name="hand-coins" size={20} stroke={2.2} />, ['var(--navy)', 'var(--gold-bright)'], 'Einzahlung', 'Bares digital machen')}
+              {kachel('ausgabe', <Icon name="cart" size={20} stroke={2.2} />, ['var(--navy)', 'var(--gold-bright)'], 'Ausgabe', 'Aus der Kasse bezahlt')}
+            </div>
+          )}
+        </>
       )}
 
       {offen && (

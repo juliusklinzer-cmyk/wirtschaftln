@@ -44,7 +44,7 @@ export function AbstimmungsStand({
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
         <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--gold-bright)' }}>Hast du Zeit?</span>
-        <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: 8, position: 'relative' }}>
+        <div className="wn-hero-knoepfe" style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: 8, position: 'relative' }}>
           {frischVerdient && (
             <>
               <style>{`@keyframes wnPlusFlug { 0% { transform: translate(-50%, 0); opacity: 0; } 25% { opacity: 1; } 100% { transform: translate(-50%, -26px); opacity: 0; } }`}</style>

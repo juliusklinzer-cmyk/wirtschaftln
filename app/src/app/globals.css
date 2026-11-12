@@ -496,6 +496,11 @@ details[open] > summary .wn-klappe-pfeil {
   flex-direction: column;
   gap: 14px;
 }
+/* Am Handy stehen linker Teil und „Wer kommt“ direkt in der Karte (Responsive 1a) */
+.wn-hero-links,
+.wn-hero-rechts {
+  display: contents;
+}
 /* Leere Hinweis-Zeile (koa Push-Frage, koa Installieren) frisst koan Abstand */
 .wn-hinweise:empty {
   display: none;
@@ -604,6 +609,7 @@ details[open] > summary .wn-klappe-pfeil {
     align-items: center;
     gap: 16px;
   }
+  /* Tabs als Pillen (Responsive 1a): aktiv Gold auf Gold-Schimmer, sonst Pergament gedämpft */
   .wn-kopf-tab {
     display: inline-flex;
     align-items: center;
@@ -611,9 +617,9 @@ details[open] > summary .wn-klappe-pfeil {
     height: 40px;
     padding: 0 16px;
     border-radius: 999px;
-    color: rgba(246, 240, 226, 0.78);
+    color: rgba(246, 240, 226, 0.65);
     font-size: 14px;
-    font-weight: 700;
+    font-weight: 800;
     text-decoration: none;
     transition: background var(--dur-base), color var(--dur-base);
   }
@@ -622,7 +628,7 @@ details[open] > summary .wn-klappe-pfeil {
     color: var(--pergament);
   }
   .wn-kopf-tab[aria-current='page'] {
-    background: rgba(255, 255, 255, 0.12);
+    background: rgba(230, 198, 132, 0.16);
     color: var(--gold-bright);
   }
 
@@ -641,11 +647,13 @@ details[open] > summary .wn-klappe-pfeil {
     margin-top: calc(-1 * var(--wn-kopf-h) - 32px);
     margin-left: calc(50% - 50vw);
     margin-right: calc(50% - 50vw);
+    /* Wia im Design (1a): Foto halb durchscheinend überm Navy, drüber a Verlauf
+       von oben (Kopf lesbar) nach unten (Inhalt lesbar) */
     background:
-      linear-gradient(90deg, rgba(7, 25, 58, 0.9) 0%, rgba(7, 25, 58, 0.62) 50%, rgba(7, 25, 58, 0.3) 100%),
-      linear-gradient(180deg, rgba(12, 43, 90, 0.35) 0%, rgba(7, 25, 58, 0.8) 100%),
+      linear-gradient(180deg, rgba(7, 25, 58, 0.55) 0%, rgba(7, 25, 58, 0.35) 40%, rgba(7, 25, 58, 0.92) 100%),
+      linear-gradient(rgba(12, 43, 90, 0.45), rgba(12, 43, 90, 0.45)),
       var(--wn-hero-bild, var(--wn-hero-ersatz, none)) center / cover no-repeat,
-      var(--grad-navy);
+      radial-gradient(120% 90% at 50% 20%, #1b4c8a 0%, #0c2b5a 55%, #07193a 100%);
   }
   body.wn-muenchen .wn-hero {
     --wn-hero-ersatz: url('/brand/munich-alps-panorama.jpg');
@@ -653,16 +661,78 @@ details[open] > summary .wn-klappe-pfeil {
   .wn-hero > .wn-raute {
     display: none;
   }
+  /* Inhalt (Responsive 1b): links Titel und Aktionen, „Wer kommt“ drunter; ab Desktop daneben */
   .wn-hero-inhalt {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 20px;
+    align-items: end;
     max-width: calc(var(--wn-seite-breite) + 48px);
     margin: 0 auto;
-    padding: calc(var(--wn-kopf-h) + 24px) 24px 36px !important;
+    padding: calc(var(--wn-kopf-h) + 32px) 24px 40px !important;
   }
-  .wn-hero-inhalt > * {
-    max-width: 620px;
+  .wn-hero-links {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-width: 0;
   }
-  .wn-hero-inhalt h2 {
-    font-size: 52px !important;
+  .wn-hero-links > * {
+    max-width: 680px;
+  }
+  .wn-hero-links h2 {
+    font-size: 56px !important;
+    line-height: 0.95 !important;
+    color: var(--gold-bright) !important;
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  }
+  /* Hauptaktionen stehen nebeneinander, ned über die ganze Breite */
+  .wn-hero-links > a.wn-press,
+  .wn-hero-links > button,
+  .wn-hero-links > form {
+    align-self: flex-start;
+  }
+  .wn-hero-links > a.wn-press,
+  .wn-hero-links > button,
+  .wn-hero-links > form > button {
+    min-width: 220px;
+    padding-left: 22px;
+    padding-right: 22px;
+  }
+  /* Karten-Zeilen wia „Dein Deckel“ bleiben Blöcke */
+  .wn-hero-links > .wn-hero-block {
+    align-self: auto;
+    min-width: 0;
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+  .wn-hero-knoepfe {
+    display: flex !important;
+    gap: 10px !important;
+  }
+  .wn-hero-knoepfe > button {
+    min-width: 170px;
+    padding: 0 22px;
+  }
+  /* Adresse mit Pin und Status-Chip (1a), gibt's nur ab Tablet */
+  .wn-hero-ort {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 15px;
+    font-weight: 700;
+    color: rgba(246, 240, 226, 0.9);
+  }
+  .wn-hero-rechts {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+  }
+  .wn-hero-rechts > * {
+    width: auto !important;
+    border-top: none !important;
+    padding-top: 0 !important;
   }
 
   /* Zwei Spalten (Termin, Kasse): am Tablet untereinander, rechts als Raster */
@@ -682,6 +752,29 @@ details[open] > summary .wn-klappe-pfeil {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     align-items: start;
+  }
+
+  /* Kasse (Responsive 4b, Tablet): Kassenstand und Saison nebeneinander, Kassenbuch drunter,
+     Offenes und Strafenkatalog als Paar */
+  .wn-kasse-breit {
+    display: grid !important;
+    gap: 24px !important;
+    grid-template-columns: minmax(0, 1fr);
+    align-items: start;
+  }
+  .wn-kasse-links,
+  .wn-kasse-rechts {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 24px;
+    align-items: start;
+    min-width: 0;
+  }
+  .wn-kasse-links > :last-child {
+    grid-column: 1 / -1;
+  }
+  .wn-kasse-mitte {
+    min-width: 0;
   }
 
   /* Lexikon/Karte: Kopf mit Ansichten, Karte als Fläche, Liste daneben (am Tablet drunter) */
@@ -776,8 +869,16 @@ details[open] > summary .wn-klappe-pfeil {
 }
 
 @media (min-width: 1100px) {
-  .wn-hero-inhalt h2 {
-    font-size: 64px !important;
+  /* Desktop (1a): Titel groß, „Wer kommt“ rechts unten auf einer Linie mit den Knöpfen */
+  .wn-hero-inhalt {
+    grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
+    gap: 48px;
+  }
+  .wn-hero-links h2 {
+    font-size: 72px !important;
+  }
+  .wn-hero-rechts {
+    justify-self: end;
   }
   .wn-zwei {
     grid-template-columns: minmax(0, 1fr) minmax(0, 520px);
@@ -801,6 +902,17 @@ details[open] > summary .wn-klappe-pfeil {
   .wn-zwei > .wn-hero,
   .wn-zwei > .wn-zwei-voll {
     grid-column: 1 / -1;
+  }
+  /* Kasse (4a, Desktop): drei Spalten, links und rechts gestapelt */
+  .wn-kasse-breit {
+    grid-template-columns: 360px minmax(0, 1fr) 380px;
+  }
+  .wn-kasse-links,
+  .wn-kasse-rechts {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 24px;
   }
   .wn-zwei > .wn-spalte--r {
     display: flex;

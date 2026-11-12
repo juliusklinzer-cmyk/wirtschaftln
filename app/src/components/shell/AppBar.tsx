@@ -213,7 +213,7 @@ export function AppBar({
       <div className="wn-kopf-zeile">
         <Link href="/" style={{ flex: '1 1 0', minWidth: 0, display: 'flex', alignItems: 'center', gap: 12, textDecoration: 'none' }}>
           {logo}
-          <span className="wn-nur-desktop" style={{ fontFamily: 'var(--font-fraktur)', fontSize: 28, lineHeight: 1, color: 'var(--gold-bright)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{appName}</span>
+          <span className="wn-nur-desktop" style={{ fontFamily: 'var(--font-fraktur)', fontSize: 26, lineHeight: 1, color: 'var(--gold-bright)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{appName}</span>
         </Link>
         <nav aria-label="Hauptmenü" style={{ display: 'flex', gap: 4, flex: 'none' }}>
           {tabs.map((t) => {
@@ -233,7 +233,7 @@ export function AppBar({
             onClick={() => setEinstellungen(true)}
             aria-label="Einstellungen"
             className="wn-press"
-            style={{ width: 40, height: 40, borderRadius: '50%', border: '1px solid rgba(246,240,226,0.18)', background: 'rgba(255,255,255,0.1)', color: 'var(--pergament)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0 }}
+            style={{ width: 40, height: 40, borderRadius: '50%', border: 'none', background: 'rgba(246,240,226,0.1)', color: 'var(--pergament)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0 }}
           >
             <Gear size={20} />
           </button>

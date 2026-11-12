@@ -270,6 +270,8 @@ export default async function HomePage() {
   let heroInhalt: React.ReactNode;
   // Foto fürs Hero-Band ab Tablet: das Wirtshaus vom nächsten Termin
   let heroBild: string | null = null;
+  // „Wer kommt“: am Handy unten in der Karte, ab Desktop rechts neben dem Titel (Responsive 1a)
+  let heroRechts: React.ReactNode = null;
   if (!termin) {
     heroInhalt = (
       <>
@@ -395,11 +397,23 @@ export default async function HomePage() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0 }}>
               <span style={eyebrowStil}>
                 {heuteTag ? 'Heute ist Stammtisch' : vorbei ? 'Der Abend ist vorbei' : stammhausAbend ? 'Nächster Stammtisch · Stammhaus' : 'Nächster Stammtisch'}
+                {/* Ab Tablet steht das Datum scho im Eyebrow (Responsive 1a) */}
+                <span className="wn-nur-breit"> · {heuteTag ? 'Heute' : datumMittel(termin.datum)} · {termin.zeit}</span>
               </span>
               <h2 style={{ ...titelStil, fontSize: name.length > 16 ? 30 : 40, overflowWrap: 'anywhere' }}>{name}</h2>
               <span style={zeileStil}>
-                {heuteTag ? 'Heute' : datumMittel(termin.datum)} · {termin.zeit}
-                {stammhausAbend ? ' · wie immer' : wirtshaus?.bezirk ? ` · ${wirtshaus.bezirk}` : ''}
+                <span className="wn-nur-handy">
+                  {heuteTag ? 'Heute' : datumMittel(termin.datum)} · {termin.zeit}
+                  {stammhausAbend ? ' · wie immer' : wirtshaus?.bezirk ? ` · ${wirtshaus.bezirk}` : ''}
+                </span>
+                {/* Ab Tablet: Adresse mit Pin und Status-Chip (1a) */}
+                <span className="wn-nur-breit wn-hero-ort">
+                  <Icon name="pin" size={16} style={{ flex: 'none' }} />
+                  <span>{wirtshaus?.adresse ?? wirtshaus?.bezirk ?? (stammhausAbend ? 'wie immer' : config.stadt)} ·</span>
+                  <span style={{ fontSize: 12, fontWeight: 800, padding: '4px 10px', borderRadius: 999, whiteSpace: 'nowrap', background: heuteTag ? 'rgba(230,198,132,0.25)' : vorbei ? 'rgba(246,240,226,0.14)' : 'rgba(46,139,87,0.35)', color: heuteTag ? 'var(--gold-bright)' : vorbei ? 'rgba(246,240,226,0.85)' : '#9FE2B8' }}>
+                    {heuteTag ? 'Heute' : vorbei ? 'Vorbei' : stammhausAbend ? 'Wie immer' : 'Reserviert'}
+                  </span>
+                </span>
               </span>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8, flex: 'none' }}>
@@ -433,7 +447,7 @@ export default async function HomePage() {
           {abend && (
             <Link
               href="/termin"
-              className="wn-press"
+              className="wn-press wn-hero-block"
               aria-label="Deinen Deckel öffnen"
               style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 14px', borderRadius: 'var(--r-md)', background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.18)', color: 'inherit', textDecoration: 'none' }}
             >
@@ -467,7 +481,10 @@ export default async function HomePage() {
             </span>
           )}
 
-          {/* Wer kommt: Avatare der Zugesagten + Zählerstand, Tipp zeigt alle Zu- und Absagen */}
+        </>
+      );
+      /* Wer kommt: Avatare der Zugesagten + Zählerstand, Tipp zeigt alle Zu- und Absagen */
+      heroRechts = (
           <ZusagenAuf listen={zusagenListen} style={{ display: 'flex', alignItems: 'center', gap: 10, paddingTop: 12, borderTop: '1px solid rgba(208,173,102,0.3)' }}>
             {zugesagte.length > 0 && (
               <span style={{ display: 'inline-flex', flex: 'none' }}>
@@ -488,12 +505,11 @@ export default async function HomePage() {
             </span>
             <Icon name="chevron" size={16} color="rgba(246,240,226,0.6)" style={{ flex: 'none' }} />
           </ZusagenAuf>
-        </>
       );
     }
   }
 
-  const hero = <HeroBand bild={heroBild}>{heroInhalt}</HeroBand>;
+  const hero = <HeroBand bild={heroBild} rechts={heroRechts}>{heroInhalt}</HeroBand>;
 
   // Ab Tablet steht der Rang links auf Dahoam (Responsive Redesign 1a/1b)
   const rang = ladeRanglisteDaten(me.id);

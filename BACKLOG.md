@@ -3,8 +3,6 @@
 ## In Arbeit
 
 ## Wartet auf Julius
-- [ ] WIR-032 Dahoam-Hero (1a) und Kasse (4a) live anschauen: wirtschaftln.de am PC breit und schmal ziehen, am iPad, und am Handy einmal drehen (Querformat geht wieder). Zeigt der Browser noch das alte Layout, einmal hart neu laden. · am:2026-11-12
-- [ ] WIR-029 Neue Funktionen vom 09.11. nach dem Deploy anschauen: Termin absagen (Termin-Tab, Organisation), Präsident richtet + „Ans Zahlen erinnern“ (Kasse, Karte Offen), „Meine WP“ (WP-Pille antippen), Pflichten festlegen (Unser Stammtisch), Aufnahme mit Bürge (Beitrittslink mit Testkonto). Entscheiden: bei „Wirtshaus gfunden“ auf Dahoam bleibt ein besuchtes Wirtshaus gesperrt, passt das? · am:2026-11-09
 
 ## Offen
 
@@ -42,3 +40,5 @@
 - [x] WIR-021 Feedback Tag & Nacht Runde 3: Präsident einrichten mit aktuellem Präsidenten und Wahltermin (3 Optionen), Stichwahl bei Gleichstand, Wahlergebnis auf Hoam, Deckel-Zeile auf Hoam ohne Goldknopf, alle Namen in der Termin-Abstimmung, goldene Striche ab 26 Halbe nicht mehr übermalt · am:2026-11-06 · fertig:2026-11-06
 - [x] WIR-001 Kichererbsen-Termin vom 12.09.2026 hängt offen auf Prod (Phase heute). Auto-Schluss greift nur für die letzten 3 Tage. Schließen? (Prod-DB-Schreibzugriff, braucht OK) · am:2026-11-06 · fertig:2026-11-08 · quelle:TODO.md#13
 - [x] WIR-026 Responsive Redesign live anschauen: wirtschaftln.de am PC breit und schmal, am iPad, und Rückmeldung geben · am:2026-11-08 · fertig:2026-11-12
+- [x] WIR-032 Dahoam-Hero (1a) und Kasse (4a) live anschauen: wirtschaftln.de am PC breit und schmal ziehen, am iPad, und am Handy einmal drehen (Querformat geht wieder). Zeigt der Browser noch das alte Layout, einmal hart neu laden. · am:2026-11-12 · fertig:2026-11-12
+- [x] WIR-029 Neue Funktionen vom 09.11. nach dem Deploy anschauen: Termin absagen (Termin-Tab, Organisation), Präsident richtet + „Ans Zahlen erinnern“ (Kasse, Karte Offen), „Meine WP“ (WP-Pille antippen), Pflichten festlegen (Unser Stammtisch), Aufnahme mit Bürge (Beitrittslink mit Testkonto). Entscheiden: bei „Wirtshaus gfunden“ auf Dahoam bleibt ein besuchtes Wirtshaus gesperrt, passt das? · am:2026-11-09 · fertig:2026-11-12

@@ -46,8 +46,7 @@ async function manifest(): Promise<MetadataRoute.Manifest> {
     description,
     start_url: '/',
     display: 'standalone',
-    // Nur Hochformat (Android/Chrome halten sich dran; iOS ignoriert's, dort greift der Dreh-Hinweis in globals.css)
-    orientation: 'portrait',
+    // Drehen erlaubt (Julius, 12.11.2026): seit dem Responsive Redesign kann die App auch quer
     background_color: '#07193A',
     theme_color: '#07193A', // Statusleiste (Uhrzeit, 5G) in Header-Navy, Hoam-Redesign 13.10.2026
     lang: 'de',

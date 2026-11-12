@@ -3,12 +3,17 @@
 ## In Arbeit
 
 ## Wartet auf Julius
+- [ ] WIR-038 Nach dem Deploy am iPhone testen: Karte zoomen (zwei Finger und die neuen +/− Knöpfe), springt sie noch raus? Dazu Reservierung ändern (Vorschläge sichtbar?) und den Filter „Vorschläge“ auf der Karte. · am:2026-11-12
 
 ## Offen
+- [ ] WIR-034 Eigenes Icon-Set statt Emojis und Phosphor: Liste (139 Icons nach Bereichen), Emoji-Zuordnung und KI-Prompt stehen im Doc https://claude.ai/artifact/3TTTbNhuRbSELsZEUj2aXg. Julius lässt die Icons erzeugen, dann Einbau als SVG über Icon.tsx · am:2026-11-12
 
 ## Ideen
 
 ## Erledigt
+- [x] WIR-035 Reservierung ändern zeigt Vorschläge und offene Wirtshäuser (wie beim ersten Reservieren) · am:2026-11-12 · fertig:2026-11-12
+- [x] WIR-036 Karte/Lexikon ab Tablet nach Responsive Redesign 3a/3b: Suche, Stadtteil-Filter, Wirtshaus eintragen, Rang-Pins mit Legende und Zoom, Detailkärtchen, Bestes-Karten, sortierbare Rang-Tabelle; Status-Filter Alle/Besucht/Vorschläge auch am Handy · am:2026-11-12 · fertig:2026-11-12
+- [x] WIR-037 iPhone: Karte springt beim Zoomen raus und hängt. Pins nicht mehr pro Frame neu bauen, fitBounds erst nach Vermessen, Zoom-Knöpfe · am:2026-11-12 · fertig:2026-11-12
 - [x] WIR-030 Dahoam-Kopf und Hero ab Tablet nach Responsive Redesign 1a/1b: Titel in Gold, Datum im Eyebrow, Adresse mit Status-Chip, Knöpfe nebeneinander, „Wer kommt“ rechts unten · am:2026-11-12 · fertig:2026-11-12
 - [x] WIR-031 Kasse ab Tablet nach Responsive Redesign 4a/4b: drei Spalten mit Kassenstand, Saison-Verlauf, Kassenbuch mit Filtern und Export, Offen mit Beglichen, Strafenkatalog · am:2026-11-12 · fertig:2026-11-12
 - [x] WIR-033 Drehen am Handy wieder erlaubt: Querformat-Vorhang und Manifest-Orientation raus · am:2026-11-12 · fertig:2026-11-12

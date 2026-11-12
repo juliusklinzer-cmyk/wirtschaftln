@@ -26,7 +26,13 @@ export function OrganisationKarte({
 }: {
   hint: string;
   anmeldungSchliessen?: (() => Promise<void>) | null;
-  reservierung?: { action: (formData: FormData) => Promise<void>; bekannte: BekanntesWirtshaus[]; aktuell: { name: string; bezirk: string | null } } | null;
+  reservierung?: {
+    action: (formData: FormData) => Promise<void>;
+    bekannte: BekanntesWirtshaus[];
+    aktuell: { name: string; bezirk: string | null };
+    /** Vorschläge der Spezln und entdeckte, noch nicht besuchte Wirtshäuser: ein Tipp wählt (WIR-035) */
+    offene?: { id: string; name: string; bezirk: string | null; finder: string | null }[];
+  } | null;
   /** Neues Datum setzen, alle Stimmen werden zurückgesetzt */
   verschieben?: { action: (formData: FormData) => Promise<{ ok: true } | { ok: false; meldung: string }>; datum: string; zeit: string; heute: string } | null;
   /** Termin streichen: Stimmen, WP und Absage-Strafen fallen weg */
@@ -114,14 +120,7 @@ export function OrganisationKarte({
       {offen === 'reservierung' && reservierung && (
         <>
           <HoamTitel>Reservierung ändern</HoamTitel>
-          <form
-            action={async (fd) => {
-              await reservierung.action(fd);
-              setOffen(null);
-              setMeldung('✓ Wirtshaus gändert, alle Spezln kriegen Bescheid!');
-            }}
-            style={{ background: 'var(--weiss)', borderRadius: 'var(--r-lg)', border: '1px solid var(--ink-100)', boxShadow: 'var(--sh-sm)', padding: 16, display: 'flex', flexDirection: 'column', gap: 14 }}
-          >
+          <div style={{ background: 'var(--weiss)', borderRadius: 'var(--r-lg)', border: '1px solid var(--ink-100)', boxShadow: 'var(--sh-sm)', padding: 16, display: 'flex', flexDirection: 'column', gap: 14 }}>
             <Zeile
               kachel={<Kachel><Icon name="pin" size={19} /></Kachel>}
               titel={reservierung.aktuell.name}
@@ -130,9 +129,47 @@ export function OrganisationKarte({
               pfeil={false}
               letzte
             />
-            <WirtshausSuche bekannte={reservierung.bekannte} label="Neues Wirtshaus" />
-            <button type="submit" className="wn-press" style={{ ...goldKnopfStil, minHeight: 52 }}>Ändern & alle informieren</button>
-          </form>
+            {/* Vorschläge und offene Wirtshäuser wia beim ersten Reservieren: ein Tipp wählt (WIR-035) */}
+            {reservierung.offene && reservierung.offene.length > 0 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                <span style={feldLabelStil}>Vorschläge und offene Wirtshäuser</span>
+                <div style={{ border: '1px solid var(--ink-100)', borderRadius: 'var(--r-md)', padding: '0 12px' }}>
+                  {reservierung.offene.map((w, i) => (
+                    <form
+                      key={w.id}
+                      action={async (fd) => {
+                        await reservierung.action(fd);
+                        setOffen(null);
+                        setMeldung('✓ Wirtshaus gändert, alle Spezln kriegen Bescheid!');
+                      }}
+                    >
+                      <input type="hidden" name="vorhandenesWirtshausId" value={w.id} />
+                      <Zeile
+                        submit
+                        kachel={<Kachel ton="gold"><Icon name="pin" size={19} /></Kachel>}
+                        titel={w.name}
+                        untertitel={w.finder ? `vorgeschlagen von ${w.finder}` : (w.bezirk ?? 'auf der Karte')}
+                        chip={<Chip ton="gold">wählen</Chip>}
+                        pfeil={false}
+                        letzte={i === reservierung.offene!.length - 1}
+                      />
+                    </form>
+                  ))}
+                </div>
+              </div>
+            )}
+            <form
+              action={async (fd) => {
+                await reservierung.action(fd);
+                setOffen(null);
+                setMeldung('✓ Wirtshaus gändert, alle Spezln kriegen Bescheid!');
+              }}
+              style={{ display: 'flex', flexDirection: 'column', gap: 14 }}
+            >
+              <WirtshausSuche bekannte={reservierung.bekannte} label={reservierung.offene && reservierung.offene.length > 0 ? 'Oder neu suchen' : 'Neues Wirtshaus'} />
+              <button type="submit" className="wn-press" style={{ ...goldKnopfStil, minHeight: 52 }}>Ändern & alle informieren</button>
+            </form>
+          </div>
         </>
       )}
 

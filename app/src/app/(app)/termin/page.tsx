@@ -510,7 +510,13 @@ async function AktiverTermin({
   // Absagen nur Präsident und Admin, ned der Organisator allein (WIR-007)
   const absagen = (isAdmin || meId === getPraesidentId()) && !termin.erfasstVon ? terminAbsagen.bind(null, termin.id) : null;
   const reservierung = termin.phase === 'reserviert' && darfVerwalten && wirtshaus
-    ? { action: wirtshausFestlegen.bind(null, termin.id), bekannte: getBekannteWirtshaeuser(), aktuell: { name: wirtshaus.name, bezirk: wirtshaus.bezirk } }
+    ? {
+        action: wirtshausFestlegen.bind(null, termin.id),
+        bekannte: getBekannteWirtshaeuser(),
+        aktuell: { name: wirtshaus.name, bezirk: wirtshaus.bezirk },
+        // Vorschläge und Offenes aa beim Ändern anbieten (Julius, 12.11.2026: „ich sehe die Vorschläge in der Maske nicht“)
+        offene: offene.map(({ wirtshaus: w, finder }) => ({ id: w.id, name: w.name, bezirk: w.bezirk, finder: finder ? anzeigeName(finder).split(' ')[0] : null })),
+      }
     : null;
 
   const ort = config.geo?.suchSuffix ?? null;

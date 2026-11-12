@@ -1,6 +1,6 @@
 import { getCurrentMember, erzwingeProfil } from '@/lib/session';
 import { ladeArchivEintraege } from '@/lib/archiv-eintraege';
-import { getPraesidentId, getAktuellerTermin } from '@/lib/queries';
+import { getPraesidentId, getAktuellerTermin, getBekannteWirtshaeuser } from '@/lib/queries';
 import { ArchivScreen } from '@/components/domain/ArchivScreen';
 import { tenantConfig } from '@/lib/tenant-config';
 import { wirtshausFestlegen } from '@/app/(app)/termin/actions';
@@ -23,6 +23,7 @@ export default async function KartePage() {
       ohneKarte={!tenantConfig().features.archivKarte}
       reservieren={reservierbar && termin ? wirtshausFestlegen.bind(null, termin.id) : null}
       titel={tenantConfig().typ === 'stammhaus' ? 'Lexikon' : 'Karte'}
+      bekannte={getBekannteWirtshaeuser()}
     />
   );
 }

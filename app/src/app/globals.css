@@ -465,6 +465,18 @@ details[open] > summary .wn-klappe-pfeil {
 .wn-hero-rechts {
   display: contents;
 }
+/* Karte: Knopfsäule rechts (Zoom, Standort, Legende); am Handy unter Ansichten und Status-Chips */
+.wn-lex-knoepfe {
+  position: absolute;
+  right: 12px;
+  top: calc(118px + var(--wn-oben));
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-end;
+}
+
 /* Leere Hinweis-Zeile (koa Push-Frage, koa Installieren) frisst koan Abstand */
 .wn-hinweise:empty {
   display: none;
@@ -771,6 +783,19 @@ details[open] > summary .wn-klappe-pfeil {
     bottom: 16px !important;
     width: min(440px, calc(100% - 32px));
   }
+  .wn-lex-kopf {
+    flex-wrap: wrap;
+  }
+  /* Tablet (3b): Suche und Filter in einer eigenen Zeile unterm Titel, ab Desktop rechts daneben */
+  .wn-lex-filter {
+    flex: 1 1 100%;
+    justify-content: flex-start;
+  }
+  /* Zoom und Standort rechts oben, ab Tablet in der Ecke der Karten-Kachel (3a) */
+  .wn-lex-knoepfe {
+    right: 16px;
+    top: 16px;
+  }
 
   /* Dahoam am Tablet: Rang links, Umfragen und Kasse rechts */
   .wn-dahoam {
@@ -851,7 +876,11 @@ details[open] > summary .wn-klappe-pfeil {
   .wn-zwei > .wn-spalte--l { grid-column: 1; }
   .wn-zwei > .wn-spalte--r { grid-column: 2; }
   .wn-lex {
-    grid-template-columns: minmax(0, 1fr) 400px;
+    grid-template-columns: minmax(0, 1fr) 500px;
+  }
+  .wn-lex-filter {
+    flex: 0 1 auto;
+    justify-content: flex-end;
   }
   .wn-lex-kopf {
     grid-column: 1 / -1;

@@ -1,8 +1,12 @@
 'use client';
 
-import { useRef, useState, useTransition } from 'react';
+import { useEffect, useRef, useState, useTransition } from 'react';
+import { Plus } from '@phosphor-icons/react/dist/ssr/Plus';
+import { Minus } from '@phosphor-icons/react/dist/ssr/Minus';
 import { Avatar, Icon, Kachel, Zeile, ZeilenKarte } from '@/components/ds';
-import { ArchivKarte, type Standort } from '@/components/domain/ArchivKarte';
+import { ArchivKarte, type Standort, type KartenSteuerung } from '@/components/domain/ArchivKarte';
+import { WirtshausGfunden } from '@/components/domain/WirtshausGfunden';
+import type { BekanntesWirtshaus } from '@/lib/wirtshaus-abgleich';
 import { RichtungsKnopf } from '@/components/domain/RichtungsKnopf';
 import { HoamTitel } from '@/components/domain/HoamTitel';
 import { KompaktStepper } from '@/components/domain/WertungFelder';
@@ -141,6 +145,7 @@ export function ArchivScreen({
   ohneKarte = false,
   reservieren = null,
   titel = 'Karte',
+  bekannte = null,
 }: {
   eintraege: ArchivEintrag[];
   /** Eingeloggter Spezl, darfModerieren = Admin oder aktueller Präsident. */
@@ -151,6 +156,8 @@ export function ArchivScreen({
   reservieren?: ((formData: FormData) => Promise<void>) | null;
   /** Überschrift ab Tablet: „Lexikon“ beim Stammhaus, sonst „Karte“ */
   titel?: string;
+  /** Fürs „Wirtshaus eintragen“ im Kopf ab Tablet (3a); null = Knopf weglassen */
+  bekannte?: BekanntesWirtshaus[] | null;
 }) {
   const { geo } = useTenantConfig();
   const ort = geo?.suchSuffix ?? null;
@@ -174,6 +181,49 @@ export function ArchivScreen({
     [...besucht].sort((a, b) => b.rating - a.rating).slice(0, 3).filter((e) => e.rating > 0).map((e) => e.id),
   );
 
+  /* ── Filter, Rang und Steuerung fürs Responsive Redesign 3a/3b (12.11.2026) ── */
+  const istVorschlag = (e: ArchivEintrag) => nurEntdeckt(e) || (!!e.vorbewertet && !e.besuchtAm && !e.naechstes);
+  const [status, setStatus] = useState<LexStatus>('alle');
+  const [suche, setSuche] = useState('');
+  const [bezirkWahl, setBezirkWahl] = useState('');
+  const [sortKey, setSortKey] = useState<Feld>('rating');
+  const [alleRaenge, setAlleRaenge] = useState(false);
+  const [eintragenAuf, setEintragenAuf] = useState(false);
+  const steuerungRef = useRef<KartenSteuerung | null>(null);
+  // Ab Tablet nummerierte Rang-Pins (nur fürs Pin-Aussehen, die Karte is eh reines Client-Rendering)
+  const [breit, setBreit] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 768px)');
+    const setzen = () => setBreit(mq.matches);
+    setzen();
+    mq.addEventListener('change', setzen);
+    return () => mq.removeEventListener('change', setzen);
+  }, []);
+  const bezirke = [...new Set(eintraege.map((e) => e.bezirk).filter((b): b is string => !!b))].sort((a, b) => a.localeCompare(b));
+  const zaehler: Record<LexStatus, number> = {
+    alle: eintraege.length,
+    besucht: eintraege.filter((e) => !istVorschlag(e)).length,
+    vorschlag: eintraege.filter(istVorschlag).length,
+  };
+  const suchwort = suche.trim().toLowerCase();
+  const gefiltert = eintraege.filter(
+    (e) =>
+      (status === 'alle' || (status === 'vorschlag') === istVorschlag(e)) &&
+      (!bezirkWahl || e.bezirk === bezirkWahl) &&
+      (!suchwort || e.name.toLowerCase().includes(suchwort) || (e.bezirk ?? '').toLowerCase().includes(suchwort)),
+  );
+  // Filter gewechselt → wieder beim ersten Pin anfangen
+  useEffect(() => { setIdx(0); }, [status, bezirkWahl, suchwort]);
+  // Platz in der Sterne-Rangliste: Stammhaus außer Konkurrenz auf der 1, dann nach Sternen
+  const rangListe = [
+    ...eintraege.filter((e) => e.stammhaus),
+    ...besucht.filter((e) => !e.stammhaus && e.rating > 0).sort((a, b) => b.rating - a.rating || a.name.localeCompare(b.name)),
+  ];
+  const rangVon = new Map(rangListe.map((e, i) => [e.id, i + 1]));
+  const besteSterne = rangListe.find((e) => !e.stammhaus);
+  const besteKaiser = [...besucht].filter((e) => !e.stammhaus && e.kaiser > 0).sort((a, b) => b.kaiser - a.kaiser)[0];
+  const besteBrodn = [...besucht].filter((e) => !e.stammhaus && e.brodn > 0).sort((a, b) => b.brodn - a.brodn)[0];
+
   const meinStandort = () => {
     if (!('geolocation' in navigator)) { setStandortHinweis('Koa Standort am Gerät.'); return; }
     navigator.geolocation.getCurrentPosition(
@@ -183,47 +233,90 @@ export function ArchivScreen({
     );
   };
 
-  /* ── KARTE: Vollbild, oben die Ansichten, unten das Kärtchen zum Pin ── */
+  /* ── KARTE (Responsive Redesign 3a/3b, 12.11.2026): am Handy Vollbild mit Ansichten,
+        Status-Chips und Kärtchen; ab Tablet Kopf mit Suche, Stadtteil- und Status-Filter,
+        Rang-Pins mit Legende und Zoom, rechts „Bestes“ und die Rang-Tabelle ── */
   if (view === 'karte') {
-    const safeIdx = Math.min(idx, Math.max(0, eintraege.length - 1));
-    const aktiv = eintraege[safeIdx];
-    const step = (d: number) => setIdx((i) => (Math.min(i, eintraege.length - 1) + d + eintraege.length) % eintraege.length);
-    const rundKnopf: React.CSSProperties = { width: 42, height: 42, borderRadius: '50%', border: 'none', background: 'var(--weiss)', boxShadow: '0 4px 12px rgba(7,25,58,0.25)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: 'var(--muc-blau)', cursor: 'pointer', padding: 0 };
-    // Ab Tablet steht neben der Karte die ganze Liste (Responsive 3a): Besuchte nach Sternen, dann der Rest
-    const liste = eintraege
-      .map((e, i) => ({ e, i }))
-      .sort((a, b) => Number(!!b.e.stammhaus) - Number(!!a.e.stammhaus) || (b.e.rating || 0) - (a.e.rating || 0) || a.e.name.localeCompare(b.e.name));
+    const sichtbar = gefiltert;
+    const safeIdx = Math.min(idx, Math.max(0, sichtbar.length - 1));
+    const aktiv = sichtbar[safeIdx];
+    const step = (d: number) => setIdx((i) => (Math.min(i, sichtbar.length - 1) + d + sichtbar.length) % sichtbar.length);
+    const eckKnopf: React.CSSProperties = { width: 40, height: 40, borderRadius: 12, background: 'var(--weiss)', border: '1px solid var(--ink-100)', boxShadow: '0 4px 12px rgba(7,25,58,0.2)', display: 'grid', placeItems: 'center', color: 'var(--navy)', cursor: 'pointer', padding: 0 };
     const stadtteile = new Set(eintraege.map((e) => e.bezirk).filter(Boolean)).size;
+    const besuche = eintraege.reduce((s, e) => s + (e.stammhaus ? (e.abende ?? 0) : e.besuchtAm || e.altbestand ? 1 : 0), 0);
+    const waehlen = (e: ArchivEintrag) => {
+      const i = sichtbar.findIndex((x) => x.id === e.id);
+      if (i >= 0) setIdx(i);
+    };
+    const oeffnen = (e: ArchivEintrag) => {
+      // „Nächstes Mal" antippen → direkt in Google Maps navigieren
+      if (e.naechstes) {
+        window.open(navigationsUrl({ name: e.name, lat: e.lat, lng: e.lng }, ort), '_blank', 'noopener');
+        return;
+      }
+      setDetail({ e, rank: rangVon.get(e.id) ?? null });
+    };
+    const feldStil: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 8, height: 44, padding: '0 14px', borderRadius: 12, background: 'var(--weiss)', border: '1.5px solid var(--ink-200)', color: 'var(--ink-500)' };
     return (
       <div className="wn-lex wn-breit" style={{ position: 'absolute', inset: 0, overflow: 'hidden' }}>
         <div className="wn-nur-breit wn-lex-kopf">
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0 }}>
-            <h1 style={{ margin: 0, fontFamily: 'var(--font-fraktur)', fontWeight: 400, fontSize: 44, lineHeight: 1, color: 'var(--navy)' }}>{titel}</h1>
-            <span className="wn-tnum" style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink-500)' }}>
-              {eintraege.length} {eintraege.length === 1 ? 'Wirtshaus' : 'Wirtshäuser'}{stadtteile > 0 ? ` · ${stadtteile} ${stadtteile === 1 ? 'Stadtteil' : 'Stadtteile'}` : ''}
+            <h1 style={{ margin: 0, fontFamily: 'var(--font-fraktur)', fontWeight: 400, fontSize: 40, lineHeight: 1, color: 'var(--navy)' }}>{titel}</h1>
+            <span className="wn-tnum" style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink-500)' }}>
+              {eintraege.length} {eintraege.length === 1 ? 'Wirtshaus' : 'Wirtshäuser'}
+              {stadtteile > 0 ? ` · ${stadtteile} ${stadtteile === 1 ? 'Stadtteil' : 'Stadtteile'}` : ''}
+              {besuche > 0 ? ` · ${besuche} ${besuche === 1 ? 'Besuch' : 'Besuche'}` : ''}
             </span>
           </div>
-          <div style={{ width: 'min(440px, 100%)' }}>
-            <Ansichten value={view} onChange={setView} ohneKarte={ohneKarte} />
+          <div className="wn-lex-filter" style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+            <label style={{ ...feldStil, width: 260 }}>
+              <Icon name="search" size={18} />
+              <span style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)' }}>Wirtshaus suchen</span>
+              <input type="search" value={suche} onChange={(ev) => setSuche(ev.target.value)} placeholder="Wirtshaus oder Stadtteil suchen" style={{ flex: 1, minWidth: 0, border: 'none', outline: 'none', background: 'transparent', fontFamily: 'var(--font-ui)', fontSize: 14, fontWeight: 600, color: 'var(--ink-900)' }} />
+            </label>
+            {bezirke.length > 1 && (
+              <select aria-label="Stadtteil" value={bezirkWahl} onChange={(ev) => setBezirkWahl(ev.target.value)} style={{ ...feldStil, color: 'var(--navy)', fontFamily: 'var(--font-ui)', fontSize: 14, fontWeight: 800, cursor: 'pointer', appearance: 'auto' }}>
+                <option value="">Alle Stadtteile</option>
+                {bezirke.map((b) => <option key={b} value={b}>{b}</option>)}
+              </select>
+            )}
+            <StatusChips value={status} onChange={setStatus} zaehler={zaehler} />
+            {bekannte && (
+              <button type="button" onClick={() => setEintragenAuf(true)} className="wn-press" style={{ ...goldKnopfStil, minHeight: 44, height: 44, padding: '0 18px', fontSize: 14, borderRadius: 12 }}>
+                <Icon name="plus" size={16} stroke={2.6} />
+                Wirtshaus eintragen
+              </button>
+            )}
           </div>
         </div>
         <div className="wn-lex-karte" style={{ position: 'absolute', inset: 0, overflow: 'hidden' }}>
         <ArchivKarte
-          pins={eintraege.map((e) => ({ id: e.id, name: e.name, lat: e.lat, lng: e.lng, photoUrl: e.photoUrl, naechstes: e.naechstes, top3: top3Ids.has(e.id), offen: nurEntdeckt(e), vorbewertet: !!e.vorbewertet && !e.besuchtAm && !e.naechstes, stammhaus: !!e.stammhaus }))}
+          pins={sichtbar.map((e) => ({ id: e.id, name: e.name, lat: e.lat, lng: e.lng, photoUrl: e.photoUrl, naechstes: e.naechstes, top3: top3Ids.has(e.id), offen: nurEntdeckt(e), vorbewertet: !!e.vorbewertet && !e.besuchtAm && !e.naechstes, stammhaus: !!e.stammhaus, rang: rangVon.get(e.id) ?? null }))}
           activeIdx={safeIdx}
           onPick={setIdx}
           standort={standort}
+          stil={breit ? 'rang' : 'tropfen'}
+          onSteuerung={(s) => { steuerungRef.current = s; }}
         />
-        {/* Oben nur die vier Ansichten (ab Tablet stehen die im Kopf) */}
-        <div className="wn-nur-handy" style={{ position: 'absolute', left: 12, right: 12, top: 'calc(12px + var(--wn-oben))', zIndex: 5 }}>
+        {/* Handy: oben die Ansichten, drunter der Status-Filter (ab Tablet steht beides im Kopf) */}
+        <div className="wn-nur-handy" style={{ position: 'absolute', left: 12, right: 12, top: 'calc(12px + var(--wn-oben))', zIndex: 5, display: 'flex', flexDirection: 'column', gap: 8 }}>
           <Ansichten value={view} onChange={setView} ohneKarte={ohneKarte} aufKarte />
+          <StatusChips value={status} onChange={setStatus} zaehler={zaehler} aufKarte />
         </div>
-        {/* Rechts: mein Standort + Pin-Legende */}
-        <div style={{ position: 'absolute', right: 16, top: 'calc(70px + var(--wn-oben))', zIndex: 5, display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-end' }}>
-          <button type="button" aria-label="Mein Standort" title="Mein Standort" onClick={meinStandort} className="wn-press" style={rundKnopf}>
+        {/* Legende ab Tablet (3a), links oben */}
+        <div className="wn-nur-breit" style={{ position: 'absolute', left: 16, top: 16, zIndex: 5, display: 'flex', alignItems: 'center', gap: 12, background: 'rgba(255,255,255,0.94)', padding: '8px 12px', borderRadius: 12, boxShadow: 'var(--sh-sm)', fontSize: 12, fontWeight: 700, color: 'var(--ink-700)' }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><span style={{ width: 14, height: 14, borderRadius: 99, background: 'var(--grad-gold)' }} />Top 3</span>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><span style={{ width: 14, height: 14, borderRadius: 99, background: 'var(--navy)', border: '2px solid #fff', boxShadow: '0 0 0 1px var(--navy)' }} />Rang nach Sternen</span>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><span style={{ width: 14, height: 14, borderRadius: 99, background: '#fff', border: '2px dashed var(--ink-300)' }} />Vorschlag</span>
+        </div>
+        {/* Rechts: Zoom (am Handy Ersatz für die Pinch-Geste, WIR-037), mein Standort, Legende (Handy) */}
+        <div className="wn-lex-knoepfe">
+          <button type="button" aria-label="Hineinzoomen" onClick={() => steuerungRef.current?.zoom(1)} className="wn-press" style={eckKnopf}><Plus size={20} weight="bold" /></button>
+          <button type="button" aria-label="Herauszoomen" onClick={() => steuerungRef.current?.zoom(-1)} className="wn-press" style={eckKnopf}><Minus size={20} weight="bold" /></button>
+          <button type="button" aria-label="Mein Standort" title="Mein Standort" onClick={meinStandort} className="wn-press" style={{ ...eckKnopf, color: 'var(--muc-blau)' }}>
             <Icon name="navigation" size={20} stroke={2.2} style={{ fill: standort ? 'currentColor' : 'none' } as React.CSSProperties} />
           </button>
-          <button type="button" aria-label="Was die Pins bedeuten" onClick={() => setLegende((l) => !l)} className="wn-press" style={{ ...rundKnopf, color: legende ? 'var(--navy)' : 'var(--ink-500)' }}>
+          <button type="button" aria-label="Was die Pins bedeuten" onClick={() => setLegende((l) => !l)} className="wn-press wn-nur-handy" style={{ ...eckKnopf, color: legende ? 'var(--navy)' : 'var(--ink-500)' }}>
             <Icon name="info" size={20} />
           </button>
           {standortHinweis && (
@@ -233,7 +326,7 @@ export function ArchivScreen({
         {legende && (
           <>
             <div onClick={() => setLegende(false)} style={{ position: 'absolute', inset: 0, zIndex: 6 }} />
-            <div style={{ position: 'absolute', left: 12, right: 12, top: 'calc(124px + var(--wn-oben))', zIndex: 7, ...karteStil, boxShadow: 'var(--sh-lg)', padding: 16, display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <div style={{ position: 'absolute', left: 12, right: 12, top: 'calc(170px + var(--wn-oben))', zIndex: 7, ...karteStil, boxShadow: 'var(--sh-lg)', padding: 16, display: 'flex', flexDirection: 'column', gap: 14 }}>
               <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--ink-500)' }}>Was die Pins bedeuten</span>
               {([['var(--gold)', 'solid #fff', 'var(--navy-900)', 'Top 3 nach Sternen · nächstes Ziel'], ['var(--navy)', 'solid #fff', 'var(--pergament)', 'Besucht · auch vor der App'], ['var(--muc-blau)', 'solid #fff', '#fff', 'Ausgewählt'], ['#fff', 'dashed var(--ink-300)', 'var(--ink-500)', 'Vorschlag, noch nicht besucht']] as const).map(([bg, rand, fg, text]) => (
                 <div key={text} style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
@@ -248,63 +341,51 @@ export function ArchivScreen({
         )}
         {aktiv && (
           <div className="wn-lex-kaertchen" style={{ position: 'absolute', left: 12, right: 12, bottom: 12, zIndex: 5 }}>
-            {nurEntdeckt(aktiv) || (aktiv.vorbewertet && !aktiv.besuchtAm && !aktiv.naechstes) ? (
-              <VorschlagKarte e={aktiv} idx={safeIdx} count={eintraege.length} onPrev={() => step(-1)} onNext={() => step(1)} ich={ich} ort={ort} reservieren={reservieren} onDetail={() => setDetail({ e: aktiv, rank: null })} />
+            {istVorschlag(aktiv) ? (
+              <VorschlagKarte e={aktiv} idx={safeIdx} count={sichtbar.length} onPrev={() => step(-1)} onNext={() => step(1)} ich={ich} ort={ort} reservieren={reservieren} onDetail={() => setDetail({ e: aktiv, rank: null })} />
             ) : (
-              <KartenKarte
-                e={aktiv}
-                idx={safeIdx}
-                count={eintraege.length}
-                onPrev={() => step(-1)}
-                onNext={() => step(1)}
-                ort={ort}
-                onOpen={() => {
-                  // „Nächstes Mal" antippen → direkt in Google Maps navigieren
-                  if (aktiv.naechstes) {
-                    window.open(navigationsUrl({ name: aktiv.name, lat: aktiv.lat, lng: aktiv.lng }, ort), '_blank', 'noopener');
-                    return;
-                  }
-                  setDetail({ e: aktiv, rank: null });
-                }}
-              />
+              <>
+                <div className="wn-nur-handy">
+                  <KartenKarte e={aktiv} idx={safeIdx} count={sichtbar.length} onPrev={() => step(-1)} onNext={() => step(1)} ort={ort} onOpen={() => oeffnen(aktiv)} />
+                </div>
+                <div className="wn-nur-breit">
+                  <RangKaertchen e={aktiv} rang={rangVon.get(aktiv.id) ?? null} onOpen={() => oeffnen(aktiv)} />
+                </div>
+              </>
             )}
           </div>
         )}
-        {eintraege.length === 0 && (
+        {sichtbar.length === 0 && (
           <div style={{ position: 'absolute', left: 16, right: 16, bottom: 20, zIndex: 5, ...karteStil, padding: 16, boxShadow: 'var(--sh-lg)', textAlign: 'center', fontSize: 13, fontWeight: 600, color: 'var(--ink-500)' }}>
-            Wirtshäuser, die ihr entdeckt, bewertet oder bsucht, erscheinen hier auf der Karte.
+            {eintraege.length === 0 ? 'Wirtshäuser, die ihr entdeckt, bewertet oder bsucht, erscheinen hier auf der Karte.' : 'Nix passt zu Suche und Filter.'}
           </div>
         )}
         </div>
         {eintraege.length > 0 && (
-          <aside className="wn-nur-breit wn-lex-liste" style={{ ...karteStil, padding: '16px 18px', display: 'flex', flexDirection: 'column' }}>
-            <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 8, paddingBottom: 6 }}>
-              <h2 style={{ margin: 0, fontFamily: 'var(--font-fraktur)', fontWeight: 400, fontSize: 26, lineHeight: 1, color: 'var(--navy)' }}>Alle Wirtshäuser</h2>
-              <span className="wn-tnum" style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink-500)' }}>{eintraege.length}</span>
+          <aside className="wn-nur-breit wn-lex-liste" style={{ display: 'flex', flexDirection: 'column', gap: 16, minWidth: 0 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 12 }}>
+              <BestesKarte titel="Bestes Wirtshaus" icon="star" e={besteSterne} wert={besteSterne ? `★ ${dez(besteSterne.rating)}${besteSterne.wertungen ? ` · ${besteSterne.wertungen.sterne} ${besteSterne.wertungen.sterne === 1 ? 'Wertung' : 'Wertungen'}` : ''}` : null} navy onClick={besteSterne ? () => waehlen(besteSterne) : undefined} />
+              <BestesKarte titel="Bester Schmarrn" icon="bowl" e={besteKaiser} wert={besteKaiser ? `Schmarrn ${dez(besteKaiser.kaiser)}` : null} onClick={besteKaiser ? () => waehlen(besteKaiser) : undefined} />
+              <BestesKarte titel="Bester Brodn" icon="cookie" e={besteBrodn} wert={besteBrodn ? `Brodn ${dez(besteBrodn.brodn)}` : null} onClick={besteBrodn ? () => waehlen(besteBrodn) : undefined} />
             </div>
-            {liste.map(({ e, i }, n) => (
-              <button
-                key={e.id}
-                type="button"
-                onClick={() => setIdx(i)}
-                aria-current={i === safeIdx ? 'true' : undefined}
-                style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 8px', margin: '0 -8px', border: 'none', borderRadius: 12, background: i === safeIdx ? 'var(--info-bg)' : 'transparent', boxShadow: n < liste.length - 1 && i !== safeIdx ? 'inset 0 -1px 0 var(--ink-50)' : 'none', textAlign: 'left', cursor: 'pointer', fontFamily: 'var(--font-ui)' }}
-              >
-                <span style={{ width: 46, height: 46, flex: 'none', borderRadius: 12, background: e.photoUrl ? `url(${JSON.stringify(e.photoUrl)}) center/cover` : streifen }} />
-                <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
-                  <span style={{ fontSize: 14, fontWeight: 800, color: 'var(--ink-900)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{e.name}</span>
-                  <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink-500)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {e.stammhaus ? [e.bezirk, 'euer Stammhaus'].filter(Boolean).join(' · ') : nurEntdeckt(e) ? [e.bezirk, 'Vorschlag'].filter(Boolean).join(' · ') : [e.bezirk, e.besuchtAm ?? (e.altbestand ? 'vor der App' : null)].filter(Boolean).join(' · ')}
-                  </span>
-                </span>
-                {e.rating > 0 && !e.stammhaus && (
-                  <span className="wn-tnum" style={{ flex: 'none', fontSize: 12, fontWeight: 800, padding: '4px 10px', borderRadius: 999, background: 'var(--pergament)', color: 'var(--gold-700)', whiteSpace: 'nowrap' }}>★ {dez(e.rating)}</span>
-                )}
-              </button>
-            ))}
+            <RangTabelle zeilen={sichtbar.filter((e) => !istVorschlag(e))} sortKey={sortKey} onSort={setSortKey} aktivId={aktiv?.id ?? null} onPick={waehlen} onOpen={oeffnen} alle={alleRaenge} onAlle={() => setAlleRaenge((a) => !a)} rangVon={rangVon} />
           </aside>
         )}
         {detail && <DetailModal e={detail.e} rank={detail.rank} onClose={() => setDetail(null)} ich={ich} reservieren={reservieren} />}
+        {eintragenAuf && bekannte && (
+          <>
+            <div onClick={() => setEintragenAuf(false)} style={{ position: 'fixed', inset: 0, zIndex: 80, background: 'rgba(7,25,58,0.5)' }} />
+            <div role="dialog" aria-label="Wirtshaus eintragen" className="wn-fenster wn-scroll-still" style={{ position: 'fixed', inset: 0, zIndex: 81, background: 'var(--bg-app)', padding: 16, display: 'flex', flexDirection: 'column', gap: 14, ['--wn-fenster-breite' as string]: '560px' } as React.CSSProperties}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+                <span style={{ fontFamily: 'var(--font-fraktur)', fontSize: 28, lineHeight: 1, color: 'var(--navy)' }}>Wirtshaus eintragen</span>
+                <button type="button" onClick={() => setEintragenAuf(false)} aria-label="Schließen" className="wn-press" style={{ width: 36, height: 36, borderRadius: '50%', border: 'none', background: 'var(--ink-100)', color: 'var(--ink-500)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0 }}>
+                  <Icon name="x" size={17} />
+                </button>
+              </div>
+              <WirtshausGfunden bekannte={bekannte} />
+            </div>
+          </>
+        )}
       </div>
     );
   }
@@ -811,5 +892,194 @@ function Nachbewertung({ wirtshausId, name, meine, onFertig }: { wirtshausId: st
         {gespeichert ? '✓ Gespeichert, vergelt’s Gott!' : pending ? 'Speichert …' : 'Speichern'}
       </button>
     </div>
+  );
+}
+
+/* ── Status-Filter (Julius, 12.11.2026): Alle · Besucht · Vorschläge, am Handy auf der Karte, ab Tablet im Kopf ── */
+export type LexStatus = 'alle' | 'besucht' | 'vorschlag';
+function StatusChips({ value, onChange, zaehler, aufKarte = false }: { value: LexStatus; onChange: (v: LexStatus) => void; zaehler: Record<LexStatus, number>; aufKarte?: boolean }) {
+  const tabs: [LexStatus, string][] = [['alle', 'Alle'], ['besucht', 'Besucht'], ['vorschlag', 'Vorschläge']];
+  return (
+    <div role="group" aria-label="Wirtshäuser filtern" style={{ display: 'flex', gap: 6, justifyContent: aufKarte ? 'center' : 'flex-start' }}>
+      {tabs.map(([k, label]) => {
+        const an = value === k;
+        return (
+          <button
+            key={k}
+            type="button"
+            aria-pressed={an}
+            onClick={() => onChange(k)}
+            className="wn-press"
+            style={{ height: aufKarte ? 32 : 44, padding: '0 12px', borderRadius: 999, border: an ? 'none' : `1.5px solid ${aufKarte ? 'rgba(255,255,255,0.6)' : 'var(--ink-200)'}`, background: an ? 'var(--navy)' : aufKarte ? 'rgba(255,255,255,0.94)' : 'var(--weiss)', color: an ? 'var(--pergament)' : 'var(--navy)', fontFamily: 'var(--font-ui)', fontSize: 12, fontWeight: 800, cursor: 'pointer', boxShadow: aufKarte ? 'var(--sh-sm)' : 'none', whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: 5 }}
+          >
+            {label}
+            <span className="wn-tnum" style={{ opacity: 0.6 }}>{zaehler[k]}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+/* ── Kärtchen zum Pin ab Tablet (3a): Foto, Platz · Bezirk, Name, Zuletzt · Hoibe, drei Werte ── */
+function RangKaertchen({ e, rang, onOpen }: { e: ArchivEintrag; rang: number | null; onOpen: () => void }) {
+  const eyebrow = [rang ? `${rang}. Platz` : e.naechstes ? 'Nächstes Mal' : e.stammhaus ? 'Stammhaus' : e.altbestand ? 'Vor der App' : 'Besucht', e.bezirk].filter(Boolean).join(' · ');
+  const zeile = [
+    e.datumLang ? `Zuletzt ${e.datumLang}` : e.altbestand ? 'Chronik seit 2019' : null,
+    e.stammhaus && e.abende ? `${e.abende} Abende` : null,
+    e.hoiben > 0 ? `${e.hoiben} Hoibe` : null,
+    e.organisator && e.naechstes ? `organisiert von ${kurzName(e.organisator.name)}` : null,
+  ].filter(Boolean).join(' · ');
+  const wert = (label: string, v: number, gold = false) => (
+    <div style={{ borderRadius: 12, background: gold ? 'var(--pergament)' : 'var(--info-bg)', padding: '8px 10px', display: 'flex', flexDirection: 'column', gap: 2 }}>
+      <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: gold ? '#8A6A2C' : 'var(--muc-blau)' }}>{label}</span>
+      <span className="wn-tnum" style={{ fontSize: 18, fontWeight: 800, lineHeight: 1, color: v > 0 ? 'var(--navy)' : 'var(--ink-200)' }}>{v > 0 ? dez(v) : '–'}</span>
+    </div>
+  );
+  return (
+    <div style={{ ...karteStil, boxShadow: '0 14px 36px rgba(7,25,58,0.25)', padding: 14, display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <div style={{ display: 'flex', gap: 14, alignItems: 'center' }}>
+        <span style={{ width: 64, height: 64, flex: 'none', borderRadius: 14, background: e.photoUrl ? `url(${JSON.stringify(e.photoUrl)}) center/cover` : streifen }} />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 3, minWidth: 0, flex: 1 }}>
+          <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--gold-700)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{eyebrow}</span>
+          <span style={{ fontSize: 17, fontWeight: 800, color: 'var(--ink-900)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{e.name}</span>
+          {zeile && <span className="wn-tnum" style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink-500)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{zeile}</span>}
+        </div>
+        {e.naechstes ? (
+          <RichtungsKnopf ziel={{ name: e.name, lat: e.lat, lng: e.lng }} size={40} />
+        ) : (
+          <button type="button" onClick={onOpen} aria-label={`${e.name} öffnen`} className="wn-press" style={{ width: 40, height: 40, flex: 'none', borderRadius: 12, border: '1px solid var(--ink-100)', background: 'var(--weiss)', color: 'var(--ink-500)', display: 'grid', placeItems: 'center', cursor: 'pointer', padding: 0 }}>
+            <Icon name="chevron" size={20} />
+          </button>
+        )}
+      </div>
+      {!e.stammhaus && (
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
+          {wert('Sterne', e.rating, true)}
+          {wert('Schmarrn', e.kaiser)}
+          {wert('Brodn', e.brodn)}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ── „Bestes“-Kacheln rechts (3a): Bestes Wirtshaus in Navy, Schmarrn und Brodn in Weiß ── */
+function BestesKarte({ titel, icon, e, wert, navy = false, onClick }: { titel: string; icon: 'star' | 'bowl' | 'cookie'; e: ArchivEintrag | undefined; wert: string | null; navy?: boolean; onClick?: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={!onClick}
+      className={onClick ? 'wn-press' : undefined}
+      style={{ textAlign: 'left', borderRadius: 16, padding: 14, display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0, cursor: onClick ? 'pointer' : 'default', fontFamily: 'var(--font-ui)', border: navy ? 'none' : '1px solid var(--ink-100)', background: navy ? 'radial-gradient(120% 90% at 50% 20%, #1B4C8A 0%, #0C2B5A 55%, #07193A 100%)' : 'var(--weiss)', boxShadow: 'var(--sh-sm)' }}
+    >
+      <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 10, fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: navy ? 'var(--gold)' : 'var(--gold-700)' }}>
+        <Icon name={icon} size={13} stroke={2.4} />
+        {titel}
+      </span>
+      <span style={{ fontFamily: 'var(--font-fraktur)', fontSize: 21, lineHeight: 1.05, color: navy ? 'var(--gold-bright)' : 'var(--navy)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '100%' }}>{e ? e.name : 'Noch offen'}</span>
+      <span className="wn-tnum" style={{ fontSize: 13, fontWeight: 800, color: navy ? 'rgba(246,240,226,0.75)' : 'var(--ink-500)' }}>{wert ?? 'noch keine Wertung'}</span>
+    </button>
+  );
+}
+
+/* ── „Alle Ränge“ (3a): sortierbare Tabelle, Klick wählt den Pin, Doppelklick öffnet das Detail ── */
+function RangTabelle({ zeilen, sortKey, onSort, aktivId, onPick, onOpen, alle, onAlle, rangVon }: {
+  zeilen: ArchivEintrag[];
+  sortKey: Feld;
+  onSort: (f: Feld) => void;
+  aktivId: string | null;
+  onPick: (e: ArchivEintrag) => void;
+  onOpen: (e: ArchivEintrag) => void;
+  alle: boolean;
+  onAlle: () => void;
+  rangVon: Map<string, number>;
+}) {
+  const ZEIGEN = 9;
+  const wert = (e: ArchivEintrag, f: Feld) => (e.stammhaus ? 0 : e[f] || 0);
+  const sortiert = [...zeilen].sort((a, b) => Number(!!b.stammhaus) - Number(!!a.stammhaus) || wert(b, sortKey) - wert(a, sortKey) || a.name.localeCompare(b.name));
+  const sicht = alle ? sortiert : sortiert.slice(0, ZEIGEN);
+  const best: Record<Feld, number> = {
+    rating: Math.max(0, ...zeilen.map((e) => wert(e, 'rating'))),
+    kaiser: Math.max(0, ...zeilen.map((e) => wert(e, 'kaiser'))),
+    brodn: Math.max(0, ...zeilen.map((e) => wert(e, 'brodn'))),
+  };
+  const spalten = 'minmax(0, 1fr) 56px 76px 60px';
+  const sortName = { rating: 'Sternen', kaiser: 'Schmarrn', brodn: 'Brodn' }[sortKey];
+  const kopf = (f: Feld, label: string) => {
+    const an = sortKey === f;
+    return (
+      <button type="button" aria-pressed={an} onClick={() => onSort(f)} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 4, padding: '6px 6px', border: 'none', borderRadius: 8, background: an ? 'var(--pergament)' : 'transparent', color: an ? 'var(--gold-700)' : 'var(--ink-500)', fontFamily: 'var(--font-ui)', fontSize: 11, fontWeight: 800, letterSpacing: '0.04em', textTransform: 'uppercase', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+        {label}
+        <span aria-hidden style={{ fontSize: 9, opacity: an ? 1 : 0.5 }}>{an ? '▼' : '↕'}</span>
+      </button>
+    );
+  };
+  const zelle = (e: ArchivEintrag, f: Feld) => {
+    const v = wert(e, f);
+    if (e.stammhaus || !(v > 0)) return <span style={{ justifySelf: 'center', fontSize: 14, fontWeight: 800, color: 'var(--ink-200)' }}>–</span>;
+    const top = v === best[f];
+    return (
+      <span className="wn-tnum" style={{ justifySelf: 'center', fontSize: top ? 13 : 14, fontWeight: top ? 800 : 700, padding: top ? '3px 9px' : 0, borderRadius: 999, background: top ? 'var(--pergament)' : 'transparent', color: top ? 'var(--gold-700)' : 'var(--ink-900)' }}>
+        {dez(v)}
+      </span>
+    );
+  };
+  return (
+    <section style={{ ...karteStil, padding: '16px 18px', display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8, marginBottom: 8 }}>
+        <h2 style={{ margin: 0, fontFamily: 'var(--font-fraktur)', fontWeight: 400, fontSize: 26, lineHeight: 1, color: 'var(--navy)' }}>Alle Ränge</h2>
+        <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink-500)' }}>sortiert nach {sortName}</span>
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: spalten, gap: 6, alignItems: 'center', padding: '4px 0 8px', borderBottom: '1px solid var(--ink-50)' }}>
+        <span style={{ padding: '6px 8px', fontSize: 11, fontWeight: 800, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--ink-500)' }}>Wirtshaus</span>
+        {kopf('rating', '★')}
+        {kopf('kaiser', 'Schmarrn')}
+        {kopf('brodn', 'Brodn')}
+      </div>
+      {sicht.map((e, i) => {
+        const rang = sortKey === 'rating' ? rangVon.get(e.id) ?? null : wert(e, sortKey) > 0 ? i + 1 : null;
+        const top3 = !!rang && rang <= 3 && !e.stammhaus;
+        const an = e.id === aktivId;
+        return (
+          <button
+            key={e.id}
+            type="button"
+            onClick={() => onPick(e)}
+            onDoubleClick={() => onOpen(e)}
+            aria-current={an ? 'true' : undefined}
+            style={{ display: 'grid', gridTemplateColumns: spalten, gap: 6, alignItems: 'center', padding: '9px 10px', margin: '0 -10px', border: 'none', borderRadius: 12, background: an ? 'var(--info-bg)' : 'transparent', boxShadow: an ? 'none' : 'inset 0 -1px 0 var(--ink-50)', textAlign: 'left', cursor: 'pointer', fontFamily: 'var(--font-ui)', color: 'var(--ink-900)' }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+              {e.stammhaus ? (
+                <span style={{ width: 26, height: 26, borderRadius: 99, background: 'var(--grad-gold)', color: 'var(--navy-900)', display: 'grid', placeItems: 'center', flex: 'none' }}><Icon name="home" size={13} stroke={2.6} /></span>
+              ) : top3 ? (
+                <span className="wn-tnum" style={{ width: 26, height: 26, borderRadius: 99, background: 'var(--grad-gold)', color: 'var(--navy-900)', display: 'grid', placeItems: 'center', fontSize: 12, fontWeight: 800, flex: 'none' }}>{rang}</span>
+              ) : (
+                <span className="wn-tnum" style={{ width: 26, textAlign: 'center', fontSize: 13, fontWeight: 800, color: 'var(--ink-500)', flex: 'none' }}>{rang ? `${rang}.` : '–'}</span>
+              )}
+              <span style={{ width: 38, height: 38, borderRadius: 10, flex: 'none', background: e.photoUrl ? `url(${JSON.stringify(e.photoUrl)}) center/cover` : streifen }} />
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 1, minWidth: 0 }}>
+                <span style={{ fontSize: 14, fontWeight: 800, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{e.name}</span>
+                <span className="wn-tnum" style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink-500)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {[e.bezirk, e.stammhaus ? (e.abende ? `${e.abende} Abende` : 'euer Stammhaus') : e.naechstes ? 'Nächstes Mal' : e.datumLang ? `zuletzt ${e.datumLang}` : e.altbestand ? 'vor der App' : null].filter(Boolean).join(' · ')}
+                </span>
+              </div>
+            </div>
+            {zelle(e, 'rating')}
+            {zelle(e, 'kaiser')}
+            {zelle(e, 'brodn')}
+          </button>
+        );
+      })}
+      {zeilen.length === 0 && <span style={{ padding: '18px 0 6px', fontSize: 13, fontWeight: 600, color: 'var(--ink-500)', textAlign: 'center' }}>Noch nix besucht, kommt mit dem ersten Abend.</span>}
+      {sortiert.length > ZEIGEN && (
+        <button type="button" onClick={onAlle} style={{ marginTop: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, paddingTop: 10, border: 'none', background: 'none', fontFamily: 'var(--font-ui)', fontSize: 13, fontWeight: 800, color: 'var(--muc-blau)', cursor: 'pointer' }}>
+          {alle ? 'Weniger anzeigen' : `${sortiert.length - ZEIGEN} weitere ${sortiert.length - ZEIGEN === 1 ? 'Wirtshaus' : 'Wirtshäuser'}`}
+          <Icon name="chevron" size={14} style={{ transform: alle ? 'rotate(-90deg)' : 'rotate(90deg)' }} />
+        </button>
+      )}
+    </section>
   );
 }

@@ -15,8 +15,12 @@ Deployt wird weiterhin per rsync aus dem WSL-Checkout:
 # Update deployen (WICHTIG: deploy/.env ausnehmen — sonst löscht --delete die Server-Secrets!)
 rsync -az --delete --exclude node_modules --exclude .next --exclude 'app/data' \
   --exclude .git --exclude 'deploy/.env' ./ root@178.105.234.52:/opt/wirtschaftln/
-ssh root@178.105.234.52 "cd /opt/wirtschaftln && docker compose --env-file deploy/.env up -d --build"
+ssh root@178.105.234.52 "cd /opt/wirtschaftln && NEXT_DEPLOYMENT_ID=$(git rev-parse --short HEAD) docker compose --env-file deploy/.env up -d --build"
 ```
+
+`NEXT_DEPLOYMENT_ID` ist die Versions-Kennung für die Skew-Erkennung von Next (WIR-039): offene
+Apps merken beim nächsten Tippen, dass der Server neuer ist, und laden selbst neu. Ohne die
+Variable nimmt der Build den Bauzeitpunkt, funktioniert also auch, nur ohne lesbare Kennung.
 
 ## Erstinstallation (bei Server-Neuaufbau)
 

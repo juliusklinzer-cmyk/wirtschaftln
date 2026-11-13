@@ -7,6 +7,8 @@ services:
         - NEXT_PUBLIC_GMAPS_KEY=${NEXT_PUBLIC_GMAPS_KEY}
         - NEXT_PUBLIC_VAPID_PUBLIC_KEY=${NEXT_PUBLIC_VAPID_PUBLIC_KEY}
         - NEXT_PUBLIC_PAYPAL_POOL_URL=${NEXT_PUBLIC_PAYPAL_POOL_URL}
+        # Versions-Kennung (Git-SHA) für die Skew-Erkennung, beim Deploy als Shell-Variable mitgeben
+        - NEXT_DEPLOYMENT_ID=${NEXT_DEPLOYMENT_ID:-}
     restart: unless-stopped
     # Laufzeit-Secrets (VAPID privat, SMTP, …) — Vorlage: deploy/env.example
     env_file:

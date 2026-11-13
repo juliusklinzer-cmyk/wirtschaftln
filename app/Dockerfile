@@ -13,9 +13,12 @@ COPY . .
 ARG NEXT_PUBLIC_GMAPS_KEY
 ARG NEXT_PUBLIC_VAPID_PUBLIC_KEY
 ARG NEXT_PUBLIC_PAYPAL_POOL_URL
+# Versions-Kennung für die Skew-Erkennung (Git-SHA, siehe deploy/README.md); leer = Bauzeitpunkt
+ARG NEXT_DEPLOYMENT_ID
 ENV NEXT_PUBLIC_GMAPS_KEY=$NEXT_PUBLIC_GMAPS_KEY \
     NEXT_PUBLIC_VAPID_PUBLIC_KEY=$NEXT_PUBLIC_VAPID_PUBLIC_KEY \
-    NEXT_PUBLIC_PAYPAL_POOL_URL=$NEXT_PUBLIC_PAYPAL_POOL_URL
+    NEXT_PUBLIC_PAYPAL_POOL_URL=$NEXT_PUBLIC_PAYPAL_POOL_URL \
+    NEXT_DEPLOYMENT_ID=$NEXT_DEPLOYMENT_ID
 # Fail-fast: ohne Build-Args (--env-file deploy/.env vergessen) wären Karte
 # und Push still kaputt — lieber gleich beim Bauen krachen.
 RUN test -n "$NEXT_PUBLIC_GMAPS_KEY" || (echo "NEXT_PUBLIC_GMAPS_KEY fehlt — mit: docker compose --env-file deploy/.env up -d --build" && exit 1)

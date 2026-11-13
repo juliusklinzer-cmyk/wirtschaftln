@@ -48,6 +48,11 @@ export function WirtshausSuche({
   const [treffer, setTreffer] = useState<WirtshausTreffer | null>(null);
   const [eingabe, setEingabe] = useState('');
   const [status, setStatus] = useState<'lade' | 'bereit' | 'fehler'>('lade');
+  // Google erst holen, wenn's wer braucht (WIR-040): das Maps-Skript is mit 1,4 MB der
+  // größte Brocken der Seite und lud auf Dahoam schon fürs zugeklappte „Wirtshaus gfunden?“.
+  // Aktiv wird die Suche beim Aufklappen der umgebenden Klappe, sobald das Feld im Bild is,
+  // oder spätestens beim Antippen.
+  const [aktiv, setAktiv] = useState(false);
 
   // Unscharfer Abgleich (gleiche Logik wie die Server-Regel beim Vorschlagen)
   const bekanntes = findeBekanntes(treffer?.name ?? eingabe, bekannte);
@@ -55,6 +60,25 @@ export function WirtshausSuche({
   const nurHinweis = bekanntes?.art === 'vorgeschlagen' || (bekanntes?.art === 'besucht' && !vorschlag);
 
   useEffect(() => {
+    if (aktiv) return;
+    const el = inputRef.current;
+    if (!el) return;
+    const an = () => setAktiv(true);
+    const klappe = el.closest('details');
+    if (klappe) {
+      // In einer Klappe: erst wenn sie aufgeht (zu = Feld unsichtbar, da zählt der Beobachter ned)
+      if (klappe.open) { an(); return; }
+      klappe.addEventListener('toggle', an);
+      return () => klappe.removeEventListener('toggle', an);
+    }
+    if (typeof IntersectionObserver === 'undefined') { an(); return; }
+    const io = new IntersectionObserver((eintraege) => { if (eintraege.some((e) => e.isIntersecting)) an(); }, { rootMargin: '200px' });
+    io.observe(el);
+    return () => io.disconnect();
+  }, [aktiv]);
+
+  useEffect(() => {
+    if (!aktiv) return;
     let aufgeraeumt = false;
     let listener: any = null;
     let autocomplete: any = null;
@@ -94,7 +118,7 @@ export function WirtshausSuche({
       aufgeraeumt = true;
       if (listener) listener.remove();
     };
-  }, []);
+  }, [aktiv]);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -102,6 +126,8 @@ export function WirtshausSuche({
       <input
         ref={inputRef}
         placeholder={status === 'fehler' ? 'Name eintippen (Google-Suche nicht verfügbar)' : 'Wirtshaus suchen, Google füllt den Rest aus…'}
+        onFocus={() => setAktiv(true)}
+        onPointerDown={() => setAktiv(true)}
         onChange={(e) => {
           setEingabe(e.target.value);
           // Freitext bleibt gültig, falls Google nix findet
